@@ -11,6 +11,7 @@ export default function RecuperarSenhaPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [resetUrl, setResetUrl] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +19,11 @@ export default function RecuperarSenhaPage() {
     setLoading(true);
 
     try {
-      await api.post('/auth/forgot-password', { email });
+      const { data } = await api.post('/auth/forgot-password', { email });
       setSent(true);
+      if (data.reset_url) {
+        setResetUrl(data.reset_url);
+      }
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Erro ao enviar e-mail. Tente novamente.';
       setError(msg);
@@ -55,6 +59,21 @@ export default function RecuperarSenhaPage() {
                 <strong className="text-gray-700">{email}</strong>. Verifique sua caixa de entrada
                 e siga as instrucoes.
               </p>
+
+              {resetUrl && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-left">
+                  <p className="text-xs font-semibold text-yellow-700 mb-2">Link de recuperação (modo desenvolvimento):</p>
+                  <a
+                    href={resetUrl}
+                    className="text-xs text-blue-600 underline break-all leading-relaxed block"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {resetUrl}
+                  </a>
+                </div>
+              )}
+
               <Link
                 href="/auth/login"
                 className="inline-flex items-center gap-2 text-primary-500 hover:text-primary-600 font-semibold text-sm"

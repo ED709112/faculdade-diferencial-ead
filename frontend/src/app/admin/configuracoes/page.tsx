@@ -38,6 +38,12 @@ interface Settings {
   payment_gateway: string;
   payment_api_key: string;
   payment_secret_key: string;
+  efibank_client_id: string;
+  efibank_client_secret: string;
+  efibank_pix_key: string;
+  efibank_certificate_path: string;
+  efibank_certificate_password: string;
+  efibank_environment: string;
   smtp_host: string;
   smtp_port: string;
   smtp_user: string;
@@ -62,9 +68,15 @@ export default function AdminConfiguracoesPage() {
     favicon_url: '',
     primary_color: '#1a56db',
     secondary_color: '#f97316',
-    payment_gateway: 'stripe',
+    payment_gateway: 'efibank',
     payment_api_key: '',
     payment_secret_key: '',
+    efibank_client_id: '',
+    efibank_client_secret: '',
+    efibank_pix_key: '',
+    efibank_certificate_path: '',
+    efibank_certificate_password: '',
+    efibank_environment: 'sandbox',
     smtp_host: '',
     smtp_port: '587',
     smtp_user: '',
@@ -360,35 +372,133 @@ export default function AdminConfiguracoesPage() {
                   onChange={(e) => handleChange('payment_gateway', e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                 >
-                  <option value="stripe">Stripe</option>
-                  <option value="pagseguro">PagSeguro</option>
-                  <option value="mercadopago">Mercado Pago</option>
+                  <option value="efibank">Efíbank (PIX, Boleto, Cartão)</option>
                   <option value="asaas">Asaas</option>
+                  <option value="mercadopago">Mercado Pago</option>
+                  <option value="pagseguro">PagSeguro</option>
+                  <option value="stripe">Stripe</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chave de API</label>
-                <input
-                  type="password"
-                  value={settings.payment_api_key}
-                  onChange={(e) => handleChange('payment_api_key', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  placeholder="sk_xxxxxxxxxxxxxxxxxxxx"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chave Secreta</label>
-                <input
-                  type="password"
-                  value={settings.payment_secret_key}
-                  onChange={(e) => handleChange('payment_secret_key', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  placeholder="sk_live_xxxxxxxxxxxxxxxxxxxx"
-                />
-              </div>
+
+              {settings.payment_gateway === 'efibank' && (
+                <div className="space-y-4 p-5 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <span className="text-purple-600 font-bold text-sm">Efi</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Efíbank</p>
+                      <p className="text-xs text-gray-500">PIX, Boleto e Cartão de Crédito</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                      <input
+                        type="password"
+                        value={settings.efibank_client_id || ''}
+                        onChange={(e) => handleChange('efibank_client_id', e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        placeholder="Client_Id_xxxxxxxx"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
+                      <input
+                        type="password"
+                        value={settings.efibank_client_secret || ''}
+                        onChange={(e) => handleChange('efibank_client_secret', e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        placeholder="Client_Secret_xxxxxxxx"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chave PIX (Efi)</label>
+                    <input
+                      type="text"
+                      value={settings.efibank_pix_key || ''}
+                      onChange={(e) => handleChange('efibank_pix_key', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      placeholder="Sua chave PIX (CPF, e-mail, aleatória ou CNPJ)"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Caminho do Certificado (.p12)</label>
+                      <input
+                        type="text"
+                        value={settings.efibank_certificate_path || ''}
+                        onChange={(e) => handleChange('efibank_certificate_path', e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        placeholder="/caminho/para/certificado.p12"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Senha do Certificado</label>
+                      <input
+                        type="password"
+                        value={settings.efibank_certificate_password || ''}
+                        onChange={(e) => handleChange('efibank_certificate_password', e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        placeholder="Senha do certificado P12"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
+                    <select
+                      value={settings.efibank_environment || 'sandbox'}
+                      onChange={(e) => handleChange('efibank_environment', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    >
+                      <option value="sandbox">Sandbox (Homologação)</option>
+                      <option value="production">Produção</option>
+                    </select>
+                  </div>
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <p className="text-sm text-blue-800">
+                      <strong>Como configurar:</strong>
+                    </p>
+                    <ol className="text-xs text-blue-700 mt-2 space-y-1 list-decimal list-inside">
+                      <li>Crie uma conta em <a href="https://sejaefi.com.br" target="_blank" className="underline">sejaefi.com.br</a></li>
+                      <li>No dashboard, vá em <strong>API &gt; Minhas Aplicações</strong> e gere o Client_ID e Client_Secret</li>
+                      <li>Vá em <strong>API &gt; Meus Certificados</strong> e gere um certificado P12 (baixe apenas 1 vez!)</li>
+                      <li>Cadastre uma chave PIX em <strong>PIX &gt; Minhas Chaves</strong></li>
+                      <li>Cole os dados acima e reinicie o servidor backend</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {settings.payment_gateway !== 'efibank' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chave de API</label>
+                    <input
+                      type="password"
+                      value={settings.payment_api_key}
+                      onChange={(e) => handleChange('payment_api_key', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      placeholder="sk_xxxxxxxxxxxxxxxxxxxx"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chave Secreta</label>
+                    <input
+                      type="password"
+                      value={settings.payment_secret_key}
+                      onChange={(e) => handleChange('payment_secret_key', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      placeholder="sk_live_xxxxxxxxxxxxxxxxxxxx"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
                 <p className="text-sm text-amber-800">
-                  <strong>Atenção:</strong> As chaves de API são dados sensíveis. Nunca as compartilhe ou exponha em códigos-fonte públicos.
+                  <strong>Atenção:</strong> As chaves de API e certificados são dados sensíveis. Nunca as compartilhe ou exponha em códigos-fonte públicos.
                 </p>
               </div>
             </div>

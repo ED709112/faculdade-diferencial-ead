@@ -12,18 +12,18 @@ import Loading from '@/components/ui/Loading';
 
 interface Enrollment {
   id: number;
-  course: {
-    id: number;
-    title: string;
-    slug: string;
-    image?: string;
-    teacher_name: string;
-    workload: number;
-  };
-  progress: number;
-  completed: boolean;
-  last_accessed: string;
-  enrolled_at: string;
+  course_id: number;
+  course_title: string;
+  course_slug?: string;
+  course_image?: string;
+  teacher_name?: string;
+  workload?: number;
+  progress_percentage: number;
+  status: string;
+  started_at: string;
+  last_accessed_at?: string;
+  completed_at?: string;
+  category_name?: string;
 }
 
 type FilterType = 'all' | 'in_progress' | 'completed';
@@ -43,8 +43,9 @@ export default function MyCoursesPage() {
       if (filter === 'in_progress') params.completed = 'false';
 
       const { data } = await api.get('/enrollments/my', { params });
-      setEnrollments(data.enrollments || data.data || data);
-      setTotalPages(data.totalPages || data.meta?.totalPages || 1);
+      const list = Array.isArray(data) ? data : data.enrollments || data.data || [];
+      setEnrollments(list);
+      setTotalPages(data.totalPages || data.pagination?.pages || data.meta?.totalPages || 1);
     } catch {
       // silently fail
     } finally {
@@ -130,21 +131,21 @@ export default function MyCoursesPage() {
         {enrollments.map((enrollment) => (
           <Link
             key={enrollment.id}
-            href={`/aluno/curso/${enrollment.course.id}`}
+            href={`/aluno/curso/${enrollment.course_id}`}
             className="card group"
           >
             {/* Image */}
             <div className="relative h-40 overflow-hidden">
-              {enrollment.course.image ? (
+              {enrollment.course_image ? (
                 <img
-                  src={enrollment.course.image}
-                  alt={enrollment.course.title}
+                  src={enrollment.course_image}
+                  alt={enrollment.course_title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
                   <span className="text-primary-500 text-4xl font-bold">
-                    {enrollment.course.title.charAt(0)}
+                    {enrollment.course_title?.charAt(0)}
                   </span>
                 </div>
               )}
@@ -152,20 +153,20 @@ export default function MyCoursesPage() {
               {/* Progress Badge */}
               <div className="absolute top-3 right-3 w-12 h-12">
                 <CircularProgressbar
-                  value={enrollment.progress}
-                  text={`${Math.round(enrollment.progress)}%`}
+                  value={enrollment.progress_percentage || 0}
+                  text={`${Math.round(enrollment.progress_percentage || 0)}%`}
                   styles={buildStyles({
                     textSize: '28px',
                     textColor: '#fff',
                     pathColor:
-                      enrollment.progress >= 100 ? '#16a34a' : '#1a56db',
+                      (enrollment.progress_percentage || 0) >= 100 ? '#16a34a' : '#1a56db',
                     trailColor: 'rgba(255,255,255,0.3)',
                     pathTransitionDuration: 1,
                   })}
                 />
               </div>
 
-              {enrollment.completed && (
+              {enrollment.status === 'completed' && (
                 <div className="absolute top-3 left-3 badge-success">
                   <FiCheckCircle className="mr-1" /> Concluído
                 </div>
@@ -175,35 +176,39 @@ export default function MyCoursesPage() {
             {/* Content */}
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-primary-500 transition-colors">
-                {enrollment.course.title}
+                {enrollment.course_title}
               </h3>
-              <p className="text-sm text-gray-500 mb-3">
-                por {enrollment.course.teacher_name}
-              </p>
+              {enrollment.teacher_name && (
+                <p className="text-sm text-gray-500 mb-3">
+                  por {enrollment.teacher_name}
+                </p>
+              )}
 
               {/* Progress bar */}
               <div className="mb-3">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>Progresso</span>
-                  <span>{Math.round(enrollment.progress)}%</span>
+                  <span>{Math.round(enrollment.progress_percentage || 0)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-500 ${
-                      enrollment.progress >= 100 ? 'bg-green-500' : 'bg-primary-500'
+                      (enrollment.progress_percentage || 0) >= 100 ? 'bg-green-500' : 'bg-primary-500'
                     }`}
-                    style={{ width: `${Math.min(enrollment.progress, 100)}%` }}
+                    style={{ width: `${Math.min(enrollment.progress_percentage || 0, 100)}%` }}
                   />
                 </div>
               </div>
 
               {/* Meta */}
               <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                <div className="flex items-center gap-1">
-                  <FiClock />
-                  <span>{enrollment.course.workload}h</span>
-                </div>
-                <span>Último acesso: {formatDate(enrollment.last_accessed)}</span>
+                {enrollment.workload ? (
+                  <div className="flex items-center gap-1">
+                    <FiClock />
+                    <span>{enrollment.workload}h</span>
+                  </div>
+                ) : <div />}
+                <span>Último acesso: {formatDate(enrollment.last_accessed_at || enrollment.started_at)}</span>
               </div>
             </div>
           </Link>

@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const db = require('../config/database');
 
 const getDashboardStats = async (req, res) => {
@@ -286,6 +288,214 @@ const getFinancialReport = async (req, res) => {
   }
 };
 
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, phone, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
+    }
+
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Este e-mail já está cadastrado.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const [result] = await db.query(
+      `INSERT INTO users (name, email, password, phone, role, is_active, email_verified_at)
+       VALUES (?, ?, ?, ?, ?, 1, NOW())`,
+      [name, email, hashedPassword, phone || null, role || 'student']
+    );
+
+    res.status(201).json({
+      message: 'Aluno criado com sucesso!',
+      user: {
+        id: result.insertId,
+        name,
+        email,
+        phone: phone || null,
+        role: role || 'student',
+        is_active: 1
+      }
+    });
+
+    console.log(`Aluno criado por admin: ${email} (ID: ${result.insertId})`);
+  } catch (error) {
+    console.error('Erro ao criar aluno:', error);
+    res.status(500).json({ error: 'Erro ao criar aluno.' });
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [users] = await db.query(
+      `SELECT id, name, email, role, avatar, phone, cpf, birth_date, gender,
+              address, city, state, zip_code, bio, is_active, email_verified_at,
+              last_login, created_at, updated_at
+       FROM users WHERE id = ?`,
+      [id]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    const [enrollments] = await db.query(
+      `SELECT e.id, e.status, e.enrolled_at, c.title as course_title
+       FROM enrollments e
+       JOIN courses c ON e.course_id = c.id
+       WHERE e.user_id = ?
+       ORDER BY e.enrolled_at DESC`,
+      [id]
+    );
+
+    res.json({ ...users[0], enrollments });
+  } catch (error) {
+    console.error('Erro ao buscar usuário:', error);
+    res.status(500).json({ error: 'Erro ao buscar usuário.' });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, role, is_active, password } = req.body;
+
+    const [existing] = await db.query('SELECT id FROM users WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    if (email) {
+      const [emailCheck] = await db.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, id]);
+      if (emailCheck.length > 0) {
+        return res.status(409).json({ error: 'E-mail já está em uso.' });
+      }
+    }
+
+    const fields = [];
+    const values = [];
+
+    if (name !== undefined) { fields.push('name = ?'); values.push(name); }
+    if (email !== undefined) { fields.push('email = ?'); values.push(email); }
+    if (phone !== undefined) { fields.push('phone = ?'); values.push(phone); }
+    if (role !== undefined) { fields.push('role = ?'); values.push(role); }
+    if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+    if (password) {
+      const hashed = await bcrypt.hash(password, 10);
+      fields.push('password = ?');
+      values.push(hashed);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+    }
+
+    values.push(id);
+    await db.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
+
+    const [updated] = await db.query(
+      'SELECT id, name, email, role, avatar, phone, is_active, updated_at FROM users WHERE id = ?',
+      [id]
+    );
+
+    res.json(updated[0]);
+    console.log(`Usuário atualizado: ID ${id} por admin ID ${req.user.id}`);
+  } catch (error) {
+    console.error('Erro ao atualizar usuário:', error);
+    res.status(500).json({ error: 'Erro ao atualizar usuário.' });
+  }
+};
+
+const adminEnrollStudent = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const { user_id, course_id } = req.body;
+
+    if (!user_id || !course_id) {
+      await conn.rollback(); conn.release();
+      return res.status(400).json({ error: 'Aluno e curso são obrigatórios.' });
+    }
+
+    const [users] = await conn.query('SELECT id, name, email FROM users WHERE id = ? AND role = ?', [user_id, 'student']);
+    if (users.length === 0) {
+      await conn.rollback(); conn.release();
+      return res.status(404).json({ error: 'Aluno não encontrado.' });
+    }
+
+    const [courses] = await conn.query(
+      'SELECT id, title, price, is_free, enrollment_count, status FROM courses WHERE id = ?',
+      [course_id]
+    );
+    if (courses.length === 0 || courses[0].status !== 'published') {
+      await conn.rollback(); conn.release();
+      return res.status(404).json({ error: 'Curso não encontrado ou indisponível.' });
+    }
+
+    const course = courses[0];
+
+    const [existing] = await conn.query(
+      `SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status IN ('active','pending')`,
+      [user_id, course_id]
+    );
+    if (existing.length > 0) {
+      await conn.rollback(); conn.release();
+      return res.status(409).json({ error: 'Este aluno já está matriculado neste curso.' });
+    }
+
+    const orderNumber = 'PED-' + Date.now().toString(36).toUpperCase();
+
+    const [orderResult] = await conn.query(
+      `INSERT INTO orders (user_id, course_id, order_number, subtotal, discount_amount, total_amount, status, payment_method)
+       VALUES (?, ?, ?, ?, 0, ?, 'paid', 'free')`,
+      [user_id, course_id, orderNumber, course.price, course.price]
+    );
+
+    const enrollmentStatus = (course.is_free || course.price === 0) ? 'active' : 'active';
+
+    const [enrollmentResult] = await conn.query(
+      `INSERT INTO enrollments (user_id, course_id, order_id, status, started_at)
+       VALUES (?, ?, ?, 'active', NOW())`,
+      [user_id, course_id, orderResult.insertId]
+    );
+
+    await conn.query(
+      'UPDATE orders SET paid_at = NOW() WHERE id = ?',
+      [orderResult.insertId]
+    );
+
+    await conn.query(
+      'UPDATE courses SET enrollment_count = enrollment_count + 1 WHERE id = ?',
+      [course_id]
+    );
+
+    await conn.commit();
+    conn.release();
+
+    res.status(201).json({
+      message: `Aluno "${users[0].name}" matriculado no curso "${course.title}" com sucesso!`,
+      enrollment: {
+        id: enrollmentResult.insertId,
+        user: users[0],
+        course: { id: course.id, title: course.title },
+        order_number: orderNumber,
+        status: 'active',
+      }
+    });
+
+    console.log(`Matrícula admin: ${users[0].email} -> ${course.title} (por admin ID ${req.user.id})`);
+  } catch (error) {
+    await conn.rollback(); conn.release();
+    console.error('Erro ao matricular aluno (admin):', error);
+    res.status(500).json({ error: 'Erro ao processar matrícula.' });
+  }
+};
+
 const getReports = async (req, res) => {
   try {
     const { type } = req.query;
@@ -347,6 +557,10 @@ module.exports = {
   getRevenueChart,
   getRecentActivity,
   getAllUsers,
+  createUser,
+  getUserById,
+  updateUser,
+  adminEnrollStudent,
   getCoursesStats,
   getFinancialReport,
   getReports

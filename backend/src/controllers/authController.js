@@ -182,12 +182,24 @@ const forgotPassword = async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL}/recuperar-senha?token=${resetToken}`;
 
-    await sendEmail({
-      to: email,
-      ...emailTemplates.resetPassword(users[0].name, resetUrl)
-    });
+    try {
+      await sendEmail({
+        to: email,
+        ...emailTemplates.resetPassword(users[0].name, resetUrl)
+      });
+    } catch (emailError) {
+      console.log('Erro ao enviar e-mail (SMTP não configurado):', emailError.message);
+    }
 
-    res.json({ message: 'Se o e-mail existir, você receberá as instruções.' });
+    const response = { message: 'Se o e-mail existir, você receberá as instruções.' };
+
+    if (process.env.NODE_ENV === 'development') {
+      response.reset_url = resetUrl;
+      response.reset_token = resetToken;
+      console.log(`\n===== LINK DE RECUPERAÇÃO (DEV) =====\nEmail: ${email}\nURL: ${resetUrl}\nToken: ${resetToken}\n=====================================\n`);
+    }
+
+    res.json(response);
 
     console.log(`Solicitação de reset de senha: ${email}`);
   } catch (error) {

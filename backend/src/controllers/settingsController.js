@@ -94,6 +94,8 @@ const update = async (req, res) => {
       'logo', 'logo_url', 'favicon', 'favicon_url', 'primary_color', 'secondary_color', 'accent_color',
       'footer_text', 'lgpd_text', 'allow_registration', 'maintenance_mode',
       'payment_gateway', 'payment_api_key', 'payment_secret_key',
+      'efibank_client_id', 'efibank_client_secret', 'efibank_pix_key',
+      'efibank_certificate_path', 'efibank_certificate_password', 'efibank_environment',
       'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from',
       'lgpd_consent_text', 'lgpd_privacy_policy',
     ];
