@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a56db;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a56db;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="200" cy="220" r="180" fill="url(#bgGrad)" opacity="0.08"/>
+  
+  <!-- Body / Shirt -->
+  <path d="M120 280 Q120 250 160 240 L200 230 L240 240 Q280 250 280 280 L280 400 Q280 420 200 420 Q120 420 120 400 Z" fill="url(#shirtGrad)"/>
+  
+  <!-- Shirt collar -->
+  <path d="M170 235 L200 260 L230 235" fill="none" stroke="white" stroke-width="3" opacity="0.8"/>
+  
+  <!-- Shirt buttons -->
+  <circle cx="200" cy="280" r="3" fill="white" opacity="0.6"/>
+  <circle cx="200" cy="300" r="3" fill="white" opacity="0.6"/>
+  <circle cx="200" cy="320" r="3" fill="white" opacity="0.6"/>
+  <circle cx="200" cy="340" r="3" fill="white" opacity="0.6"/>
+  
+  <!-- Logo on shirt -->
+  <rect x="170" y="350" width="60" height="25" rx="4" fill="white" opacity="0.15"/>
+  <text x="200" y="367" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" opacity="0.9">FAD</text>
+  
+  <!-- Neck -->
+  <rect x="185" y="200" width="30" height="40" rx="5" fill="#d4a574"/>
+  
+  <!-- Head -->
+  <ellipse cx="200" cy="170" rx="50" ry="55" fill="#d4a574"/>
+  
+  <!-- Hair -->
+  <path d="M150 160 Q150 110 200 100 Q250 110 250 160 Q250 140 240 130 Q220 115 200 112 Q180 115 160 130 Q150 140 150 160" fill="#2d1810"/>
+  
+  <!-- Eyes -->
+  <ellipse cx="180" cy="165" rx="6" ry="5" fill="#1a1a1a"/>
+  <ellipse cx="220" cy="165" rx="6" ry="5" fill="#1a1a1a"/>
+  <circle cx="182" cy="163" r="2" fill="white"/>
+  <circle cx="222" cy="163" r="2" fill="white"/>
+  
+  <!-- Smile -->
+  <path d="M185 185 Q200 200 215 185" fill="none" stroke="#8b4513" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Graduation cap -->
+  <polygon points="200,80 140,110 200,130 260,110" fill="#1a1a1a"/>
+  <rect x="175" y="108" width="50" height="8" rx="2" fill="#1a1a1a"/>
+  <line x1="200" y1="80" x2="200" y2="108" stroke="#f97316" stroke-width="2"/>
+  <circle cx="200" cy="78" r="4" fill="#f97316"/>
+  
+  <!-- Tassel -->
+  <path d="M200 80 Q230 85 235 110" fill="none" stroke="#f97316" stroke-width="2"/>
+  <circle cx="235" cy="112" r="3" fill="#f97316"/>
+  
+  <!-- Orange accent -->
+  <rect x="115" y="410" width="170" height="4" rx="2" fill="#f97316"/>
+</svg>

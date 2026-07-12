@@ -1,0 +1,10 @@
+node_modules/
+.next/
+dist/
+.env
+*.log
+.DS_Store
+Thumbs.db
+mysql/
+backend/data/
+mariadb.zip
