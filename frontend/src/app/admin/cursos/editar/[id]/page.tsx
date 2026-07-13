@@ -100,6 +100,17 @@ export default function EditarCursoAdminPage() {
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
   const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
 
+  // Quiz state
+  interface QuizQuestionOption { label: string; text: string; is_correct: boolean; }
+  interface QuizQuestion { id?: number; question_text: string; question_type: 'multiple_choice' | 'true_false'; options: QuizQuestionOption[]; points: number; explanation: string; sort_order: number; }
+  interface Quiz { id: number; title: string; description: string; time_limit_minutes: number; passing_grade: number; max_attempts: number; shuffle_questions: boolean; show_answers_after: string; is_active: boolean; questions: QuizQuestion[]; }
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState<number | null>(null);
+  const [quizForm, setQuizForm] = useState({ title: '', description: '', time_limit_minutes: 120, passing_grade: 60, max_attempts: 3, shuffle_questions: false, show_answers_after: 'after_submit' });
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [expandedQuiz, setExpandedQuiz] = useState<number | null>(null);
+
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -159,6 +170,12 @@ export default function EditarCursoAdminPage() {
         setCategories(catRes.data.data || catRes.data.categories || catRes.data || []);
         setTeachers(teacherRes.data.data || teacherRes.data.users || teacherRes.data || []);
         setModules(modRes.data.modules || modRes.data.data || modRes.data || []);
+
+        // Load quizzes
+        try {
+          const quizRes = await api.get(`/quizzes/course/${courseId}`);
+          setQuizzes(quizRes.data.data || quizRes.data.quizzes || quizRes.data || []);
+        } catch { /* quizzes may not exist yet */ }
       } catch {
         toast.error('Erro ao carregar dados do curso');
       } finally {
@@ -285,6 +302,96 @@ export default function EditarCursoAdminPage() {
     }
   };
 
+  // Quiz handlers
+  const handleSaveQuiz = async () => {
+    if (!quizForm.title.trim()) { toast.error('Título é obrigatório'); return; }
+    try {
+      const payload = { ...quizForm, course_id: Number(courseId), questions: quizQuestions };
+      if (editingQuiz) {
+        await api.put(`/quizzes/${editingQuiz}`, payload);
+        toast.success('Quiz atualizado!');
+      } else {
+        await api.post('/quizzes', payload);
+        toast.success('Quiz criado!');
+      }
+      setShowQuizModal(false);
+      setEditingQuiz(null);
+      setQuizForm({ title: '', description: '', time_limit_minutes: 120, passing_grade: 60, max_attempts: 3, shuffle_questions: false, show_answers_after: 'after_submit' });
+      setQuizQuestions([]);
+      const quizRes = await api.get(`/quizzes/course/${courseId}`);
+      setQuizzes(quizRes.data.data || quizRes.data.quizzes || quizRes.data || []);
+    } catch { toast.error('Erro ao salvar quiz'); }
+  };
+
+  const handleDeleteQuiz = async (id: number) => {
+    if (!confirm('Excluir este quiz e todas as suas perguntas?')) return;
+    try {
+      await api.delete(`/quizzes/${id}`);
+      setQuizzes(quizzes.filter(q => q.id !== id));
+      toast.success('Quiz excluído!');
+    } catch { toast.error('Erro ao excluir quiz'); }
+  };
+
+  const handleToggleQuiz = async (id: number, isActive: boolean) => {
+    try {
+      await api.put(`/quizzes/${id}`, { is_active: !isActive });
+      setQuizzes(quizzes.map(q => q.id === id ? { ...q, is_active: !isActive } : q));
+    } catch { toast.error('Erro ao alterar status'); }
+  };
+
+  const handleEditQuiz = (quiz: Quiz) => {
+    setEditingQuiz(quiz.id);
+    setQuizForm({
+      title: quiz.title, description: quiz.description || '',
+      time_limit_minutes: quiz.time_limit_minutes || 120,
+      passing_grade: quiz.passing_grade || 60,
+      max_attempts: quiz.max_attempts || 3,
+      shuffle_questions: quiz.shuffle_questions || false,
+      show_answers_after: quiz.show_answers_after || 'after_submit',
+    });
+    setQuizQuestions(quiz.questions || []);
+    setShowQuizModal(true);
+  };
+
+  const addQuizQuestion = () => {
+    setQuizQuestions([...quizQuestions, {
+      question_text: '', question_type: 'multiple_choice',
+      options: [{ label: 'A', text: '', is_correct: true }, { label: 'B', text: '', is_correct: false }],
+      points: 1, explanation: '', sort_order: quizQuestions.length + 1,
+    }]);
+  };
+
+  const updateQuizQuestion = (idx: number, field: string, value: any) => {
+    const updated = [...quizQuestions];
+    (updated[idx] as any)[field] = value;
+    setQuizQuestions(updated);
+  };
+
+  const updateQuizOption = (qIdx: number, oIdx: number, field: string, value: any) => {
+    const updated = [...quizQuestions];
+    (updated[qIdx].options[oIdx] as any)[field] = value;
+    setQuizQuestions(updated);
+  };
+
+  const removeQuizOption = (qIdx: number, oIdx: number) => {
+    const updated = [...quizQuestions];
+    updated[qIdx].options = updated[qIdx].options.filter((_, i) => i !== oIdx);
+    setQuizQuestions(updated);
+  };
+
+  const addQuizOption = (qIdx: number) => {
+    const updated = [...quizQuestions];
+    const labels = 'ABCDEF';
+    updated[qIdx].options.push({ label: labels[updated[qIdx].options.length] || `${updated[qIdx].options.length + 1}`, text: '', is_correct: false });
+    setQuizQuestions(updated);
+  };
+
+  const setCorrectOption = (qIdx: number, oIdx: number) => {
+    const updated = [...quizQuestions];
+    updated[qIdx].options = updated[qIdx].options.map((o, i) => ({ ...o, is_correct: i === oIdx }));
+    setQuizQuestions(updated);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -296,6 +403,7 @@ export default function EditarCursoAdminPage() {
   const tabs = [
     { key: 'dados', label: 'Dados do Curso' },
     { key: 'modulos', label: 'Módulos & Aulas' },
+    { key: 'avaliacoes', label: 'Avaliações (Quiz)' },
   ];
 
   return (
@@ -582,6 +690,171 @@ export default function EditarCursoAdminPage() {
               <FiPlus /> Adicionar Módulo
             </button>
           )}
+        </div>
+      )}
+
+      {/* Tab: Avaliações */}
+      {activeTab === 'avaliacoes' && (
+        <div className="space-y-4">
+          {quizzes.map(quiz => (
+            <div key={quiz.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="flex items-center justify-between p-4 bg-gray-50">
+                <button onClick={() => setExpandedQuiz(expandedQuiz === quiz.id ? null : quiz.id)} className="flex items-center gap-3 flex-1 text-left">
+                  {expandedQuiz === quiz.id ? <FiChevronUp /> : <FiChevronDown />}
+                  <div>
+                    <p className="font-semibold text-gray-900">{quiz.title}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <span>{quiz.questions?.length || 0} perguntas</span>
+                      <span>Nota mín: {quiz.passing_grade}%</span>
+                      <span>{quiz.time_limit_minutes} min</span>
+                      <span>{quiz.max_attempts} tentativas</span>
+                    </div>
+                  </div>
+                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => handleToggleQuiz(quiz.id, quiz.is_active)} className={`px-3 py-1 rounded-lg text-xs font-medium ${quiz.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {quiz.is_active ? 'Ativo' : 'Inativo'}
+                  </button>
+                  <button onClick={() => handleEditQuiz(quiz)} className="p-2 rounded-lg hover:bg-blue-50 text-blue-600" title="Editar"><FiEdit2 /></button>
+                  <button onClick={() => handleDeleteQuiz(quiz.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-600" title="Excluir"><FiTrash2 /></button>
+                </div>
+              </div>
+              {expandedQuiz === quiz.id && quiz.questions && quiz.questions.length > 0 && (
+                <div className="p-4 space-y-2">
+                  {quiz.questions.map((q, i) => (
+                    <div key={q.id || i} className="p-3 rounded-lg bg-gray-50">
+                      <p className="text-sm font-medium text-gray-900">{i + 1}. {q.question_text}</p>
+                      <p className="text-xs text-gray-500 mt-1">{q.question_type === 'true_false' ? 'Verdadeiro/Falso' : 'Múltipla escolha'} — {q.points} ponto(s)</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          <button
+            onClick={() => { setEditingQuiz(null); setQuizForm({ title: '', description: '', time_limit_minutes: 120, passing_grade: 60, max_attempts: 3, shuffle_questions: false, show_answers_after: 'after_submit' }); setQuizQuestions([]); setShowQuizModal(true); }}
+            className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-primary-500 hover:text-primary-500 flex items-center justify-center gap-2 transition-colors"
+          >
+            <FiPlus /> Criar Nova Avaliação
+          </button>
+        </div>
+      )}
+
+      {/* Modal Quiz */}
+      {showQuizModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <h2 className="text-lg font-bold text-gray-900">{editingQuiz ? 'Editar Avaliação' : 'Nova Avaliação'}</h2>
+              <button onClick={() => setShowQuizModal(false)} className="p-2 rounded-lg hover:bg-gray-100"><FiX /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="label">Título *</label>
+                <input value={quizForm.title} onChange={e => setQuizForm({ ...quizForm, title: e.target.value })} className="input-field" placeholder="Ex: Prova Módulo 1" />
+              </div>
+              <div>
+                <label className="label">Descrição</label>
+                <textarea value={quizForm.description} onChange={e => setQuizForm({ ...quizForm, description: e.target.value })} className="input-field" rows={2} />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="label">Tempo (min)</label>
+                  <input type="number" value={quizForm.time_limit_minutes} onChange={e => setQuizForm({ ...quizForm, time_limit_minutes: Number(e.target.value) })} className="input-field" />
+                </div>
+                <div>
+                  <label className="label">Nota mínima (%)</label>
+                  <input type="number" value={quizForm.passing_grade} onChange={e => setQuizForm({ ...quizForm, passing_grade: Number(e.target.value) })} className="input-field" />
+                </div>
+                <div>
+                  <label className="label">Tentativas</label>
+                  <input type="number" value={quizForm.max_attempts} onChange={e => setQuizForm({ ...quizForm, max_attempts: Number(e.target.value) })} className="input-field" />
+                </div>
+                <div>
+                  <label className="label">Respostas após</label>
+                  <select value={quizForm.show_answers_after} onChange={e => setQuizForm({ ...quizForm, show_answers_after: e.target.value })} className="input-field">
+                    <option value="after_submit">Após enviar</option>
+                    <option value="never">Nunca</option>
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={quizForm.shuffle_questions} onChange={e => setQuizForm({ ...quizForm, shuffle_questions: e.target.checked })} className="w-4 h-4 text-primary-500 rounded" />
+                <span className="text-sm">Embaralhar perguntas</span>
+              </label>
+
+              <div className="border-t border-gray-100 pt-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">Perguntas ({quizQuestions.length})</h3>
+                  <button onClick={addQuizQuestion} className="text-sm text-primary-500 hover:text-primary-600 font-medium flex items-center gap-1"><FiPlus /> Adicionar</button>
+                </div>
+
+                {quizQuestions.map((q, qIdx) => (
+                  <div key={qIdx} className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-gray-500">Pergunta {qIdx + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <input type="number" value={q.points} onChange={e => updateQuizQuestion(qIdx, 'points', Number(e.target.value))} className="w-16 px-2 py-1 border rounded text-sm text-center" min="0" title="Pontos" />
+                        <button onClick={() => setQuizQuestions(quizQuestions.filter((_, i) => i !== qIdx))} className="text-red-500 hover:text-red-600"><FiTrash2 className="text-sm" /></button>
+                      </div>
+                    </div>
+                    <input value={q.question_text} onChange={e => updateQuizQuestion(qIdx, 'question_text', e.target.value)} className="input-field text-sm" placeholder="Texto da pergunta" />
+                    <select value={q.question_type} onChange={e => {
+                      const type = e.target.value;
+                      updateQuizQuestion(qIdx, 'question_type', type);
+                      if (type === 'true_false') {
+                        updateQuizQuestion(qIdx, 'options', [
+                          { label: 'V', text: 'Verdadeiro', is_correct: true },
+                          { label: 'F', text: 'Falso', is_correct: false },
+                        ]);
+                      } else if (q.options.length < 2) {
+                        updateQuizQuestion(qIdx, 'options', [
+                          { label: 'A', text: '', is_correct: true },
+                          { label: 'B', text: '', is_correct: false },
+                        ]);
+                      }
+                    }} className="input-field text-sm">
+                      <option value="multiple_choice">Múltipla escolha</option>
+                      <option value="true_false">Verdadeiro / Falso</option>
+                    </select>
+
+                    {q.question_type === 'multiple_choice' && (
+                      <div className="space-y-2">
+                        {q.options.map((opt, oIdx) => (
+                          <div key={oIdx} className="flex items-center gap-2">
+                            <button onClick={() => setCorrectOption(qIdx, oIdx)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${opt.is_correct ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-400 hover:border-green-400'}`}>
+                              {opt.is_correct ? '✓' : opt.label}
+                            </button>
+                            <input value={opt.text} onChange={e => updateQuizOption(qIdx, oIdx, 'text', e.target.value)} className="input-field text-sm flex-1" placeholder={`Alternativa ${opt.label}`} />
+                            {q.options.length > 2 && <button onClick={() => removeQuizOption(qIdx, oIdx)} className="text-red-400 hover:text-red-500"><FiX className="text-sm" /></button>}
+                          </div>
+                        ))}
+                        {q.options.length < 6 && (
+                          <button onClick={() => addQuizOption(qIdx)} className="text-xs text-primary-500 hover:text-primary-600 font-medium">+ Adicionar alternativa</button>
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Explicação (opcional)</label>
+                      <input value={q.explanation} onChange={e => updateQuizQuestion(qIdx, 'explanation', e.target.value)} className="input-field text-sm" placeholder="Explicação da resposta correta" />
+                    </div>
+                  </div>
+                ))}
+
+                {quizQuestions.length === 0 && (
+                  <p className="text-center text-gray-400 py-6 text-sm">Nenhuma pergunta adicionada. Clique em "Adicionar" para começar.</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button onClick={() => setShowQuizModal(false)} className="px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Cancelar</button>
+                <button onClick={handleSaveQuiz} className="px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors">
+                  {editingQuiz ? 'Salvar Alterações' : 'Criar Avaliação'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

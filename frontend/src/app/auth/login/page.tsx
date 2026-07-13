@@ -26,7 +26,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header com logo */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm relative z-10">
         <div className="container-custom py-4">
           <Link href="/" className="inline-flex items-center">
             <img src="/images/logo.jpg" alt="Faculdade Diferencial EAD" className="h-10 lg:h-12 w-auto object-contain" />
@@ -35,27 +35,27 @@ export default function LoginPage() {
       </header>
 
       {/* Conteúdo principal */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex flex-col lg:flex-row">
         {/* Lado esquerdo - Imagem */}
-        <div className="hidden lg:flex lg:w-1/2 relative">
+        <div className="relative w-full h-48 sm:h-64 lg:h-auto lg:w-1/2">
           <img
             src="/images/login-bg.jpg"
             alt="Educação"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-900/60 to-transparent" />
-          <div className="absolute bottom-10 left-10 right-10">
-            <p className="text-white text-2xl font-bold leading-relaxed">
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-900/80 via-primary-900/40 to-transparent lg:bg-gradient-to-r lg:from-primary-900/60 lg:to-transparent" />
+          <div className="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-8 lg:bottom-10 lg:left-10 lg:right-10">
+            <p className="text-white text-lg sm:text-xl lg:text-2xl font-bold leading-relaxed drop-shadow-lg">
               Acesse seus cursos, acompanhe seu progresso e conquiste seu certificado.
             </p>
           </div>
         </div>
 
         {/* Lado direito - Formulário */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-gray-50">
+        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 lg:py-12 bg-gray-50">
           <div className="w-full max-w-md">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Bem-vindo de volta</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Bem-vindo de volta</h1>
               <p className="text-gray-500">
                 Entre com suas credenciais para acessar sua conta.
               </p>
