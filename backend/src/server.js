@@ -41,6 +41,7 @@ const searchRoutes = require('./routes/search');
 const settingsRoutes = require('./routes/settings');
 const badgeRoutes = require('./routes/badges');
 const efibankRoutes = require('./routes/efibank');
+const courseDurationRoutes = require('./routes/courseDurations');
 
 const app = express();
 const server = http.createServer(app);
@@ -139,6 +140,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/payments/efibank', efibankRoutes);
+app.use('/api/course-durations', courseDurationRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

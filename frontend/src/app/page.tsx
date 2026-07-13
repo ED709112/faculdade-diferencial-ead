@@ -134,54 +134,31 @@ export default function HomePage() {
     <PublicLayout>
       {loading && <Loading fullScreen />}
 
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] opacity-10" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-secondary-500/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-primary-800/40 rounded-full blur-3xl" />
-
-        <div className="container-custom relative py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="max-w-xl">
-              <span className="inline-block bg-white/15 text-white text-sm font-medium px-4 py-1.5 rounded-full mb-6 backdrop-blur-sm">
-                Educacao de qualidade a distancia
-              </span>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-                Transforme seu futuro com a{' '}
-                <span className="text-secondary-400">Faculdade Diferencial</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-primary-100 mb-10 leading-relaxed">
-                Cursos de graduacao e pos-graduacao 100% online, com professores qualificados,
-                material interativo e certificado reconhecido pelo MEC.
-              </p>
-              <div className="flex flex-col sm:flex-row items-start gap-4">
-                <Link
-                  href="/cursos"
-                  className="inline-flex items-center gap-2 bg-secondary-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-secondary-600 transition-colors shadow-lg shadow-secondary-500/30"
-                >
-                  Ver Cursos
-                  <FiArrowRight className="text-xl" />
-                </Link>
-                <Link
-                  href="#como-funciona"
-                  className="inline-flex items-center gap-2 bg-white/15 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/25 transition-colors backdrop-blur-sm border border-white/20"
-                >
-                  <FaPlayCircle className="text-xl" />
-                  Como Funciona
-                </Link>
-              </div>
-            </div>
-
-            <div className="hidden lg:flex justify-center relative">
-              <div className="absolute inset-0 bg-secondary-500/10 rounded-full blur-3xl scale-75" />
-              <img
-                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&q=80"
-                alt="Estudantes universitários"
-                className="relative w-full max-w-sm rounded-2xl shadow-2xl object-cover h-[400px]"
-              />
-            </div>
+      {/* Hero Banner */}
+      <section className="relative w-full overflow-hidden bg-white">
+        <div className="container-custom flex flex-col lg:flex-row items-center gap-8 py-8 lg:py-12">
+          <img
+            src="/images/hero-banner.jpg"
+            alt="Capacitação e Formação Continuada"
+            className="w-full lg:w-1/2 max-h-[70vh] object-contain"
+          />
+          <div className="lg:w-1/2 text-center lg:text-left">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-600 leading-tight">
+              Invista em você!
+            </h2>
+            <p className="text-lg sm:text-xl text-primary-500 mt-4 leading-relaxed">
+              Cursos EAD com flexibilidade, qualidade e certificação para o mercado de trabalho.
+            </p>
+            <Link
+              href="/cursos"
+              className="inline-flex items-center gap-2 mt-8 bg-secondary-500 text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary-600 transition-colors shadow-lg shadow-secondary-500/30"
+            >
+              Ver Cursos
+              <FiArrowRight className="text-xl" />
+            </Link>
           </div>
         </div>
+        <div className="w-full h-1.5 bg-gradient-to-r from-secondary-500 via-secondary-400 to-secondary-500" />
       </section>
 
       {/* Stats */}
@@ -202,9 +179,9 @@ export default function HomePage() {
 
       {/* Featured Courses */}
       {featuredCourses.length > 0 && (
-        <section className="py-16 lg:py-24">
+        <section className="py-8 lg:py-12">
           <div className="container-custom">
-            <div className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-6">
               <div>
                 <h2 className="section-title">Cursos em Destaque</h2>
                 <p className="section-subtitle mt-1">Os cursos mais procurados pelos nossos alunos</p>
@@ -232,9 +209,9 @@ export default function HomePage() {
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="py-16 lg:py-24 bg-gray-50">
+        <section className="py-8 lg:py-12 bg-gray-50">
           <div className="container-custom">
-            <div className="text-center mb-10">
+            <div className="text-center mb-6">
               <h2 className="section-title">Categorias</h2>
               <p className="section-subtitle mt-1">Explore por area de atuacao</p>
             </div>
@@ -254,7 +231,7 @@ export default function HomePage() {
       )}
 
       {/* How It Works */}
-      <section id="como-funciona" className="py-16 lg:py-24">
+      <section id="como-funciona" className="py-8 lg:py-12">
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="section-title">Como Funciona</h2>
@@ -284,9 +261,9 @@ export default function HomePage() {
 
       {/* Testimonials */}
       {testimonials.length > 0 && (
-        <section className="py-16 lg:py-24 bg-gray-50">
+        <section className="py-8 lg:py-12 bg-gray-50">
           <div className="container-custom">
-            <div className="text-center mb-10">
+            <div className="text-center mb-6">
               <h2 className="section-title">Depoimentos</h2>
               <p className="section-subtitle mt-1">O que nossos alunos dizem</p>
             </div>
@@ -308,9 +285,9 @@ export default function HomePage() {
 
       {/* FAQ */}
       {faqItems.length > 0 && (
-        <section className="py-16 lg:py-24">
-          <div className="container-custom max-w-3xl">
-            <div className="text-center mb-10">
+        <section className="py-8 lg:py-12">
+          <div className="container-custom">
+            <div className="text-center mb-6">
               <h2 className="section-title">Perguntas Frequentes</h2>
               <p className="section-subtitle mt-1">Tire suas duvidas</p>
             </div>

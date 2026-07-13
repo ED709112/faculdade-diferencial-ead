@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { FiMenu, FiX, FiUser, FiLogOut, FiChevronDown, FiBookOpen, FiGrid, FiInfo, FiPhone } from 'react-icons/fi';
-import { FaGraduationCap } from 'react-icons/fa';
 
 const navLinks = [
   { label: 'Cursos', href: '/cursos', icon: FiBookOpen },
@@ -61,11 +60,12 @@ export default function Header() {
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <FaGraduationCap className="text-primary-500 text-2xl lg:text-3xl" />
-            <span className="text-lg lg:text-xl font-bold text-gray-900 hidden sm:block">
-              Faculdade Diferencial <span className="text-primary-500">EAD</span>
-            </span>
+          <Link href="/" className="flex items-center shrink-0">
+            <img
+              src="/images/logo.jpg"
+              alt="Faculdade Diferencial EAD"
+              className="h-10 lg:h-12 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Nav */}
@@ -77,7 +77,7 @@ export default function Header() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                   pathname === link.href
                     ? 'bg-primary-50 text-primary-500'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    : 'text-gray-600 hover:bg-secondary-50 hover:text-secondary-600'
                 }`}
               >
                 {link.label}
@@ -89,10 +89,10 @@ export default function Header() {
           <div className="hidden lg:flex items-center gap-3">
             {!isAuthenticated ? (
               <>
-                <Link href="/auth/login" className="btn-ghost text-sm font-medium">
+                <Link href="/auth/login" className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold text-secondary-600 bg-secondary-50 hover:bg-secondary-100 transition-colors border border-secondary-200">
                   Entrar
                 </Link>
-                <Link href="/matricula" className="btn-primary text-sm !px-5 !py-2.5">
+                <Link href="/matricula" className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-secondary-500 hover:bg-secondary-600 transition-colors shadow-lg shadow-secondary-500/25">
                   Matricule-se
                 </Link>
               </>
@@ -166,7 +166,7 @@ export default function Header() {
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   pathname === link.href
                     ? 'bg-primary-50 text-primary-500'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    : 'text-gray-600 hover:bg-secondary-50 hover:text-secondary-600'
                 }`}
               >
                 <link.icon className="text-lg" />
@@ -218,6 +218,7 @@ export default function Header() {
           </div>
         )}
       </div>
+      <div className="w-full h-1 bg-gradient-to-r from-secondary-500 via-secondary-400 to-secondary-500" />
     </header>
   );
 }

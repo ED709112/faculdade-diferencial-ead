@@ -25,6 +25,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiStar,
+  FiCalendar,
 } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 
@@ -45,6 +46,7 @@ const adminMenu: MenuItem[] = [
   { label: 'Professores', href: '/admin/professores', icon: FiUsers },
   { label: 'Alunos', href: '/admin/alunos', icon: FiUser },
   { label: 'Matrículas', href: '/admin/matriculas', icon: FiPercent },
+  { label: 'Duração dos Cursos', href: '/admin/duracao-cursos', icon: FiCalendar },
   { label: 'Cupons', href: '/admin/cupons', icon: FiDollarSign },
   { label: 'Financeiro', href: '/admin/financeiro', icon: FiBarChart2 },
   { label: 'Badges', href: '/admin/badges', icon: FiStar },
@@ -65,6 +67,7 @@ const teacherMenu: MenuItem[] = [
 const studentMenu: MenuItem[] = [
   { label: 'Dashboard', href: '/aluno/cursos', icon: FiGrid },
   { label: 'Meus Cursos', href: '/aluno/cursos', icon: FiBookOpen },
+  { label: 'Calendário', href: '/aluno/calendario', icon: FiCalendar },
   { label: 'Certificados', href: '/aluno/certificados', icon: FiAward },
   { label: 'Conquistas', href: '/aluno/conquistas', icon: FiStar },
   { label: 'Downloads', href: '/aluno/download', icon: FiDownload },

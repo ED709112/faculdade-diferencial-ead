@@ -73,7 +73,7 @@ const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const defaultQuizForm: QuizFormData = {
   title: '',
   description: '',
-  time_limit_minutes: 0,
+  time_limit_minutes: 120,
   passing_grade: 60,
   max_attempts: 3,
   shuffle_questions: false,

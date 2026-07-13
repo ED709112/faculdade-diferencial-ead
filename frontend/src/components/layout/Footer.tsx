@@ -33,11 +33,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Sobre */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <FaGraduationCap className="text-2xl text-secondary-500" />
-              <span className="text-lg font-bold">
-                Faculdade Diferencial <span className="text-secondary-500">EAD</span>
-              </span>
+            <div className="mb-4">
+              <img src="/images/logo.jpg" alt="Faculdade Diferencial EAD" className="h-10 w-auto object-contain" />
             </div>
             <p className="text-primary-200 text-sm leading-relaxed mb-6">
               Oferecemos educação de qualidade com flexibilidade para que você possa
