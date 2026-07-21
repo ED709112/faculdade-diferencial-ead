@@ -34,7 +34,7 @@ export default function Footer() {
           {/* Sobre */}
           <div>
             <div className="mb-4">
-              <img src="/images/logo.jpg" alt="Faculdade Diferencial EAD" className="h-10 w-auto object-contain" />
+              <span className="text-xl font-bold text-white">Faculdade Diferencial EAD</span>
             </div>
             <p className="text-primary-200 text-sm leading-relaxed mb-6">
               Oferecemos educação de qualidade com flexibilidade para que você possa
@@ -99,13 +99,14 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <FiMapPin className="text-secondary-500 mt-0.5 shrink-0" />
                 <span className="text-primary-200 text-sm">
-                  Av. Principal, 1000 - Centro<br />
-                  São Paulo, SP - 01000-000
+                  Rua João da Cruz Monteiro, 1728<br />
+                  Cristo Rei, Teresina - PI<br />
+                  CEP 64.014-210
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <FiPhone className="text-secondary-500 shrink-0" />
-                <span className="text-primary-200 text-sm">(11) 3000-0000</span>
+                <span className="text-primary-200 text-sm">(86) 99937-3900</span>
               </li>
               <li className="flex items-center gap-3">
                 <FiMail className="text-secondary-500 shrink-0" />

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/hooks/useAuth';
+import { CartProvider } from '@/hooks/useCart';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import '@/styles/globals.css';
 
@@ -11,13 +13,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className="bg-gray-50 antialiased">
-        <AuthProvider>
-          {children}
+      <body className="bg-gray-100 dark:bg-gray-900 antialiased">
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </AuthProvider>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -35,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               },
             }}
           />
-        </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

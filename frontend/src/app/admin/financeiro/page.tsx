@@ -106,8 +106,27 @@ export default function AdminFinanceiroPage() {
     }
   };
 
-  const handleExport = (format: string) => {
-    toast.success(`Exportando relatório em ${format.toUpperCase()}...`);
+  const handleExport = async (format: string) => {
+    try {
+      toast.success(`Gerando relatório em ${format.toUpperCase()}...`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/financial-export/${format}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Erro ao gerar relatório');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-financeiro-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success('Relatório baixado com sucesso!');
+    } catch {
+      toast.error('Erro ao baixar relatório.');
+    }
   };
 
   if (loading) return <Loading text="Carregando dados financeiros..." />;

@@ -179,17 +179,17 @@ export default function ProfilePage() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Meu Perfil</h2>
-        <p className="text-gray-500 text-sm mt-1">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Meu Perfil</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Gerencie suas informações pessoais
         </p>
       </div>
 
       {/* Avatar Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="relative group">
-            <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden ring-4 ring-white shadow">
+            <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow">
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
@@ -215,8 +215,8 @@ export default function ProfilePage() {
             />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">{profile.name}</p>
-            <p className="text-sm text-gray-500">{profile.email}</p>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">{profile.name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{profile.email}</p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="mt-2 text-sm text-primary-500 hover:text-primary-600 font-medium"
@@ -228,8 +228,8 @@ export default function ProfilePage() {
       </div>
 
       {/* Personal Info */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">
           Informações Pessoais
         </h3>
 
@@ -254,7 +254,7 @@ export default function ProfilePage() {
               type="email"
               value={profile.email}
               disabled
-              className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
+              className="input-field bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 cursor-not-allowed"
             />
           </div>
 
@@ -311,7 +311,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Address */}
-        <h4 className="text-md font-semibold text-gray-900 mt-6 mb-4">
+        <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-4">
           <FiMapPin className="inline mr-1" /> Endereço
         </h4>
 
@@ -375,8 +375,8 @@ export default function ProfilePage() {
       </div>
 
       {/* Change Password */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">
           <FiLock className="inline mr-2" />
           Alterar Senha
         </h3>

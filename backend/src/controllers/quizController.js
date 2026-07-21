@@ -333,6 +333,51 @@ const submitAttempt = async (req, res) => {
           'UPDATE enrollments SET final_grade = ? WHERE user_id = ? AND course_id = ?',
           [score, req.user.id, quiz[0].course_id]
         );
+
+        const [enrollment] = await db.query(
+          'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?',
+          [req.user.id, quiz[0].course_id]
+        );
+
+        if (enrollment.length > 0) {
+          const eid = enrollment[0].id;
+          const cid = quiz[0].course_id;
+
+          const [totalLessons] = await db.query(
+            'SELECT COUNT(*) as t FROM lessons l JOIN modules m ON l.module_id = m.id WHERE m.course_id = ?',
+            [cid]
+          );
+          const [completedLessons] = await db.query(
+            "SELECT COUNT(*) as t FROM lesson_progress WHERE enrollment_id = ? AND status = 'completed'",
+            [eid]
+          );
+          const [totalQuizzes] = await db.query(
+            'SELECT COUNT(*) as t FROM quizzes WHERE course_id = ? AND is_active = 1',
+            [cid]
+          );
+          const [passedQuizzes] = await db.query(
+            `SELECT COUNT(DISTINCT qa.quiz_id) as t FROM quiz_attempts qa
+             JOIN quizzes q ON qa.quiz_id = q.id
+             WHERE q.course_id = ? AND qa.user_id = ? AND qa.is_passed = 1`,
+            [cid, req.user.id]
+          );
+
+          const total = parseInt(totalLessons[0].t) + parseInt(totalQuizzes[0].t);
+          const done = parseInt(completedLessons[0].t) + parseInt(passedQuizzes[0].t);
+          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+          await db.query(
+            'UPDATE enrollments SET progress_percentage = ?, last_accessed_at = NOW() WHERE id = ?',
+            [pct, eid]
+          );
+
+          if (pct >= 100) {
+            await db.query(
+              "UPDATE enrollments SET status = 'completed', completed_at = NOW() WHERE id = ? AND status = 'active'",
+              [eid]
+            );
+          }
+        }
       }
     }
 

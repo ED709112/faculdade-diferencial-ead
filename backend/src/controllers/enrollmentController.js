@@ -580,6 +580,96 @@ const updateProgress = async (req, res) => {
   }
 };
 
+const getCourseProgress = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [enrollments] = await db.query(
+      `SELECT e.id, e.user_id, e.course_id, e.progress_percentage, e.status
+       FROM enrollments e WHERE e.id = ?`,
+      [id]
+    );
+
+    if (enrollments.length === 0) {
+      return res.status(404).json({ error: 'Matrícula não encontrada.' });
+    }
+
+    if (enrollments[0].user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Sem permissão.' });
+    }
+
+    const enrollmentId = enrollments[0].id;
+    const courseId = enrollments[0].course_id;
+
+    const [totalLessons] = await db.query(
+      `SELECT COUNT(*) as total FROM lessons l
+       JOIN modules m ON l.module_id = m.id
+       WHERE m.course_id = ?`,
+      [courseId]
+    );
+
+    const [completedLessons] = await db.query(
+      `SELECT COUNT(*) as total FROM lesson_progress lp
+       WHERE lp.enrollment_id = ? AND lp.status = 'completed'`,
+      [enrollmentId]
+    );
+
+    const [totalQuizzes] = await db.query(
+      'SELECT COUNT(*) as total FROM quizzes WHERE course_id = ? AND is_active = 1',
+      [courseId]
+    );
+
+    const [passedQuizzes] = await db.query(
+      `SELECT COUNT(DISTINCT qa.quiz_id) as total
+       FROM quiz_attempts qa
+       JOIN quizzes q ON qa.quiz_id = q.id
+       WHERE q.course_id = ? AND qa.user_id = ? AND qa.is_passed = 1`,
+      [courseId, req.user.id]
+    );
+
+    const [currentLesson] = await db.query(
+      `SELECT lp.lesson_id FROM lesson_progress lp
+       WHERE lp.enrollment_id = ? AND lp.status != 'completed'
+       ORDER BY lp.started_at ASC LIMIT 1`,
+      [enrollmentId]
+    );
+
+    const total = parseInt(totalLessons[0].total);
+    const completed = parseInt(completedLessons[0].total);
+    const totalQuiz = parseInt(totalQuizzes[0].total);
+    const passed = parseInt(passedQuizzes[0].total);
+    const totalItems = total + totalQuiz;
+    const completedItems = completed + passed;
+    const percentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+    await db.query(
+      'UPDATE enrollments SET progress_percentage = ?, last_accessed_at = NOW() WHERE id = ?',
+      [percentage, enrollmentId]
+    );
+
+    if (percentage >= 100) {
+      await db.query(
+        `UPDATE enrollments SET status = 'completed', completed_at = NOW()
+         WHERE id = ? AND status = 'active'`,
+        [enrollmentId]
+      );
+    }
+
+    res.json({
+      progress: percentage,
+      completed: percentage >= 100,
+      current_lesson_id: currentLesson.length > 0 ? currentLesson[0].lesson_id : null,
+      completed_lessons: completed,
+      total_lessons: total,
+      quizzes_total: totalQuiz,
+      quizzes_passed: passed,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar progresso do curso:', error);
+    res.status(500).json({ error: 'Erro ao buscar progresso.' });
+  }
+};
+
 const cancelEnrollment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -855,6 +945,7 @@ module.exports = {
   getEnrollmentById,
   getProgress,
   updateProgress,
+  getCourseProgress,
   cancelEnrollment,
   generateBoleto,
   getPayments,

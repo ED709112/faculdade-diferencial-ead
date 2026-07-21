@@ -77,8 +77,8 @@ export default function CertificatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Meus Certificados</h2>
-        <p className="text-gray-500 text-sm mt-1">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Meus Certificados</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Todos os seus certificados de conclusão em um só lugar
         </p>
       </div>
@@ -95,7 +95,7 @@ export default function CertificatesPage() {
           {certificates.map((cert) => (
             <div
               key={cert.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
             >
               <div className="h-2 bg-gradient-to-r from-primary-500 to-secondary-500" />
 
@@ -109,28 +109,28 @@ export default function CertificatesPage() {
                   </span>
                 </div>
 
-                <h3 className="font-bold text-gray-900 mb-1 line-clamp-2">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
                   {cert.course_title}
                 </h3>
 
-                <div className="space-y-2 mt-4 text-sm text-gray-500">
+                <div className="space-y-2 mt-4 text-sm text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <FiCheckCircle className="text-green-500 shrink-0" />
                     <span>Concluído em {formatDate(cert.issued_at)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <FiClock className="text-gray-400 shrink-0" />
+                    <FiClock className="text-gray-400 dark:text-gray-500 shrink-0" />
                     <span>Carga horária: {cert.workload_hours}h</span>
                   </div>
                   {cert.final_grade != null && (
                     <div className="flex items-center gap-2">
-                      <FiHash className="text-gray-400 shrink-0" />
+                      <FiHash className="text-gray-400 dark:text-gray-500 shrink-0" />
                       <span>Nota: {Number(cert.final_grade).toFixed(1)}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-2 mt-5 pt-4 border-t border-gray-100">
+                <div className="flex gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
                   <button
                     onClick={() => handleDownload(cert.id, cert.course_title)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors"
@@ -139,7 +139,7 @@ export default function CertificatesPage() {
                   </button>
                   <button
                     onClick={() => setVerifyModal(cert)}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <FiExternalLink /> Verificar
                   </button>
@@ -152,10 +152,10 @@ export default function CertificatesPage() {
 
       {verifyModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 relative">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 relative">
             <button
               onClick={() => setVerifyModal(null)}
-              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <FiX className="text-lg" />
             </button>
@@ -164,14 +164,14 @@ export default function CertificatesPage() {
               <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
                 <FiAward className="text-3xl text-primary-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
                 Verificação de Certificado
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                 Use o código ou QR Code abaixo para validar este certificado
               </p>
 
-              <div className="w-48 h-48 bg-white border-2 border-gray-200 rounded-xl mx-auto mb-4 flex items-center justify-center p-2">
+              <div className="w-48 h-48 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl mx-auto mb-4 flex items-center justify-center p-2">
                 <QRCodeSVG
                   value={`${typeof window !== 'undefined' ? window.location.origin : ''}/verificar-certificado/${verifyModal.certificate_code}`}
                   size={160}
@@ -181,17 +181,17 @@ export default function CertificatesPage() {
                 />
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <p className="text-xs text-gray-500 mb-1">Código de verificação</p>
-                <p className="text-lg font-mono font-bold text-gray-900 tracking-wider">
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Código de verificação</p>
+                <p className="text-lg font-mono font-bold text-gray-900 dark:text-gray-100 tracking-wider">
                   {verifyModal.certificate_code}
                 </p>
               </div>
 
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Curso: {verifyModal.course_title}
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Data de conclusão: {formatDate(verifyModal.issued_at)}
               </p>
             </div>

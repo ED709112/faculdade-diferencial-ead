@@ -59,6 +59,10 @@ const uploadAvatar = createUpload('avatars', [
   'image/jpeg', 'image/png', 'image/webp'
 ], 5 * 1024 * 1024);
 
+const uploadProductImage = createUpload('products', [
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif'
+], 5 * 1024 * 1024);
+
 const uploadCertificate = createUpload('certificates', [
   'application/pdf', 'image/png', 'image/jpeg'
 ], 10 * 1024 * 1024);
@@ -68,6 +72,7 @@ module.exports = {
   uploadVideo,
   uploadDocument,
   uploadAvatar,
+  uploadProductImage,
   uploadCertificate,
   createUpload
 };

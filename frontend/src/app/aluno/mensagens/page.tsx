@@ -149,17 +149,17 @@ export default function MessagesPage() {
   if (loadingConversations) return <Loading text="Carregando mensagens..." />;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] -m-4 lg:-m-6 bg-white rounded-none lg:rounded-xl lg:overflow-hidden lg:shadow-sm">
+    <div className="flex h-[calc(100vh-8rem)] -m-4 lg:-m-6 bg-white dark:bg-gray-800 rounded-none lg:rounded-xl lg:overflow-hidden lg:shadow-sm">
       {/* Conversation List */}
       <div
-        className={`w-full lg:w-80 border-r border-gray-200 flex flex-col shrink-0 ${
+        className={`w-full lg:w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 ${
           showMobileList ? 'flex' : 'hidden lg:flex'
         }`}
       >
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900 mb-3">Mensagens</h3>
-          <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2">
-            <FiSearch className="text-gray-400 mr-2" />
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3">Mensagens</h3>
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
+            <FiSearch className="text-gray-400 dark:text-gray-500 mr-2" />
             <input
               type="text"
               value={search}
@@ -172,7 +172,7 @@ export default function MessagesPage() {
 
         <div className="flex-1 overflow-y-auto">
           {filteredConversations.length === 0 ? (
-            <p className="p-6 text-center text-gray-400 text-sm">
+            <p className="p-6 text-center text-gray-400 dark:text-gray-500 text-sm">
               Nenhuma conversa encontrada
             </p>
           ) : (
@@ -183,10 +183,10 @@ export default function MessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => selectConversation(conv)}
-                  className={`flex items-center gap-3 w-full p-4 text-left transition-colors border-b border-gray-50 ${
+                  className={`flex items-center gap-3 w-full p-4 text-left transition-colors border-b border-gray-50 dark:border-gray-700/50 ${
                     isActive
                       ? 'bg-primary-50'
-                      : 'hover:bg-gray-50'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center shrink-0 overflow-hidden">
@@ -204,17 +204,17 @@ export default function MessagesPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {other?.name}
                       </p>
                       {conv.last_message && (
-                        <span className="text-xs text-gray-400 shrink-0">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
                           {formatDate(conv.last_message.created_at)}
                         </span>
                       )}
                     </div>
                     {conv.last_message && (
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                         {conv.last_message.content}
                       </p>
                     )}
@@ -239,20 +239,20 @@ export default function MessagesPage() {
       >
         {!activeConversation ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <FiMessageSquare className="text-3xl text-gray-300" />
+            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+              <FiMessageSquare className="text-3xl text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
               Selecione uma conversa
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Escolha uma conversa ao lado para começar a mensagem
             </p>
           </div>
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+            <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-700">
               <button
                 onClick={() => setShowMobileList(true)}
                 className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
@@ -277,7 +277,7 @@ export default function MessagesPage() {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{other?.name}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{other?.name}</p>
                       <p className="text-xs text-green-500 flex items-center gap-1">
                         <FiCircle className="text-[6px] fill-current" /> Online
                       </p>
@@ -292,7 +292,7 @@ export default function MessagesPage() {
               {loadingMessages ? (
                 <Loading fullScreen={false} text="Carregando..." />
               ) : messages.length === 0 ? (
-                <p className="text-center text-gray-400 text-sm py-8">
+                <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">
                   Nenhuma mensagem ainda. Inicie a conversa!
                 </p>
               ) : (
@@ -307,13 +307,13 @@ export default function MessagesPage() {
                         className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${
                           isMe
                             ? 'bg-primary-500 text-white rounded-br-md'
-                            : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-md'
                         }`}
                       >
                         <p className="text-sm">{msg.content}</p>
                         <p
                           className={`text-[10px] mt-1 ${
-                            isMe ? 'text-primary-200' : 'text-gray-400'
+                            isMe ? 'text-primary-200' : 'text-gray-400 dark:text-gray-500'
                           }`}
                         >
                           {formatTime(msg.created_at)}
@@ -327,7 +327,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Send Form */}
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-3">
                 <input
                   ref={inputRef}

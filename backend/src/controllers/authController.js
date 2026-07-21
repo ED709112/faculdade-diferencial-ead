@@ -100,6 +100,15 @@ const login = async (req, res) => {
       [refreshToken, user.id]
     );
 
+    let permissions = [];
+    if (user.role === 'admin') {
+      const [perms] = await db.query(
+        'SELECT permission_key FROM admin_permissions WHERE user_id = ?',
+        [user.id]
+      );
+      permissions = perms.map(p => p.permission_key);
+    }
+
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -115,6 +124,8 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        admin_level: user.admin_level,
+        permissions,
         avatar: user.avatar,
         phone: user.phone,
         is_active: user.is_active,

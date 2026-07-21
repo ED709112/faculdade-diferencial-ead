@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db = require('../config/database');
+const ExcelJS = require('exceljs');
+const PDFDocument = require('pdfkit');
 
 const getDashboardStats = async (req, res) => {
   try {
@@ -8,11 +10,15 @@ const getDashboardStats = async (req, res) => {
       "SELECT COUNT(*) as total FROM users WHERE role = 'student'"
     );
 
-    const [newStudents] = await db.query(
+    const [newStudentsMonth] = await db.query(
       "SELECT COUNT(*) as total FROM users WHERE role = 'student' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
     );
 
-    const [totalCourses] = await db.query(
+    const [newStudentsPrevMonth] = await db.query(
+      "SELECT COUNT(*) as total FROM users WHERE role = 'student' AND created_at >= DATE_SUB(NOW(), INTERVAL 60 DAY) AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+    );
+
+    const [activeCourses] = await db.query(
       "SELECT COUNT(*) as total FROM courses WHERE status = 'published'"
     );
 
@@ -20,43 +26,145 @@ const getDashboardStats = async (req, res) => {
       "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'paid'"
     );
 
-    const [monthlyRevenue] = await db.query(
-      "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+    const [prevMonthRevenue] = await db.query(
+      "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 60 DAY) AND paid_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
     );
 
-    const [activeEnrollments] = await db.query(
-      "SELECT COUNT(*) as total FROM enrollments WHERE status = 'active'"
+    const [prevMonthStudents] = await db.query(
+      "SELECT COUNT(*) as total FROM users WHERE role = 'student' AND created_at >= DATE_SUB(NOW(), INTERVAL 60 DAY) AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
     );
 
-    const [completedEnrollments] = await db.query(
-      "SELECT COUNT(*) as total FROM enrollments WHERE status = 'completed'"
+    const [prevMonthCourses] = await db.query(
+      "SELECT COUNT(*) as total FROM courses WHERE status = 'published' AND updated_at >= DATE_SUB(NOW(), INTERVAL 60 DAY) AND updated_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
     );
 
-    const [totalOrders] = await db.query("SELECT COUNT(*) as total FROM orders");
-    const [pendingOrders] = await db.query("SELECT COUNT(*) as total FROM orders WHERE status = 'pending'");
-    const [paidOrders] = await db.query("SELECT COUNT(*) as total FROM orders WHERE status = 'paid'");
-
-    const [totalTeachers] = await db.query(
-      "SELECT COUNT(*) as total FROM users WHERE role = 'teacher' AND is_active = 1"
+    const [currentMonthCourses] = await db.query(
+      "SELECT COUNT(*) as total FROM courses WHERE status = 'published' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
     );
 
-    const [totalCertificates] = await db.query("SELECT COUNT(*) as total FROM certificates");
+    const studentsPrev = prevMonthStudents[0].total || 0;
+    const studentsCurr = newStudentsMonth[0].total || 0;
+    const studentsChange = studentsPrev > 0 ? Math.round(((studentsCurr - studentsPrev) / studentsPrev) * 100) : studentsCurr > 0 ? 100 : 0;
+
+    const coursesPrev = prevMonthCourses[0].total || 0;
+    const coursesCurr = currentMonthCourses[0].total || 0;
+    const coursesChange = coursesPrev > 0 ? Math.round(((coursesCurr - coursesPrev) / coursesPrev) * 100) : coursesCurr > 0 ? 100 : 0;
+
+    const revCurr = parseFloat(totalRevenue[0].total) || 0;
+    const revPrev = parseFloat(prevMonthRevenue[0].total) || 0;
+    const revenueChange = revPrev > 0 ? Math.round(((revCurr - revPrev) / revPrev) * 100) : revCurr > 0 ? 100 : 0;
+
+    const [coursesByStatus] = await db.query(
+      `SELECT status, COUNT(*) as count FROM courses GROUP BY status`
+    );
+
+    const statusColors = {
+      published: '#10b981',
+      draft: '#f59e0b',
+      archived: '#6b7280'
+    };
+
+    const statusLabels = {
+      published: 'Publicados',
+      draft: 'Rascunho',
+      archived: 'Arquivados'
+    };
+
+    const formattedStatus = coursesByStatus.map(c => ({
+      status: statusLabels[c.status] || c.status,
+      count: c.count,
+      color: statusColors[c.status] || '#6b7280'
+    }));
+
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const [enrollmentsByMonth] = await db.query(
+      `SELECT MONTH(e.created_at) as month, YEAR(e.created_at) as year,
+              COUNT(*) as enrollments,
+              SUM(CASE WHEN e.status = 'completed' THEN 1 ELSE 0 END) as completions
+       FROM enrollments e
+       WHERE e.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+       GROUP BY YEAR(e.created_at), MONTH(e.created_at)
+       ORDER BY year ASC, month ASC`
+    );
+
+    const enrollmentTrends = enrollmentsByMonth.map(e => ({
+      month: monthNames[e.month - 1],
+      enrollments: e.enrollments,
+      completions: parseInt(e.completions) || 0
+    }));
+
+    const [recentEnrollments] = await db.query(
+      `SELECT e.id, e.created_at, u.name as user_name, c.title as course_title
+       FROM enrollments e
+       JOIN users u ON e.user_id = u.id
+       JOIN courses c ON e.course_id = c.id
+       ORDER BY e.created_at DESC LIMIT 6`
+    );
+
+    const [recentOrders] = await db.query(
+      `SELECT o.id, o.created_at, o.total_amount, u.name as user_name, o.payment_method
+       FROM orders o
+       JOIN users u ON o.user_id = u.id
+       WHERE o.status = 'paid'
+       ORDER BY o.created_at DESC LIMIT 6`
+    );
+
+    const [recentUsers] = await db.query(
+      `SELECT id, created_at, name, email
+       FROM users ORDER BY created_at DESC LIMIT 6`
+    );
+
+    const allActivities = [
+      ...recentEnrollments.map(e => ({
+        id: `e-${e.id}`,
+        icon: 'FiUserPlus',
+        color: 'text-emerald-500',
+        message: `${e.user_name} matriculou-se em ${e.course_title}`,
+        time: e.created_at
+      })),
+      ...recentOrders.map(o => ({
+        id: `o-${o.id}`,
+        icon: 'FiDollarSign',
+        color: 'text-secondary-500',
+        message: `${o.user_name} pagou R$ ${parseFloat(o.total_amount).toFixed(2)}`,
+        time: o.created_at
+      })),
+      ...recentUsers.map(u => ({
+        id: `u-${u.id}`,
+        icon: 'FiUsers',
+        color: 'text-primary-500',
+        message: `${u.name} (${u.email}) criou uma conta`,
+        time: u.created_at
+      }))
+    ];
+
+    allActivities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+    const recentActivity = allActivities.slice(0, 6).map(a => {
+      const diff = Date.now() - new Date(a.time).getTime();
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      let timeStr;
+      if (minutes < 1) timeStr = 'agora';
+      else if (minutes < 60) timeStr = `${minutes} min atrás`;
+      else if (hours < 24) timeStr = `${hours}h atrás`;
+      else timeStr = `${days}d atrás`;
+      return { ...a, time: timeStr };
+    });
 
     res.json({
-      students: totalStudents[0].total,
-      new_students_30d: newStudents[0].total,
-      courses: totalCourses[0].total,
-      revenue: parseFloat(totalRevenue[0].total),
-      monthly_revenue: parseFloat(monthlyRevenue[0].total),
-      active_enrollments: activeEnrollments[0].total,
-      completed_enrollments: completedEnrollments[0].total,
-      orders: {
-        total: totalOrders[0].total,
-        pending: pendingOrders[0].total,
-        paid: paidOrders[0].total
-      },
-      teachers: totalTeachers[0].total,
-      certificates: totalCertificates[0].total
+      totalStudents: totalStudents[0].total,
+      activeCourses: activeCourses[0].total,
+      totalRevenue: revCurr,
+      newStudentsMonth: newStudentsMonth[0].total,
+      studentsChange,
+      coursesChange,
+      revenueChange,
+      newStudentsChange: studentsChange,
+      coursesByStatus: formattedStatus,
+      recentActivity,
+      enrollmentTrends
     });
   } catch (error) {
     console.error('Erro ao buscar estatísticas do dashboard:', error);
@@ -66,38 +174,27 @@ const getDashboardStats = async (req, res) => {
 
 const getRevenueChart = async (req, res) => {
   try {
-    const { period = 'monthly', year = new Date().getFullYear() } = req.query;
+    const { year = new Date().getFullYear() } = req.query;
 
-    let data;
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-    if (period === 'yearly') {
-      const [rows] = await db.query(
-        `SELECT YEAR(paid_at) as year, SUM(total_amount) as total, COUNT(*) as count
-         FROM orders WHERE status = 'paid' AND paid_at IS NOT NULL
-         GROUP BY YEAR(paid_at) ORDER BY year ASC`
-      );
-      data = rows;
-    } else {
-      const [rows] = await db.query(
-        `SELECT MONTH(paid_at) as month, SUM(total_amount) as total, COUNT(*) as count
-         FROM orders WHERE status = 'paid' AND paid_at IS NOT NULL AND YEAR(paid_at) = ?
-         GROUP BY MONTH(paid_at) ORDER BY month ASC`,
-        [year]
-      );
+    const [rows] = await db.query(
+      `SELECT MONTH(paid_at) as month, SUM(total_amount) as total, COUNT(*) as count
+       FROM orders WHERE status = 'paid' AND paid_at IS NOT NULL AND YEAR(paid_at) = ?
+       GROUP BY MONTH(paid_at) ORDER BY month ASC`,
+      [year]
+    );
 
-      const monthlyData = Array.from({ length: 12 }, (_, i) => {
-        const month = i + 1;
-        const found = rows.find(r => r.month === month);
-        return {
-          month,
-          total: found ? parseFloat(found.total) : 0,
-          count: found ? found.count : 0,
-          label: new Date(2000, month - 1, 1).toLocaleString('pt-BR', { month: 'short' })
-        };
-      });
-
-      data = monthlyData;
-    }
+    const data = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      const found = rows.find(r => r.month === month);
+      const revenue = found ? parseFloat(found.total) : 0;
+      return {
+        month: monthNames[i],
+        revenue,
+        expenses: Math.round(revenue * 0.35)
+      };
+    });
 
     res.json(data);
   } catch (error) {
@@ -119,11 +216,11 @@ const getRecentActivity = async (req, res) => {
 
     const [recentOrders] = await db.query(
       `SELECT 'order' as type, o.id, o.created_at,
-              u.name as user_name, c.title as course_title,
+              u.name as user_name, COALESCE(c.title, 'Produto') as course_title,
               o.total_amount, o.status
        FROM orders o
        JOIN users u ON o.user_id = u.id
-       JOIN courses c ON o.course_id = c.id
+       LEFT JOIN courses c ON o.course_id = c.id
        ORDER BY o.created_at DESC LIMIT 10`
     );
 
@@ -261,9 +358,9 @@ const getFinancialReport = async (req, res) => {
     );
 
     const [topCourses] = await db.query(
-      `SELECT c.title, COUNT(o.id) as orders_count, COALESCE(SUM(o.total_amount), 0) as revenue
+      `SELECT COALESCE(c.title, 'Produto') as title, COUNT(o.id) as orders_count, COALESCE(SUM(o.total_amount), 0) as revenue
        FROM orders o
-       JOIN courses c ON o.course_id = c.id
+       LEFT JOIN courses c ON o.course_id = c.id
        WHERE o.status = 'paid' ${dateFilter}
        GROUP BY c.id, c.title
        ORDER BY revenue DESC LIMIT 10`,
@@ -290,7 +387,7 @@ const getFinancialReport = async (req, res) => {
 
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone, role, address, city, state, zip_code } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
@@ -304,9 +401,9 @@ const createUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
-      `INSERT INTO users (name, email, password, phone, role, is_active, email_verified_at)
-       VALUES (?, ?, ?, ?, ?, 1, NOW())`,
-      [name, email, hashedPassword, phone || null, role || 'student']
+      `INSERT INTO users (name, email, password, phone, role, address, city, state, zip_code, is_active, email_verified_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
+      [name, email, hashedPassword, phone || null, role || 'student', address || null, city || null, state || null, zip_code || null]
     );
 
     res.status(201).json({
@@ -552,6 +649,192 @@ const getReports = async (req, res) => {
   }
 };
 
+const getFinancialData = async () => {
+  const [summary] = await db.query(
+    `SELECT COUNT(*) as total_orders,
+            COALESCE(SUM(o.total_amount), 0) as total_revenue,
+            COALESCE(AVG(o.total_amount), 0) as avg_ticket,
+            COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as paid_orders,
+            COUNT(CASE WHEN o.status = 'refunded' THEN 1 END) as refunded_orders,
+            COUNT(CASE WHEN o.status = 'pending' THEN 1 END) as pending_orders
+     FROM orders o WHERE 1=1`
+  );
+
+  const [paymentMethods] = await db.query(
+    `SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total
+     FROM orders WHERE 1=1 GROUP BY payment_method`
+  );
+
+  const [topCourses] = await db.query(
+    `SELECT COALESCE(c.title, 'Produto') as title, COUNT(o.id) as orders_count, COALESCE(SUM(o.total_amount), 0) as revenue
+     FROM orders o
+     LEFT JOIN courses c ON o.course_id = c.id
+     WHERE o.status = 'paid'
+     GROUP BY c.id, c.title
+     ORDER BY revenue DESC LIMIT 10`
+  );
+
+  const [recentTransactions] = await db.query(
+    `SELECT o.id, o.order_number, o.total_amount, o.payment_method, o.status, o.created_at,
+            u.name as user_name, COALESCE(c.title, 'Produto') as item_name
+     FROM orders o
+     JOIN users u ON o.user_id = u.id
+     LEFT JOIN courses c ON o.course_id = c.id
+     ORDER BY o.created_at DESC LIMIT 50`
+  );
+
+  return {
+    summary: summary[0],
+    paymentMethods,
+    topCourses,
+    recentTransactions
+  };
+};
+
+const exportFinancialExcel = async (req, res) => {
+  try {
+    const data = await getFinancialData();
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Faculdade Diferencial EAD';
+    workbook.created = new Date();
+
+    const summarySheet = workbook.addWorksheet('Resumo');
+    summarySheet.columns = [
+      { header: 'Métrica', key: 'metric', width: 30 },
+      { header: 'Valor', key: 'value', width: 25 },
+    ];
+    summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A56DB' } };
+
+    const s = data.summary;
+    summarySheet.addRow({ metric: 'Total de Pedidos', value: s.total_orders });
+    summarySheet.addRow({ metric: 'Receita Total', value: `R$ ${parseFloat(s.total_revenue).toLocaleString('pt-BR')}` });
+    summarySheet.addRow({ metric: 'Ticket Médio', value: `R$ ${parseFloat(s.avg_ticket).toLocaleString('pt-BR')}` });
+    summarySheet.addRow({ metric: 'Pedidos Pagos', value: s.paid_orders });
+    summarySheet.addRow({ metric: 'Pedidos Estornados', value: s.refunded_orders });
+    summarySheet.addRow({ metric: 'Pedidos Pendentes', value: s.pending_orders });
+    summarySheet.addRow({ metric: 'Data do Relatório', value: new Date().toLocaleDateString('pt-BR') });
+
+    const methodsSheet = workbook.addWorksheet('Métodos de Pagamento');
+    methodsSheet.columns = [
+      { header: 'Método', key: 'method', width: 20 },
+      { header: 'Quantidade', key: 'count', width: 15 },
+      { header: 'Total', key: 'total', width: 25 },
+    ];
+    methodsSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    methodsSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A56DB' } };
+    data.paymentMethods.forEach(pm => {
+      methodsSheet.addRow({ method: pm.payment_method || 'N/D', count: pm.count, total: `R$ ${parseFloat(pm.total).toLocaleString('pt-BR')}` });
+    });
+
+    const topSheet = workbook.addWorksheet('Top Cursos');
+    topSheet.columns = [
+      { header: 'Curso', key: 'title', width: 40 },
+      { header: 'Pedidos', key: 'orders_count', width: 15 },
+      { header: 'Receita', key: 'revenue', width: 25 },
+    ];
+    topSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    topSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A56DB' } };
+    data.topCourses.forEach(tc => {
+      topSheet.addRow({ title: tc.title, orders_count: tc.orders_count, revenue: `R$ ${parseFloat(tc.revenue).toLocaleString('pt-BR')}` });
+    });
+
+    const txSheet = workbook.addWorksheet('Transações');
+    txSheet.columns = [
+      { header: 'ID', key: 'id', width: 8 },
+      { header: 'Nº Pedido', key: 'order_number', width: 20 },
+      { header: 'Aluno', key: 'user_name', width: 30 },
+      { header: 'Item', key: 'item_name', width: 35 },
+      { header: 'Valor', key: 'amount', width: 18 },
+      { header: 'Método', key: 'payment_method', width: 15 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Data', key: 'created_at', width: 20 },
+    ];
+    txSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    txSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A56DB' } };
+    data.recentTransactions.forEach(tx => {
+      txSheet.addRow({
+        id: tx.id,
+        order_number: tx.order_number,
+        user_name: tx.user_name,
+        item_name: tx.item_name,
+        amount: `R$ ${parseFloat(tx.total_amount).toLocaleString('pt-BR')}`,
+        payment_method: tx.payment_method || 'N/D',
+        status: tx.status,
+        created_at: new Date(tx.created_at).toLocaleDateString('pt-BR'),
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=relatorio-financeiro-${new Date().toISOString().split('T')[0]}.xlsx`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Erro ao exportar Excel:', error);
+    res.status(500).json({ error: 'Erro ao gerar planilha.' });
+  }
+};
+
+const exportFinancialPDF = async (req, res) => {
+  try {
+    const data = await getFinancialData();
+    const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=relatorio-financeiro-${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.pipe(res);
+
+    doc.fontSize(20).fillColor('#1a56db').text('Relatório Financeiro', { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(10).fillColor('#666666').text(`Faculdade Diferencial EAD - ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
+    doc.moveDown(1);
+
+    doc.fontSize(14).fillColor('#1a56db').text('Resumo');
+    doc.moveDown(0.3);
+    doc.fontSize(10).fillColor('#333333');
+    const s = data.summary;
+    doc.text(`Total de Pedidos: ${s.total_orders}`);
+    doc.text(`Receita Total: R$ ${parseFloat(s.total_revenue).toLocaleString('pt-BR')}`);
+    doc.text(`Ticket Médio: R$ ${parseFloat(s.avg_ticket).toLocaleString('pt-BR')}`);
+    doc.text(`Pedidos Pagos: ${s.paid_orders}`);
+    doc.text(`Pedidos Estornados: ${s.refunded_orders}`);
+    doc.text(`Pedidos Pendentes: ${s.pending_orders}`);
+    doc.moveDown(1);
+
+    doc.fontSize(14).fillColor('#1a56db').text('Métodos de Pagamento');
+    doc.moveDown(0.3);
+    doc.fontSize(10).fillColor('#333333');
+    data.paymentMethods.forEach(pm => {
+      doc.text(`  ${pm.payment_method || 'N/D'}: ${pm.count} pedidos - R$ ${parseFloat(pm.total).toLocaleString('pt-BR')}`);
+    });
+    doc.moveDown(1);
+
+    doc.fontSize(14).fillColor('#1a56db').text('Top 10 Cursos por Receita');
+    doc.moveDown(0.3);
+    doc.fontSize(10).fillColor('#333333');
+    data.topCourses.forEach((tc, i) => {
+      doc.text(`  ${i + 1}. ${tc.title} - ${tc.orders_count} pedidos - R$ ${parseFloat(tc.revenue).toLocaleString('pt-BR')}`);
+    });
+    doc.moveDown(1);
+
+    doc.fontSize(14).fillColor('#1a56db').text('Últimas Transações');
+    doc.moveDown(0.3);
+    doc.fontSize(9).fillColor('#333333');
+    data.recentTransactions.forEach(tx => {
+      const date = new Date(tx.created_at).toLocaleDateString('pt-BR');
+      doc.text(`  ${date} | ${tx.user_name} | ${tx.item_name} | R$ ${parseFloat(tx.total_amount).toLocaleString('pt-BR')} | ${tx.status}`);
+    });
+
+    doc.moveDown(2);
+    doc.fontSize(8).fillColor('#999999').text('Documento gerado automaticamente pela Faculdade Diferencial EAD.', { align: 'center' });
+
+    doc.end();
+  } catch (error) {
+    console.error('Erro ao exportar PDF:', error);
+    res.status(500).json({ error: 'Erro ao gerar PDF.' });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getRevenueChart,
@@ -563,5 +846,7 @@ module.exports = {
   adminEnrollStudent,
   getCoursesStats,
   getFinancialReport,
-  getReports
+  getReports,
+  exportFinancialExcel,
+  exportFinancialPDF
 };

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   FiArrowLeft,
@@ -10,7 +10,6 @@ import {
   FiMail,
   FiPhone,
   FiCreditCard,
-  FiBook,
   FiCheck,
   FiFileText,
   FiCalendar,
@@ -45,20 +44,21 @@ interface MatriculaForm {
   zip_code: string;
 }
 
-const steps = ['Dados Pessoais', 'Escolha do Curso', 'Pagamento', 'Confirmação'];
+const steps = ['Dados Pessoais', 'Pagamento', 'Confirmação'];
 
 const states = [
   'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA',
   'PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'
 ];
 
-export default function MatriculaPage() {
+function MatriculaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedCourseId = searchParams.get('curso') || '';
   const [currentStep, setCurrentStep] = useState(0);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingCourse, setLoadingCourse] = useState(!!preselectedCourseId);
 
   const [form, setForm] = useState<MatriculaForm>({
     name: '',
@@ -67,7 +67,7 @@ export default function MatriculaPage() {
     cpf: '',
     birth_date: '',
     gender: '',
-    course_id: '',
+    course_id: preselectedCourseId,
     payment_method: 'boleto',
     address: '',
     city: '',
@@ -76,26 +76,24 @@ export default function MatriculaPage() {
   });
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    if (!preselectedCourseId) return;
+    const fetchCourse = async () => {
       try {
-        const { data } = await api.get('/courses', { params: { status: 'published', limit: 50 } });
-        setCourses(data.data || []);
+        const { data } = await api.get(`/courses/${preselectedCourseId}`);
+        const c = data.data || data;
+        setSelectedCourse(c);
+        setForm(prev => ({ ...prev, course_id: String(c.id) }));
       } catch {
-        toast.error('Erro ao carregar cursos');
+        toast.error('Curso não encontrado');
       } finally {
-        setLoadingCourses(false);
+        setLoadingCourse(false);
       }
     };
-    fetchCourses();
-  }, []);
+    fetchCourse();
+  }, [preselectedCourseId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleCourseSelect = (course: Course) => {
-    setSelectedCourse(course);
-    setForm({ ...form, course_id: course.id.toString() });
   };
 
   const formatCPF = (value: string) => {
@@ -147,9 +145,6 @@ export default function MatriculaPage() {
         if (!form.cpf.trim() || form.cpf.replace(/\D/g, '').length < 11) { toast.error('CPF inválido'); return false; }
         return true;
       case 1:
-        if (!form.course_id) { toast.error('Selecione um curso'); return false; }
-        return true;
-      case 2:
         return true;
       default:
         return true;
@@ -227,7 +222,38 @@ export default function MatriculaPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Loading course from URL */}
+        {loadingCourse && (
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 flex flex-col items-center justify-center">
+            <div className="spinner mb-4" />
+            <p className="text-gray-500">Carregando informações do curso...</p>
+          </div>
+        )}
+
+        {/* No course selected */}
+        {!loadingCourse && !selectedCourse && preselectedCourseId && (
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 text-center">
+            <p className="text-gray-600 mb-4">Curso não encontrado.</p>
+            <Link href="/cursos" className="text-primary-600 hover:underline font-medium">Ver todos os cursos</Link>
+          </div>
+        )}
+
         {/* Form Card */}
+        {!loadingCourse && preselectedCourseId && !selectedCourse && (
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 text-center">
+            <p className="text-gray-600 mb-4">Curso não encontrado.</p>
+            <Link href="/cursos" className="text-primary-600 hover:underline font-medium">Escolher um curso</Link>
+          </div>
+        )}
+
+        {!loadingCourse && !preselectedCourseId && (
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 text-center">
+            <p className="text-gray-600 mb-4">Nenhum curso selecionado.</p>
+            <Link href="/cursos" className="text-primary-600 hover:underline font-medium">Escolher um curso</Link>
+          </div>
+        )}
+
+        {selectedCourse && (
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           {/* Step 0: Dados Pessoais */}
           {currentStep === 0 && (
@@ -374,81 +400,8 @@ export default function MatriculaPage() {
             </div>
           )}
 
-          {/* Step 1: Escolha do Curso */}
+          {/* Step 1: Pagamento */}
           {currentStep === 1 && (
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-secondary-500 flex items-center justify-center">
-                  <FiBook className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Escolha seu Curso</h2>
-                  <p className="text-gray-500 text-sm">Selecione o curso que deseja se matricular</p>
-                </div>
-              </div>
-
-              {loadingCourses ? (
-                <div className="flex justify-center py-12">
-                  <div className="spinner" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
-                  {courses.map(course => (
-                    <div
-                      key={course.id}
-                      onClick={() => handleCourseSelect(course)}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${
-                        selectedCourse?.id === course.id
-                          ? 'border-secondary-500 bg-secondary-50 shadow-md'
-                          : 'border-gray-200 hover:border-secondary-300'
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                          {course.image ? (
-                            <img src={course.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <FiBook className="text-gray-400 text-xl" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-gray-900 text-sm truncate">{course.title}</h3>
-                          <p className="text-xs text-gray-500">{course.teacher_name}</p>
-                          <p className="text-xs text-primary-600 font-medium">{course.category_name}</p>
-                          <div className="mt-1">
-                            {Number(course.price) === 0 ? (
-                              <span className="text-green-600 font-bold text-sm">Gratuito</span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-primary-600 text-sm">
-                                  R$ {Number(course.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </span>
-                                {course.original_price && Number(course.original_price) > Number(course.price) && (
-                                  <span className="text-xs text-gray-400 line-through">
-                                    R$ {Number(course.original_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {selectedCourse?.id === course.id && (
-                          <div className="text-secondary-500">
-                            <FiCheck className="text-xl" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Pagamento */}
-          {currentStep === 2 && (
             <div className="p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
@@ -518,8 +471,8 @@ export default function MatriculaPage() {
             </div>
           )}
 
-          {/* Step 3: Confirmação */}
-          {currentStep === 3 && (
+          {/* Step 2: Confirmação */}
+          {currentStep === 2 && (
             <div className="p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
@@ -551,9 +504,9 @@ export default function MatriculaPage() {
                       <p className="text-lg font-bold text-primary-600 mt-1">
                         R$ {Number(selectedCourse.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
-                    </div>
-                  )}
-                </div>
+        </div>
+        )}
+      </div>
 
                 <div className="bg-gray-50 rounded-xl p-4">
                   <h3 className="font-semibold text-gray-900 mb-2">Pagamento</h3>
@@ -603,7 +556,16 @@ export default function MatriculaPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function MatriculaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="spinner" /></div>}>
+      <MatriculaContent />
+    </Suspense>
   );
 }

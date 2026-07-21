@@ -26,14 +26,14 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
         return (
           <div
             key={index}
-            className="border border-gray-200 rounded-xl overflow-hidden transition-all duration-200"
+            className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-200"
           >
             <button
               onClick={() => toggle(index)}
               className="flex items-center justify-between w-full px-5 py-4 text-left
-                         hover:bg-gray-50 transition-colors"
+                         hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              <span className="font-medium text-gray-900 text-sm pr-4">{item.question}</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100 text-sm pr-4">{item.question}</span>
               <FiChevronDown
                 className={`text-gray-400 shrink-0 transition-transform duration-300 ${
                   isOpen ? 'rotate-180' : ''
@@ -48,7 +48,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
                 opacity: isOpen ? 1 : 0,
               }}
             >
-              <div className="px-5 pb-4 text-sm text-gray-600 leading-relaxed">
+              <div className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                 {item.answer}
               </div>
             </div>

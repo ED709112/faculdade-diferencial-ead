@@ -132,10 +132,11 @@ export default function HomePage() {
 
   return (
     <PublicLayout>
+      <div className="bg-secondary-50/50 dark:bg-gray-900">
       {loading && <Loading fullScreen />}
 
       {/* Hero Banner */}
-      <section className="relative w-full overflow-hidden bg-white">
+      <section className="relative w-full overflow-hidden bg-white dark:bg-gray-800">
         <div className="container-custom flex flex-col lg:flex-row items-center gap-8 py-8 lg:py-12">
           <img
             src="/images/hero-banner.jpg"
@@ -162,7 +163,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="bg-white border-b border-gray-100">
+      <section className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="container-custom py-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat) => (
@@ -170,7 +171,7 @@ export default function HomePage() {
                 <p className="text-3xl lg:text-4xl font-extrabold text-primary-500 mb-1">
                   {stat.value}
                 </p>
-                <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -209,7 +210,7 @@ export default function HomePage() {
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="py-8 lg:py-12 bg-gray-50">
+        <section className="py-8 lg:py-12 bg-gray-50 dark:bg-gray-900">
           <div className="container-custom">
             <div className="text-center mb-6">
               <h2 className="section-title">Categorias</h2>
@@ -241,16 +242,16 @@ export default function HomePage() {
             {steps.map((step, i) => (
               <div key={step.title} className="relative text-center group">
                 {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-10 left-[60%] w-[80%] border-t-2 border-dashed border-gray-200" />
+                  <div className="hidden lg:block absolute top-10 left-[60%] w-[80%] border-t-2 border-dashed border-gray-200 dark:border-gray-700" />
                 )}
-                <div className="relative z-10 w-20 h-20 mx-auto mb-5 rounded-2xl bg-primary-50 flex items-center justify-center group-hover:bg-primary-500 transition-colors duration-300">
+                <div className="relative z-10 w-20 h-20 mx-auto mb-5 rounded-2xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center group-hover:bg-primary-500 transition-colors duration-300">
                   <step.icon className="text-3xl text-primary-500 group-hover:text-white transition-colors duration-300" />
                 </div>
-                <span className="inline-block text-xs font-bold text-secondary-500 bg-secondary-50 px-3 py-1 rounded-full mb-3">
+                <span className="inline-block text-xs font-bold text-secondary-500 bg-secondary-50 dark:bg-secondary-900/30 px-3 py-1 rounded-full mb-3">
                   Passo {i + 1}
                 </span>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed max-w-[250px] mx-auto">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{step.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-[250px] mx-auto">
                   {step.description}
                 </p>
               </div>
@@ -261,7 +262,7 @@ export default function HomePage() {
 
       {/* Testimonials */}
       {testimonials.length > 0 && (
-        <section className="py-8 lg:py-12 bg-gray-50">
+        <section className="py-8 lg:py-12 bg-gray-50 dark:bg-gray-900">
           <div className="container-custom">
             <div className="text-center mb-6">
               <h2 className="section-title">Depoimentos</h2>
@@ -322,6 +323,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </div>
     </PublicLayout>
   );
 }

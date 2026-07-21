@@ -24,6 +24,8 @@ router.get('/my', authenticate, enrollmentController.getMyEnrollments);
 
 router.get('/:id', authenticate, enrollmentController.getEnrollmentById);
 
+router.get('/:id/course-progress', authenticate, enrollmentController.getCourseProgress);
+
 router.get('/:enrollmentId/progress', authenticate, enrollmentController.getProgress);
 
 router.put('/:enrollmentId/progress', authenticate, enrollmentController.updateProgress);

@@ -26,6 +26,10 @@ router.get('/courses-stats', adminController.getCoursesStats);
 
 router.get('/financial-report', adminController.getFinancialReport);
 
+router.get('/financial-export/excel', adminController.exportFinancialExcel);
+
+router.get('/financial-export/pdf', adminController.exportFinancialPDF);
+
 router.get('/reports', adminController.getReports);
 
 module.exports = router;

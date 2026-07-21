@@ -340,18 +340,18 @@ export default function AvaliacoesPage() {
 
   if (viewState === 'list') {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-[#1a56db] mb-6 transition-colors"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#1a56db] mb-6 transition-colors"
           >
             <FiArrowLeft className="w-5 h-5" />
             <span className="font-medium">Voltar</span>
           </button>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Avaliações</h1>
-          <p className="text-gray-500 mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Avaliações</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">
             Responda as avaliações do curso para ser avaliado
           </p>
 
@@ -366,24 +366,24 @@ export default function AvaliacoesPage() {
               {quizzes.map((quiz) => (
                 <div
                   key={quiz.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h2 className="text-lg font-semibold text-gray-900">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                           {quiz.title}
                         </h2>
                         {getStatusBadge(quiz)}
                       </div>
 
                       {quiz.description && (
-                        <p className="text-gray-600 text-sm mb-4">
+                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                           {quiz.description}
                         </p>
                       )}
 
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <FiHelpCircle className="w-4 h-4" />
                           {quiz.question_count} perguntas
@@ -424,7 +424,7 @@ export default function AvaliacoesPage() {
                         quiz.last_attempt && (
                           <button
                             onClick={() => handleViewResults(quiz)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                           >
                             <FiCheckCircle className="w-4 h-4" />
                             Ver Resultados
@@ -448,18 +448,18 @@ export default function AvaliacoesPage() {
     const progress = totalQuestions > 0 ? (totalAnswered / totalQuestions) * 100 : 0;
 
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="max-w-4xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleBackToList}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                 >
                   <FiArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-lg font-semibold text-gray-900 truncate">
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                   {currentQuiz?.title}
                 </h1>
               </div>
@@ -480,13 +480,13 @@ export default function AvaliacoesPage() {
               )}
             </div>
 
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
               <div
                 className="bg-[#1a56db] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {totalAnswered} de {totalQuestions} respondidas
             </p>
           </div>
@@ -498,10 +498,10 @@ export default function AvaliacoesPage() {
               <div
                 key={question.id}
                 id={`question-${index}`}
-                className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all duration-200 ${
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-6 transition-all duration-200 ${
                   index === currentIndex
                     ? 'border-[#1a56db]'
-                    : 'border-transparent hover:border-gray-200'
+                    : 'border-transparent hover:border-gray-200 dark:hover:border-gray-600'
                 } ${answers[question.id] ? 'border-l-4 border-l-green-400' : ''}`}
               >
                 <div className="flex items-start gap-3 mb-4">
@@ -515,8 +515,8 @@ export default function AvaliacoesPage() {
                     {index + 1}
                   </span>
                   <div className="flex-1">
-                    <p className="text-gray-900 font-medium">{question.text}</p>
-                    <span className="text-xs text-gray-400 mt-1 inline-block">
+                    <p className="text-gray-900 dark:text-gray-100 font-medium">{question.text}</p>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 inline-block">
                       {question.points} {question.points === 1 ? 'ponto' : 'pontos'}
                     </span>
                   </div>
@@ -531,7 +531,7 @@ export default function AvaliacoesPage() {
                           className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                             answers[question.id] === option
                               ? 'border-[#1a56db] bg-[#1a56db]/5 text-[#1a56db]'
-                              : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200'
                           }`}
                         >
                           <input
@@ -546,7 +546,7 @@ export default function AvaliacoesPage() {
                             className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                               answers[question.id] === option
                                 ? 'border-[#1a56db]'
-                                : 'border-gray-300'
+                                : 'border-gray-300 dark:border-gray-600'
                             }`}
                           >
                             {answers[question.id] === option && (
@@ -565,7 +565,7 @@ export default function AvaliacoesPage() {
                           className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                             answers[question.id] === option.id
                               ? 'border-[#1a56db] bg-[#1a56db]/5'
-                              : 'border-gray-200 hover:border-gray-300'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                           }`}
                         >
                           <input
@@ -580,14 +580,14 @@ export default function AvaliacoesPage() {
                             className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                               answers[question.id] === option.id
                                 ? 'border-[#1a56db]'
-                                : 'border-gray-300'
+                                : 'border-gray-300 dark:border-gray-600'
                             }`}
                           >
                             {answers[question.id] === option.id && (
                               <span className="w-2.5 h-2.5 rounded-full bg-[#1a56db]" />
                             )}
                           </span>
-                          <span className="text-gray-700">{option.text}</span>
+                          <span className="text-gray-700 dark:text-gray-200">{option.text}</span>
                         </label>
                       ))}
                     </div>
@@ -603,7 +603,7 @@ export default function AvaliacoesPage() {
                 handleScrollToQuestion(Math.max(0, currentIndex - 1))
               }
               disabled={currentIndex === 0}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <FiArrowLeft className="w-4 h-4" />
               Anterior
@@ -620,7 +620,7 @@ export default function AvaliacoesPage() {
                         ? 'bg-[#1a56db] text-white'
                         : answers[q.id]
                         ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
                     {i + 1}
@@ -635,15 +635,15 @@ export default function AvaliacoesPage() {
                   )
                 }
                 disabled={currentIndex === questions.length - 1}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Próxima
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Próxima
                 <FiArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-4 -mx-4 px-4">
+          <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4 -mx-4 px-4">
             <div className="max-w-4xl mx-auto flex justify-center">
               <button
                 onClick={() => handleSubmit()}
@@ -659,11 +659,11 @@ export default function AvaliacoesPage() {
 
         {showConfirmSubmit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-xl shadow-xl p-6 max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-md mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Confirmar envio
               </h3>
-              <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
                 {totalAnswered < totalQuestions
                   ? `Você respondeu ${totalAnswered} de ${totalQuestions} perguntas. Deseja enviar mesmo assim?`
                   : 'Todas as perguntas foram respondidas. Deseja enviar?'}
@@ -671,7 +671,7 @@ export default function AvaliacoesPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowConfirmSubmit(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -703,11 +703,11 @@ export default function AvaliacoesPage() {
       displayQuiz && !resultData.attempt.is_passed && displayQuiz.attempts_used < displayQuiz.max_attempts;
 
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={handleBackToList}
-            className="flex items-center gap-2 text-gray-600 hover:text-[#1a56db] mb-6 transition-colors"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#1a56db] mb-6 transition-colors"
           >
             <FiArrowLeft className="w-5 h-5" />
             <span className="font-medium">Voltar para avaliações</span>
@@ -727,10 +727,10 @@ export default function AvaliacoesPage() {
                 <FiXCircle className="w-16 h-16 text-red-500" />
               )}
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
               {attempt.is_passed ? 'Parabéns! Você foi aprovado!' : 'Não atingiu a nota mínima'}
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               {displayQuiz?.title}
             </p>
 
@@ -739,38 +739,38 @@ export default function AvaliacoesPage() {
                 <p className="text-3xl font-bold text-[#1a56db]">
                   {attempt.score}%
                 </p>
-                <p className="text-sm text-gray-500">Nota</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Nota</p>
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-[#f97316]">
                   {earnedPoints}/{totalPoints}
                 </p>
-                <p className="text-sm text-gray-500">Pontos</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Pontos</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-gray-700">
+                <p className="text-3xl font-bold text-gray-700 dark:text-gray-200">
                   {correctCount}/{resultData.questions.length}
                 </p>
-                <p className="text-sm text-gray-500">Corretas</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Corretas</p>
               </div>
               {attempt.time_spent_seconds > 0 && (
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-700">
+                  <p className="text-3xl font-bold text-gray-700 dark:text-gray-200">
                     {formatTime(attempt.time_spent_seconds)}
                   </p>
-                  <p className="text-sm text-gray-500">Tempo</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Tempo</p>
                 </div>
               )}
               <div className="text-center">
-                <p className="text-3xl font-bold text-gray-600">
+                <p className="text-3xl font-bold text-gray-600 dark:text-gray-300">
                   {displayQuiz?.passing_grade}%
                 </p>
-                <p className="text-sm text-gray-500">Nota mínima</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Nota mínima</p>
               </div>
             </div>
           </div>
 
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
             Revisão das Respostas
           </h3>
 
@@ -778,7 +778,7 @@ export default function AvaliacoesPage() {
             {resultData.questions.map((q, index) => (
               <div
                 key={q.id}
-                className={`bg-white rounded-xl shadow-sm border-2 p-6 ${
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-6 ${
                   q.is_correct ? 'border-green-200' : 'border-red-200'
                 }`}
               >
@@ -798,8 +798,8 @@ export default function AvaliacoesPage() {
                   </span>
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-gray-900 font-medium">
-                        <span className="text-gray-400 mr-1">#{index + 1}</span>
+                      <p className="text-gray-900 dark:text-gray-100 font-medium">
+                        <span className="text-gray-400 dark:text-gray-500 mr-1">#{index + 1}</span>
                         {q.text}
                       </p>
                       <span
@@ -815,7 +815,7 @@ export default function AvaliacoesPage() {
 
                 <div className="ml-11 space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-500">Sua resposta:</span>
+                    <span className="font-medium text-gray-500 dark:text-gray-400">Sua resposta:</span>
                     <span
                       className={`px-2 py-1 rounded ${
                         q.is_correct
@@ -834,7 +834,7 @@ export default function AvaliacoesPage() {
 
                   {!q.is_correct && (
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-500">
+                      <span className="font-medium text-gray-500 dark:text-gray-400">
                         Resposta correta:
                       </span>
                       <span className="px-2 py-1 rounded bg-green-100 text-green-800">
@@ -869,7 +869,7 @@ export default function AvaliacoesPage() {
             )}
             <button
               onClick={handleBackToList}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               <FiArrowLeft className="w-5 h-5" />
               Voltar para Avaliações

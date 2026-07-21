@@ -208,12 +208,12 @@ export default function CursoDetailPage() {
                     <FaStar
                       key={i}
                       className={`text-sm ${
-                        i < Math.round(course.rating_avg) ? 'text-yellow-400' : 'text-white/30'
+                        i < Math.round(Number(course.rating_avg || 0)) ? 'text-yellow-400' : 'text-white/30'
                       }`}
                     />
                   ))}
                   <span className="ml-1">
-                    {course.rating_avg.toFixed(1)} ({course.rating_count})
+                    {Number(course.rating_avg || 0).toFixed(1)} ({course.rating_count || 0})
                   </span>
                 </div>
 
@@ -254,12 +254,12 @@ export default function CursoDetailPage() {
                 </span>
               </div>
 
-              <button className="w-full bg-secondary-500 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-secondary-600 transition-colors mb-3 shadow-md shadow-secondary-500/25">
-                Comprar Agora
-              </button>
-              <button className="w-full bg-primary-500 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-primary-600 transition-colors">
-                Adicionar ao Carrinho
-              </button>
+              <Link
+                href={`/matricula?curso=${course.id}`}
+                className="block w-full bg-secondary-500 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-secondary-600 transition-colors text-center shadow-md shadow-secondary-500/25"
+              >
+                Matricular Agora
+              </Link>
 
               <ul className="mt-6 space-y-3 text-sm text-gray-600">
                 <li className="flex items-center gap-2">

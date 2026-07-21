@@ -15,6 +15,7 @@ import {
   FiEye,
   FiDollarSign,
   FiCalendar,
+  FiUserPlus,
 } from 'react-icons/fi';
 
 interface Enrollment {
@@ -124,6 +125,20 @@ export default function AdminMatriculasPage() {
   }>({ open: false, enrollmentId: null, payments: [], loading: false });
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+
+  const [enrollModal, setEnrollModal] = useState(false);
+  const [enrollMode, setEnrollMode] = useState<'search' | 'new'>('search');
+  const [studentSearch, setStudentSearch] = useState('');
+  const [courseSearch, setCourseSearch] = useState('');
+  const [studentResults, setStudentResults] = useState<any[]>([]);
+  const [courseResults, setCourseResults] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [enrolling, setEnrolling] = useState(false);
+  const [newStudentForm, setNewStudentForm] = useState({
+    name: '', email: '', password: '', phone: '',
+    address: '', city: '', state: '', zip_code: '',
+  });
 
   const fetchEnrollments = useCallback(async () => {
     setLoading(true);
@@ -261,11 +276,101 @@ export default function AdminMatriculasPage() {
     }
   };
 
+  const searchStudents = async (query: string) => {
+    if (query.length < 2) { setStudentResults([]); return; }
+    try {
+      const { data } = await api.get('/admin/users', { params: { search: query, role: 'student', limit: 10 } });
+      setStudentResults(data.data || []);
+    } catch { setStudentResults([]); }
+  };
+
+  const searchCourses = async (query: string) => {
+    if (query.length < 2) { setCourseResults([]); return; }
+    try {
+      const { data } = await api.get('/courses', { params: { search: query, limit: 10 } });
+      setCourseResults(data.data || []);
+    } catch { setCourseResults([]); }
+  };
+
+  const resetEnrollModal = () => {
+    setEnrollModal(false);
+    setEnrollMode('search');
+    setSelectedStudent(null);
+    setSelectedCourse(null);
+    setStudentSearch('');
+    setCourseSearch('');
+    setStudentResults([]);
+    setCourseResults([]);
+    setNewStudentForm({ name: '', email: '', password: '', phone: '', address: '', city: '', state: '', zip_code: '' });
+  };
+
+  const handleEnroll = async () => {
+    if (!selectedCourse) {
+      toast.error('Selecione um curso.');
+      return;
+    }
+
+    let studentId: number;
+
+    if (enrollMode === 'new') {
+      if (!newStudentForm.name || !newStudentForm.email || !newStudentForm.password) {
+        toast.error('Nome, e-mail e senha são obrigatórios.');
+        return;
+      }
+      setEnrolling(true);
+      try {
+        const { data } = await api.post('/admin/users', {
+          name: newStudentForm.name,
+          email: newStudentForm.email,
+          password: newStudentForm.password,
+          phone: newStudentForm.phone || undefined,
+          role: 'student',
+        });
+        studentId = data.user.id;
+        toast.success('Aluno criado com sucesso!');
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || 'Erro ao criar aluno');
+        setEnrolling(false);
+        return;
+      }
+    } else {
+      if (!selectedStudent) {
+        toast.error('Selecione um aluno.');
+        return;
+      }
+      studentId = selectedStudent.id;
+    }
+
+    try {
+      const { data } = await api.post('/admin/enroll', {
+        user_id: studentId,
+        course_id: selectedCourse.id,
+      });
+      toast.success(data.message || 'Aluno matriculado com sucesso!');
+      resetEnrollModal();
+      fetchEnrollments();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao matricular aluno');
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Matrículas</h1>
-        <p className="text-gray-500 text-sm mt-1">Gerencie todas as matrículas da plataforma</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Matrículas</h1>
+            <p className="text-gray-500 text-sm mt-1">Gerencie todas as matrículas da plataforma</p>
+          </div>
+          <button
+            onClick={() => setEnrollModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
+          >
+            <FiUserPlus /> Nova Matrícula
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -710,6 +815,272 @@ export default function AdminMatriculasPage() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {enrollModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={resetEnrollModal}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Nova Matrícula</h3>
+              <button onClick={resetEnrollModal} className="text-gray-400 hover:text-gray-600">
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Toggle Aluno */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Aluno</label>
+                <div className="flex bg-gray-100 rounded-lg p-1 mb-3">
+                  <button
+                    onClick={() => setEnrollMode('search')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                      enrollMode === 'search' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Buscar Aluno
+                  </button>
+                  <button
+                    onClick={() => setEnrollMode('new')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                      enrollMode === 'new' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Cadastrar Novo
+                  </button>
+                </div>
+
+                {enrollMode === 'search' ? (
+                  selectedStudent ? (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-xs">
+                        {selectedStudent.name?.charAt(0)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{selectedStudent.name}</p>
+                        <p className="text-xs text-gray-500">{selectedStudent.email}</p>
+                      </div>
+                      <button onClick={() => { setSelectedStudent(null); setStudentSearch(''); setStudentResults([]); }} className="text-gray-400 hover:text-red-500">
+                        <FiX className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={studentSearch}
+                        onChange={(e) => { setStudentSearch(e.target.value); searchStudents(e.target.value); }}
+                        placeholder="Buscar aluno por nome ou e-mail..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                      />
+                      {studentResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {studentResults.map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setSelectedStudent(s); setStudentSearch(''); setStudentResults([]); }}
+                              className="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3"
+                            >
+                              <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-xs">
+                                {s.name?.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{s.name}</p>
+                                <p className="text-xs text-gray-500">{s.email}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Nome *</label>
+                        <input
+                          type="text"
+                          value={newStudentForm.name}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, name: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="Nome completo"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">E-mail *</label>
+                        <input
+                          type="email"
+                          value={newStudentForm.email}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, email: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="aluno@email.com"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Senha *</label>
+                        <input
+                          type="password"
+                          value={newStudentForm.password}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, password: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="Mínimo 6 caracteres"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Telefone</label>
+                        <input
+                          type="tel"
+                          value={newStudentForm.phone}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, phone: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Endereço</label>
+                      <input
+                        type="text"
+                        value={newStudentForm.address}
+                        onChange={(e) => setNewStudentForm({ ...newStudentForm, address: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                        placeholder="Rua, número, bairro"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Cidade</label>
+                        <input
+                          type="text"
+                          value={newStudentForm.city}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, city: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="Cidade"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">UF</label>
+                        <input
+                          type="text"
+                          value={newStudentForm.state}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, state: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="PI"
+                          maxLength={2}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">CEP</label>
+                        <input
+                          type="text"
+                          value={newStudentForm.zip_code}
+                          onChange={(e) => setNewStudentForm({ ...newStudentForm, zip_code: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                          placeholder="00000-000"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Curso */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Curso</label>
+                {selectedCourse ? (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-8 h-8 rounded-lg bg-secondary-100 flex items-center justify-center">
+                      <FiFileText className="text-secondary-600 w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{selectedCourse.title}</p>
+                      <p className="text-xs text-gray-500">
+                        {Number(selectedCourse.price) === 0 ? 'Gratuito' : `R$ ${Number(selectedCourse.price).toFixed(2)}`}
+                      </p>
+                    </div>
+                    <button onClick={() => { setSelectedCourse(null); setCourseSearch(''); setCourseResults([]); }} className="text-gray-400 hover:text-red-500">
+                      <FiX className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={courseSearch}
+                      onChange={(e) => { setCourseSearch(e.target.value); searchCourses(e.target.value); }}
+                      placeholder="Buscar curso por título..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                      style={{ '--tw-ring-color': '#1a56db' } as React.CSSProperties}
+                    />
+                    {courseResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {courseResults.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => { setSelectedCourse(c); setCourseSearch(''); setCourseResults([]); }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-gray-50"
+                          >
+                            <p className="text-sm font-medium text-gray-900">{c.title}</p>
+                            <p className="text-xs text-gray-500">
+                              {Number(c.price) === 0 ? 'Gratuito' : `R$ ${Number(c.price).toFixed(2)}`}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-gray-100">
+              <button
+                onClick={resetEnrollModal}
+                className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEnroll}
+                disabled={enrolling || !selectedCourse || (enrollMode === 'search' && !selectedStudent) || (enrollMode === 'new' && (!newStudentForm.name || !newStudentForm.email || !newStudentForm.password))}
+                className="flex-1 py-2.5 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+              >
+                {enrolling ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Matriculando...
+                  </>
+                ) : (
+                  <>
+                    <FiUserPlus className="w-4 h-4" />
+                    Matricular
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

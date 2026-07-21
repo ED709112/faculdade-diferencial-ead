@@ -10,6 +10,8 @@ interface User {
   name: string;
   email: string;
   role: 'admin' | 'teacher' | 'student';
+  admin_level?: 'master' | 'limited';
+  permissions?: string[];
   avatar?: string;
   phone?: string;
 }
@@ -23,8 +25,10 @@ interface AuthContextType {
   updateUser: (data: Partial<User>) => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isMasterAdmin: boolean;
   isTeacher: boolean;
   isStudent: boolean;
+  hasPermission: (permission: string) => boolean;
 }
 
 interface RegisterData {
@@ -109,6 +113,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const isMasterAdmin = user?.role === 'admin' && user?.admin_level === 'master';
+
+  const hasPermission = useCallback((permission: string) => {
+    if (!user || user.role !== 'admin') return false;
+    if (user.admin_level === 'master') return true;
+    return user.permissions?.includes(permission) || false;
+  }, [user]);
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -119,8 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updateUser,
       isAuthenticated: !!user,
       isAdmin: user?.role === 'admin',
+      isMasterAdmin,
       isTeacher: user?.role === 'teacher',
-      isStudent: user?.role === 'student'
+      isStudent: user?.role === 'student',
+      hasPermission
     }}>
       {children}
     </AuthContext.Provider>

@@ -71,46 +71,46 @@ export default function ConquistasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Minhas Conquistas</h2>
-        <p className="text-gray-500 text-sm mt-1">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Minhas Conquistas</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Acompanhe suas badges, pontos e posição no ranking
         </p>
       </div>
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center">
             <FiStar className="text-xl text-yellow-500" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Total de Pontos</p>
-            <p className="text-2xl font-bold text-gray-900">{data.total_points}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total de Pontos</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{data.total_points}</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center">
             <FiAward className="text-xl text-primary-500" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Badges Conquistadas</p>
-            <p className="text-2xl font-bold text-gray-900">{data.earned.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Badges Conquistadas</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{data.earned.length}</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-secondary-50 flex items-center justify-center">
             <FiTrendingUp className="text-xl text-secondary-500" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Ranking Geral</p>
-            <p className="text-2xl font-bold text-gray-900">#{data.rank}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Ranking Geral</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">#{data.rank}</p>
           </div>
         </div>
       </div>
 
       {/* All badges grid */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Todas as Badges</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Todas as Badges</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {data.all.map((badge) => {
             const earned = earnedIds.has(badge.id);
@@ -119,16 +119,16 @@ export default function ConquistasPage() {
                 key={badge.id}
                 className={`rounded-xl p-5 text-center transition-all ${
                   earned
-                    ? 'bg-white shadow-md border-2 border-primary-200'
-                    : 'bg-gray-50 border-2 border-transparent opacity-60'
+                    ? 'bg-white dark:bg-gray-800 shadow-md border-2 border-primary-200'
+                    : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent opacity-60'
                 }`}
               >
                 <div className={`text-4xl mb-3 ${earned ? '' : 'grayscale'}`}>
                   {getBadgeIcon(badge.name)}
                 </div>
-                <h4 className="font-bold text-sm text-gray-900 mb-1">{badge.name}</h4>
-                <p className="text-xs text-gray-500 mb-2">{badge.description}</p>
-                <p className={`text-xs font-medium ${earned ? 'text-primary-600' : 'text-gray-400'}`}>
+                <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 mb-1">{badge.name}</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{badge.description}</p>
+                <p className={`text-xs font-medium ${earned ? 'text-primary-600' : 'text-gray-400 dark:text-gray-500'}`}>
                   +{badge.points} pts
                 </p>
                 {earned && (
@@ -147,9 +147,9 @@ export default function ConquistasPage() {
       {/* Points history */}
       {data.history.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Histórico de Pontos</h3>
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="divide-y divide-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Histórico de Pontos</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {data.history.map((item) => (
                 <div key={item.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
@@ -157,8 +157,8 @@ export default function ConquistasPage() {
                       <FiTarget className="text-sm text-primary-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{item.reason}</p>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.reason}</p>
+                      <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                         <FiClock className="text-xs" />
                         {new Date(item.created_at).toLocaleDateString('pt-BR')}
                       </div>

@@ -65,8 +65,8 @@ export default function FavoritesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Favoritos</h2>
-        <p className="text-gray-500 text-sm mt-1">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Favoritos</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Cursos que você salvou para assistir depois
         </p>
       </div>
@@ -87,11 +87,11 @@ export default function FavoritesPage() {
                 {/* Remove Button */}
                 <button
                   onClick={() => removeFavorite(fav.id)}
-                  className="absolute top-3 left-3 z-10 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-red-50 transition-colors group/btn"
+                  className="absolute top-3 left-3 z-10 w-8 h-8 rounded-full bg-white/90 dark:bg-gray-800/90 flex items-center justify-center hover:bg-red-50 transition-colors group/btn"
                   title="Remover dos favoritos"
                 >
                   <FiHeart className="text-red-500 fill-current" />
-                  <span className="absolute -bottom-0.5 right-0 w-3.5 h-3.5 bg-white rounded-full items-center justify-center hidden group-hover/btn:flex">
+                  <span className="absolute -bottom-0.5 right-0 w-3.5 h-3.5 bg-white dark:bg-gray-800 rounded-full items-center justify-center hidden group-hover/btn:flex">
                     <FiTrash2 className="text-red-500 text-[8px]" />
                   </span>
                 </button>
@@ -141,21 +141,21 @@ export default function FavoritesPage() {
                 {/* Content */}
                 <div className="p-4">
                   <Link href={`/aluno/curso/${fav.course.id}`}>
-                    <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-primary-500 transition-colors">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 mb-1 group-hover:text-primary-500 transition-colors">
                       {fav.course.title}
                     </h3>
                   </Link>
-                  <p className="text-sm text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                     por {fav.course.teacher_name}
                   </p>
 
                   {/* Category */}
-                  <span className="badge bg-gray-100 text-gray-600 mb-3">
+                  <span className="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 mb-3">
                     {fav.course.category_name}
                   </span>
 
                   {/* Meta */}
-                  <div className="flex items-center gap-1 text-xs text-gray-500 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-100 dark:border-gray-700">
                     <FiClock />
                     <span>{fav.course.workload}h de conteúdo</span>
                   </div>

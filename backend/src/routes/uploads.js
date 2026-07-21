@@ -2,14 +2,20 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const { uploadImage, uploadVideo, uploadDocument, uploadAvatar } = require('../utils/upload');
+const db = require('../config/database');
 
-router.post('/image', authenticate, uploadImage.single('image'), (req, res) => {
+router.post('/image', authenticate, uploadImage.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
     }
 
     const imageUrl = `/uploads/courses/${req.file.filename}`;
+
+    const { entity_type, entity_id } = req.query;
+    if (entity_type === 'course' && entity_id) {
+      await db.query('UPDATE courses SET image = ? WHERE id = ?', [imageUrl, entity_id]);
+    }
 
     res.json({
       message: 'Imagem enviada com sucesso!',

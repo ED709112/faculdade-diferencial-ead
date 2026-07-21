@@ -64,14 +64,14 @@ export default function DownloadsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Downloads</h2>
-          <p className="text-gray-500 text-sm mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Downloads</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
             Materiais disponíveis para download dos seus cursos
           </p>
         </div>
 
-        <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2 w-full sm:w-72">
-          <FiSearch className="text-gray-400 mr-2" />
+        <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 w-full sm:w-72">
+          <FiSearch className="text-gray-400 dark:text-gray-500 mr-2" />
           <input
             type="text"
             value={search}
@@ -90,27 +90,27 @@ export default function DownloadsPage() {
           action={{ label: 'Ver Meus Cursos', href: '/aluno/cursos' }}
         />
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center">
-          <FiSearch className="text-3xl text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Nenhum resultado para &quot;{search}&quot;</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
+          <FiSearch className="text-3xl text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400">Nenhum resultado para &quot;{search}&quot;</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
           <div className="divide-y divide-gray-100">
             {filtered.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
                   {getFileIcon(item.file_type)}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {item.title}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                     <FiBook />
                     <span>{item.course_title}</span>
                     <span>·</span>

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { FiStar, FiClock } from 'react-icons/fi';
@@ -52,10 +54,10 @@ export default function CourseCard({ course }: CourseCardProps) {
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-primary-500 transition-colors">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 mb-1 group-hover:text-primary-500 transition-colors">
           {course.title}
         </h3>
-        <p className="text-sm text-gray-500 mb-3">por {course.teacher_name}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">por {course.teacher_name}</p>
 
         {/* Rating */}
         <div className="flex items-center gap-1 mb-3">
@@ -63,23 +65,23 @@ export default function CourseCard({ course }: CourseCardProps) {
             <FaStar
               key={i}
               className={`text-sm ${
-                i < Math.round(course.rating_avg) ? 'text-yellow-400' : 'text-gray-200'
+                i < Math.round(Number(course.rating_avg || 0)) ? 'text-yellow-400' : 'text-gray-200'
               }`}
             />
           ))}
-          <span className="text-sm text-gray-500 ml-1">
-            {Number(course.rating_avg).toFixed(1)} ({course.rating_count})
+          <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
+            {Number(course.rating_avg || 0).toFixed(1)} ({course.rating_count || 0})
           </span>
         </div>
 
         {/* Workload */}
-        <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-3">
           <FiClock />
           <span>{course.workload}h de conteúdo</span>
         </div>
 
         {/* Price */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
           <div>
             {hasDiscount && (
               <span className="text-sm text-gray-400 line-through mr-2">
@@ -87,7 +89,7 @@ export default function CourseCard({ course }: CourseCardProps) {
               </span>
             )}
             <span className="text-lg font-bold text-secondary-500">
-              {formatPrice(course.price)}
+              {course.price === 0 ? 'Grátis' : formatPrice(course.price)}
             </span>
           </div>
           <span className="text-sm font-medium text-primary-500 group-hover:underline">

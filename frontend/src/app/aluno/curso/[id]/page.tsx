@@ -63,6 +63,8 @@ interface EnrollmentProgress {
   current_lesson_id: number;
   completed_lessons: number;
   total_lessons: number;
+  quizzes_total: number;
+  quizzes_passed: number;
 }
 
 type ActiveTab = 'aula' | 'material' | 'avaliacoes' | 'certificado';
@@ -87,9 +89,23 @@ export default function CoursePlayerPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+
+      const myEnrollments = await api.get('/enrollments/my');
+      const enrollment = (myEnrollments.data || []).find(
+        (e: any) => String(e.course_id) === String(courseId)
+      );
+
+      if (!enrollment) {
+        toast.error('Matrícula não encontrada');
+        router.push('/aluno/cursos');
+        return;
+      }
+
+      const enrollmentId = enrollment.id;
+
       const [enrollmentRes, progressRes] = await Promise.all([
-        api.get(`/enrollments/${courseId}/progress`),
-        api.get(`/enrollments/${courseId}/progress`),
+        api.get(`/enrollments/${enrollmentId}`),
+        api.get(`/enrollments/${enrollmentId}/course-progress`),
       ]);
 
       const enrollmentData = enrollmentRes.data;
@@ -102,8 +118,8 @@ export default function CoursePlayerPage() {
       if (progressData.current_lesson_id) {
         const lessonRes = await api.get(`/lessons/${progressData.current_lesson_id}`);
         setCurrentLesson(lessonRes.data);
-      } else if (enrollmentData.course?.modules?.[0]?.lessons?.[0]) {
-        setCurrentLesson(enrollmentData.course.modules[0].lessons[0]);
+      } else if (enrollmentData.modules?.[0]?.lessons?.[0]) {
+        setCurrentLesson(enrollmentData.modules[0].lessons[0]);
       }
     } catch {
       toast.error('Erro ao carregar curso');
@@ -132,7 +148,7 @@ export default function CoursePlayerPage() {
       setOpenModules((prev) => {
         const next = new Set(prev);
         modules.forEach((m) => {
-          if (m.lessons.some((l) => l.id === currentLesson.id)) {
+          if (m.lessons?.some((l) => l.id === currentLesson.id)) {
             next.add(m.id);
           }
         });
@@ -164,31 +180,24 @@ export default function CoursePlayerPage() {
       setModules((prev) =>
         prev.map((m) => ({
           ...m,
-          lessons: m.lessons.map((l) =>
+          lessons: (m.lessons || []).map((l) =>
             l.id === currentLesson.id ? { ...l, completed: true } : l
           ),
         }))
       );
 
-      setEnrollmentProgress((prev) => {
-        if (!prev) return prev;
-        const newCompleted = prev.completed_lessons + 1;
-        const newProgress =
-          prev.total_lessons > 0
-            ? Math.min((newCompleted / prev.total_lessons) * 100, 100)
-            : 0;
-        return {
-          ...prev,
-          completed_lessons: newCompleted,
-          progress: newProgress,
-          completed: newProgress >= 100,
-        };
-      });
-
       toast.success('Aula concluída!');
 
-      if (enrollmentProgress?.completed) {
-        toast.success('Parabéns! Curso concluído!');
+      const myEnrollments = await api.get('/enrollments/my');
+      const enrollment = (myEnrollments.data || []).find(
+        (e: any) => String(e.course_id) === String(courseId)
+      );
+      if (enrollment) {
+        const { data } = await api.get(`/enrollments/${enrollment.id}/course-progress`);
+        setEnrollmentProgress(data);
+        if (data.completed) {
+          toast.success('Parabéns! Curso concluído!');
+        }
       }
     } catch {
       toast.error('Erro ao concluir aula');
@@ -225,7 +234,7 @@ export default function CoursePlayerPage() {
 
   if (loading) return <Loading text="Carregando curso..." />;
 
-  const totalLessons = modules.reduce((acc, m) => acc + m.lessons.length, 0);
+  const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
 
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType; disabled?: boolean }[] = [
     { id: 'aula', label: 'Aula', icon: FiPlay },
@@ -239,34 +248,41 @@ export default function CoursePlayerPage() {
   return (
     <div className="flex flex-col lg:flex-row gap-0 -m-4 lg:-m-6 min-h-[calc(100vh-4rem)]">
       {/* Sidebar - Modules */}
-      <aside className="w-full lg:w-80 bg-white border-r border-gray-200 flex flex-col shrink-0">
+      <aside className="w-full lg:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
         {/* Header */}
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <Link
             href="/aluno/cursos"
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-primary-500 mb-3 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-500 mb-3 transition-colors"
           >
             <FiArrowLeft /> Voltar para Meus Cursos
           </Link>
-          <h2 className="font-bold text-gray-900 line-clamp-2">{course?.title}</h2>
+          <h2 className="font-bold text-gray-900 dark:text-gray-100 line-clamp-2">{course?.title}</h2>
 
           {/* Progress */}
           <div className="mt-3">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
               <span>Progresso do curso</span>
-              <span>{Math.round(enrollmentProgress?.progress || 0)}%</span>
+              <span className="font-bold text-secondary-500">{Math.round(enrollmentProgress?.progress || 0)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="h-2 rounded-full bg-primary-500 transition-all duration-500"
+                className="h-3 rounded-full bg-gradient-to-r from-secondary-500 to-secondary-400 transition-all duration-700 ease-out"
                 style={{
                   width: `${Math.min(enrollmentProgress?.progress || 0, 100)}%`,
                 }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {enrollmentProgress?.completed_lessons || 0} de {totalLessons} aulas
-            </p>
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+              <span>
+                {enrollmentProgress?.completed_lessons || 0}/{enrollmentProgress?.total_lessons || 0} aulas
+              </span>
+              {(enrollmentProgress?.quizzes_total || 0) > 0 && (
+                <span>
+                  {enrollmentProgress?.quizzes_passed || 0}/{enrollmentProgress?.quizzes_total} provas
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -274,32 +290,32 @@ export default function CoursePlayerPage() {
         <div className="flex-1 overflow-y-auto">
           {modules.map((module) => {
             const isOpen = openModules.has(module.id);
-            const completedCount = module.lessons.filter((l) => l.completed).length;
+            const completedCount = (module.lessons || []).filter((l) => l.completed).length;
 
             return (
-              <div key={module.id} className="border-b border-gray-50">
+              <div key={module.id} className="border-b border-gray-50 dark:border-gray-700/50">
                 <button
                   onClick={() => toggleModule(module.id)}
-                  className="flex items-center justify-between w-full p-3 hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {isOpen ? (
-                      <FiChevronDown className="text-gray-400 shrink-0" />
+                      <FiChevronDown className="text-gray-400 dark:text-gray-500 shrink-0" />
                     ) : (
-                      <FiChevronRight className="text-gray-400 shrink-0" />
+                      <FiChevronRight className="text-gray-400 dark:text-gray-500 shrink-0" />
                     )}
-                    <span className="text-sm font-medium text-gray-900 truncate">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {module.title}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-400 shrink-0">
-                    {completedCount}/{module.lessons.length}
+                  <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                    {completedCount}/{module.lessons?.length || 0}
                   </span>
                 </button>
 
                 {isOpen && (
                   <div className="pb-2 pl-6 pr-2">
-                    {module.lessons
+                    {(module.lessons || [])
                       .sort((a, b) => a.order - b.order)
                       .map((lesson) => {
                         const isActive = currentLesson?.id === lesson.id;
@@ -317,13 +333,13 @@ export default function CoursePlayerPage() {
                             className={`flex items-center gap-2 w-full p-2 rounded-lg text-left transition-colors ${
                               isActive
                                 ? 'bg-primary-50 text-primary-600'
-                                : 'text-gray-600 hover:bg-gray-50'
+                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                             }`}
                           >
                             {lesson.completed ? (
                               <FiCheckCircle className="text-green-500 shrink-0" />
                             ) : (
-                              <LessonIcon className="text-gray-400 shrink-0" />
+                              <LessonIcon className="text-gray-400 dark:text-gray-500 shrink-0" />
                             )}
                             <span className="text-sm truncate">{lesson.title}</span>
                           </button>
@@ -338,9 +354,9 @@ export default function CoursePlayerPage() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-gray-50">
+      <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900">
         {/* Tabs */}
-        <div className="bg-white border-b border-gray-200 px-4 lg:px-6">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-6">
           <div className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               const TabIcon = tab.icon;
@@ -352,7 +368,7 @@ export default function CoursePlayerPage() {
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   } ${tab.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   <TabIcon />
@@ -368,7 +384,7 @@ export default function CoursePlayerPage() {
           {/* Aula Tab */}
           {activeTab === 'aula' && currentLesson && (
             <div className="max-w-4xl mx-auto space-y-6">
-              <h3 className="text-xl font-bold text-gray-900">{currentLesson.title}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{currentLesson.title}</h3>
 
               {/* Video Player */}
               {currentLesson.type === 'video' && currentLesson.video_url && (
@@ -384,14 +400,14 @@ export default function CoursePlayerPage() {
 
               {/* Text Content */}
               {currentLesson.type === 'text' && currentLesson.content && (
-                <div className="bg-white rounded-xl p-6 shadow-sm prose prose-gray max-w-none">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm prose prose-gray max-w-none">
                   <div dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
                 </div>
               )}
 
               {/* PDF Viewer */}
               {currentLesson.type === 'pdf' && currentLesson.file_url && (
-                <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
                   <iframe
                     src={currentLesson.file_url}
                     className="w-full min-h-[600px]"
@@ -401,7 +417,7 @@ export default function CoursePlayerPage() {
               )}
 
               {/* Complete Button */}
-              <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   {currentLesson.completed ? (
                     <div className="flex items-center gap-2 text-green-600">
@@ -409,7 +425,7 @@ export default function CoursePlayerPage() {
                       <span className="font-medium">Aula concluída</span>
                     </div>
                   ) : (
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">
                       Assista/atenda a aula e clique para concluir
                     </span>
                   )}
@@ -433,16 +449,16 @@ export default function CoursePlayerPage() {
               </div>
 
               {/* Comments Section */}
-              <div className="bg-white rounded-xl shadow-sm">
-                <div className="p-4 border-b border-gray-100">
-                  <h4 className="flex items-center gap-2 font-semibold text-gray-900">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                  <h4 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
                     <FiMessageSquare /> Comentários
                   </h4>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
                   {comments.length === 0 ? (
-                    <p className="p-6 text-center text-gray-400 text-sm">
+                    <p className="p-6 text-center text-gray-400 dark:text-gray-500 text-sm">
                       Nenhum comentário ainda. Seja o primeiro!
                     </p>
                   ) : (
@@ -464,14 +480,14 @@ export default function CoursePlayerPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {comment.user.name}
                               </span>
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-400 dark:text-gray-500">
                                 {formatDate(comment.created_at)}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">{comment.content}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{comment.content}</p>
                           </div>
                         </div>
                       </div>
@@ -480,7 +496,7 @@ export default function CoursePlayerPage() {
                 </div>
 
                 {/* Send Comment */}
-                <div className="p-4 border-t border-gray-100">
+                <div className="p-4 border-t border-gray-100 dark:border-gray-700">
                   <div className="flex gap-3">
                     <input
                       type="text"
@@ -506,28 +522,28 @@ export default function CoursePlayerPage() {
           {/* Material Tab */}
           {activeTab === 'material' && (
             <div className="max-w-4xl mx-auto space-y-4">
-              <h3 className="text-xl font-bold text-gray-900">Materiais do Curso</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Materiais do Curso</h3>
               {modules.map((module) => {
-                const materials = module.lessons.filter((l) => l.file_url);
+                const materials = (module.lessons || []).filter((l) => l.file_url);
                 if (materials.length === 0) return null;
                 return (
-                  <div key={module.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100">
-                      <h4 className="font-semibold text-gray-900">{module.title}</h4>
+                  <div key={module.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">{module.title}</h4>
                     </div>
-                    <div className="divide-y divide-gray-50">
+                    <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
                       {materials.map((lesson) => (
                         <div
                           key={lesson.id}
-                          className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                          className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <FiFileText className="text-gray-400 shrink-0" />
+                            <FiFileText className="text-gray-400 dark:text-gray-500 shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                                 {lesson.title}
                               </p>
-                              <p className="text-xs text-gray-400 uppercase">
+                              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase">
                                 {lesson.type.toUpperCase()}
                               </p>
                             </div>
@@ -547,9 +563,9 @@ export default function CoursePlayerPage() {
                 );
               })}
               {modules.every((m) =>
-                m.lessons.every((l) => !l.file_url)
+                (m.lessons || []).every((l) => !l.file_url)
               ) && (
-                <p className="text-center text-gray-400 py-12">
+                <p className="text-center text-gray-400 dark:text-gray-500 py-12">
                   Nenhum material disponível para este curso.
                 </p>
               )}
@@ -559,10 +575,10 @@ export default function CoursePlayerPage() {
           {/* Avaliações Tab */}
           {activeTab === 'avaliacoes' && (
             <div className="max-w-4xl mx-auto">
-              <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-                <FiBook className="text-4xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Avaliações</h3>
-                <p className="text-gray-500 text-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
+                <FiBook className="text-4xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Avaliações</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
                   As avaliações do curso aparecerão aqui quando estiverem disponíveis.
                 </p>
               </div>
@@ -572,14 +588,14 @@ export default function CoursePlayerPage() {
           {/* Certificado Tab */}
           {activeTab === 'certificado' && enrollmentProgress?.completed && (
             <div className="max-w-4xl mx-auto space-y-6">
-              <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FiAward className="text-4xl text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   Parabéns! Curso Concluído!
                 </h3>
-                <p className="text-gray-500 mb-6">
+                <p className="text-gray-500 dark:text-gray-400 mb-6">
                   Você concluiu o curso e está elegível para o certificado.
                 </p>
                 <Link
@@ -591,7 +607,7 @@ export default function CoursePlayerPage() {
               </div>
 
               {/* Overall Progress */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
                 <div className="w-32 h-32 mx-auto">
                   <CircularProgressbar
                     value={enrollmentProgress.progress}
@@ -604,7 +620,7 @@ export default function CoursePlayerPage() {
                     })}
                   />
                 </div>
-                <p className="text-center text-sm text-gray-500 mt-4">
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
                   {enrollmentProgress.completed_lessons} de{' '}
                   {enrollmentProgress.total_lessons} aulas concluídas
                 </p>
@@ -615,11 +631,11 @@ export default function CoursePlayerPage() {
           {/* No lesson selected */}
           {!currentLesson && activeTab === 'aula' && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <FiPlay className="text-5xl text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <FiPlay className="text-5xl text-gray-300 dark:text-gray-600 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Selecione uma aula
               </h3>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
                 Escolha uma aula no menu lateral para começar.
               </p>
             </div>

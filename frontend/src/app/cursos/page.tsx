@@ -143,7 +143,7 @@ function CursosContent() {
   const SidebarContent = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-gray-900">Filtros</h3>
+        <h3 className="font-bold text-gray-900 dark:text-gray-100">Filtros</h3>
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
@@ -156,7 +156,7 @@ function CursosContent() {
 
       {/* Categories */}
       <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Categorias</h4>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Categorias</h4>
         <div className="space-y-2 max-h-60 overflow-y-auto">
           {categories.map((cat) => (
             <label
@@ -169,10 +169,10 @@ function CursosContent() {
                 onChange={() => toggleCategory(cat.slug)}
                 className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+              <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
                 {cat.name}
               </span>
-              <span className="text-xs text-gray-400 ml-auto">{cat.course_count}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">{cat.course_count}</span>
             </label>
           ))}
         </div>
@@ -180,7 +180,7 @@ function CursosContent() {
 
       {/* Price Range */}
       <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Faixa de preco</h4>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Faixa de preco</h4>
         <div className="space-y-2">
           {priceRanges.map((range) => (
             <label
@@ -197,7 +197,7 @@ function CursosContent() {
                 }}
                 className="w-4 h-4 text-primary-500 border-gray-300 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+              <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
                 {range.label}
               </span>
             </label>
@@ -207,7 +207,7 @@ function CursosContent() {
 
       {/* Workload */}
       <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Carga horaria</h4>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Carga horaria</h4>
         <div className="space-y-2">
           {workloadRanges.map((range) => (
             <label
@@ -224,7 +224,7 @@ function CursosContent() {
                 }}
                 className="w-4 h-4 text-primary-500 border-gray-300 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+              <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
                 {range.label}
               </span>
             </label>
@@ -248,7 +248,7 @@ function CursosContent() {
         <div className="flex gap-8">
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-64 shrink-0">
-            <div className="sticky top-24 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <SidebarContent />
             </div>
           </aside>
@@ -259,7 +259,7 @@ function CursosContent() {
             <div className="flex items-center justify-between mb-6 gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
               >
                 <FiSliders />
                 Filtros
@@ -276,7 +276,7 @@ function CursosContent() {
                   setSort(e.target.value);
                   setPage(1);
                 }}
-                className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer"
+                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer"
               >
                 {sortOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -383,12 +383,12 @@ function CursosContent() {
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-80 bg-white z-50 lg:hidden overflow-y-auto p-6">
+          <div className="fixed inset-y-0 left-0 w-80 bg-white dark:bg-gray-800 z-50 lg:hidden overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-gray-900">Filtros</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Filtros</h2>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50"
               >
                 <FiX className="text-xl" />
               </button>
