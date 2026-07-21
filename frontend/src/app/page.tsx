@@ -136,14 +136,16 @@ export default function HomePage() {
       {loading && <Loading fullScreen />}
 
       {/* Hero Banner */}
-      <section className="relative w-full overflow-hidden bg-gradient-to-br from-primary-600 via-primary-500 to-secondary-500">
-        <div className="container-custom flex flex-col lg:flex-row items-center gap-8 py-8 lg:py-12">
-          <img
-            src="/images/hero-banner.jpg"
-            alt="Capacitação e Formação Continuada"
-            className="w-full lg:w-1/2 max-h-[70vh] object-contain"
-          />
-          <div className="lg:w-1/2 text-center lg:text-left">
+      <section className="relative w-full bg-gradient-to-br from-primary-600 via-primary-500 to-secondary-500 overflow-hidden">
+        <div className="flex flex-col lg:flex-row items-center min-h-[400px] lg:min-h-[480px]">
+          <div className="w-full lg:w-1/2 h-full">
+            <img
+              src="/images/hero-banner.jpg"
+              alt="Capacitação e Formação Continuada"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-start justify-center text-center lg:text-left px-6 py-10 lg:px-12 lg:py-16">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
               Invista em você!
             </h2>
