@@ -136,7 +136,7 @@ export default function HomePage() {
       {loading && <Loading fullScreen />}
 
       {/* Hero Banner */}
-      <section className="relative w-full overflow-hidden bg-white dark:bg-gray-800">
+      <section className="relative w-full overflow-hidden bg-gradient-to-br from-primary-600 via-primary-500 to-secondary-500">
         <div className="container-custom flex flex-col lg:flex-row items-center gap-8 py-8 lg:py-12">
           <img
             src="/images/hero-banner.jpg"
@@ -144,22 +144,21 @@ export default function HomePage() {
             className="w-full lg:w-1/2 max-h-[70vh] object-contain"
           />
           <div className="lg:w-1/2 text-center lg:text-left">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-600 leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
               Invista em você!
             </h2>
-            <p className="text-lg sm:text-xl text-primary-500 mt-4 leading-relaxed">
+            <p className="text-lg sm:text-xl text-white/90 mt-4 leading-relaxed">
               Cursos EAD com flexibilidade, qualidade e certificação para o mercado de trabalho.
             </p>
             <Link
               href="/cursos"
-              className="inline-flex items-center gap-2 mt-8 bg-secondary-500 text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary-600 transition-colors shadow-lg shadow-secondary-500/30"
+              className="inline-flex items-center gap-2 mt-8 bg-white text-primary-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg"
             >
               Ver Cursos
               <FiArrowRight className="text-xl" />
             </Link>
           </div>
         </div>
-        <div className="w-full h-1.5 bg-gradient-to-r from-secondary-500 via-secondary-400 to-secondary-500" />
       </section>
 
       {/* Stats */}
