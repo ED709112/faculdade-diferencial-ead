@@ -36,7 +36,7 @@ export default function CourseCard({ course }: CourseCardProps) {
       <div className="relative h-48 overflow-hidden">
         {course.image ? (
           <img
-            src={course.image}
+            src={course.image?.startsWith('/') ? course.image : `/uploads/courses/${course.image}`}
             alt={course.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

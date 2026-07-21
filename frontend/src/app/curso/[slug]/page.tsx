@@ -236,7 +236,7 @@ export default function CursoDetailPage() {
               {course.image && (
                 <div className="rounded-xl overflow-hidden mb-5 -mx-1 -mt-1">
                   <img
-                    src={course.image}
+                    src={course.image?.startsWith('/') ? course.image : `/uploads/courses/${course.image}`}
                     alt={course.title}
                     className="w-full h-44 object-cover"
                   />

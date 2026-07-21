@@ -180,7 +180,7 @@ export default function MyCoursesPage() {
               <div className="relative h-44 overflow-hidden">
                 {course.image ? (
                   <img
-                    src={course.image}
+                    src={course.image?.startsWith('/') ? course.image : `/uploads/courses/${course.image}`}
                     alt={course.title}
                     className="w-full h-full object-cover"
                   />
@@ -292,7 +292,7 @@ export default function MyCoursesPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100">
                         {course.image ? (
-                          <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                          <img src={course.image?.startsWith('/') ? course.image : `/uploads/courses/${course.image}`} alt={course.title} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
                             <span className="text-primary-500 font-bold text-sm">{course.title.charAt(0)}</span>

@@ -179,7 +179,7 @@ export default function AdminCursosPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                           {course.image ? (
-                            <img src={course.image} alt="" className="w-full h-full object-cover" />
+                            <img src={course.image?.startsWith('/') ? course.image : `/uploads/courses/${course.image}`} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">IMG</div>
                           )}

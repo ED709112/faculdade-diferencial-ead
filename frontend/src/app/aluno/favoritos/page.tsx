@@ -101,7 +101,7 @@ export default function FavoritesPage() {
                   <div className="relative h-40 overflow-hidden">
                     {fav.course.image ? (
                       <img
-                        src={fav.course.image}
+                        src={fav.course.image?.startsWith('/') ? fav.course.image : `/uploads/courses/${fav.course.image}`}
                         alt={fav.course.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
