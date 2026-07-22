@@ -107,6 +107,40 @@ export default function SobrePage() {
         </div>
       </section>
 
+      {/* Histórico */}
+      <section id="historico" className="py-12 lg:py-16 bg-gray-50 dark:bg-gray-900 scroll-mt-24">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="section-title">A União que Transformou a Educação em Teresina e Região</h2>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 lg:p-12 space-y-6 text-gray-700 dark:text-gray-300 leading-relaxed">
+              <p>
+                A educação sempre foi o ponto de partida dos nossos sonhos. A <strong className="text-gray-900 dark:text-gray-100">Rota Assessoria Educacional</strong> nasceu com o propósito de orientar e transformar vidas por meio de oportunidades reais de crescimento profissional. Com anos de experiência, dedicação e compromisso com a excelência, conquistamos o respeito de alunos e instituições em todo o Brasil.
+              </p>
+              <p>
+                Paralelamente, a <strong className="text-gray-900 dark:text-gray-100">Diferencial Pós</strong> construiu uma sólida reputação oferecendo cursos de pós-graduação reconhecidos, acessíveis e com foco no mercado de trabalho, tornando-se referência em educação continuada. Mas sabíamos que podíamos ir além. Foi dessa visão compartilhada que surgiu uma união estratégica entre a Rota Assessoria Educacional e a Diferencial Pós.
+              </p>
+              <p>
+                Mais do que uma parceria, decidimos caminhar juntas rumo a um passo maior: a aquisição da <strong className="text-gray-900 dark:text-gray-100">Faculdade Diferencial</strong>, autorizada oficialmente pela <strong className="text-secondary-600 dark:text-secondary-400">Portaria MEC nº 949</strong>. Essa conquista representa muito mais do que um avanço institucional — ela simboliza o fortalecimento do nosso compromisso com a educação de qualidade, a autonomia acadêmica e a possibilidade de oferecer cursos superiores próprios, ampliando nosso impacto e gerando novas oportunidades para nossos alunos em todo o país.
+              </p>
+              <p>
+                Com a Faculdade Diferencial, abrimos um novo capítulo da nossa história:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 pl-4">
+                <li>Cursos de graduação e pós-graduação com reconhecimento do MEC;</li>
+                <li>Projetos acadêmicos inovadores;</li>
+                <li>Corpo docente qualificado;</li>
+                <li>Expansão para novas áreas do conhecimento.</li>
+              </ul>
+              <p>
+                Estamos construindo uma instituição moderna, acessível, focada em resultados e no desenvolvimento humano. Essa é a nossa história — e ela está só começando. Seguimos firmes no propósito que sempre nos guiou: <strong className="text-primary-600 dark:text-primary-400">acelerar o crescimento de quem acredita na força da educação</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Missão, Visão e Valores */}
       <section className="py-8 lg:py-12 bg-secondary-50 dark:bg-secondary-900/20">
         <div className="container-custom">
