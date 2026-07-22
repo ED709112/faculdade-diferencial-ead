@@ -10,9 +10,6 @@ import {
   FiAward,
   FiUsers,
   FiMonitor,
-  FiMapPin,
-  FiPhone,
-  FiMail,
 } from 'react-icons/fi';
 import PublicLayout from '@/components/layout/PublicLayout';
 
@@ -190,48 +187,6 @@ export default function SobrePage() {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Localização e Contato */}
-      <section className="py-8 lg:py-12 bg-gray-50 dark:bg-gray-900">
-        <div className="container-custom">
-          <div className="text-center mb-10">
-            <h2 className="section-title">Localização e Contato</h2>
-            <p className="section-subtitle mt-1">Estamos à disposição para atendê-lo</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center shadow-sm">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                <FiMapPin className="text-2xl text-primary-500" />
-              </div>
-              <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">Endereço</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                Rua João da Cruz Monteiro, 1728<br />
-                Cristo Rei, Teresina - PI<br />
-                CEP 64.014-210
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center shadow-sm">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                <FiPhone className="text-2xl text-primary-500" />
-              </div>
-              <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">Telefone</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                (86) 99937-3900<br />
-                <span className="text-gray-400 dark:text-gray-500">Seg - Sex: 8h às 18h</span>
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center shadow-sm">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                <FiMail className="text-2xl text-primary-500" />
-              </div>
-              <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">E-mail</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                contato@faculdadediferencial.edu.br
-              </p>
-            </div>
           </div>
         </div>
       </section>
