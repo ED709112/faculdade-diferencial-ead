@@ -8,6 +8,7 @@ import {
   FiBookOpen,
   FiMonitor,
   FiAward,
+  FiCalendar,
 } from 'react-icons/fi';
 import { FaPlayCircle } from 'react-icons/fa';
 import PublicLayout from '@/components/layout/PublicLayout';
@@ -55,6 +56,15 @@ interface FAQ {
   answer: string;
 }
 
+interface NewsItem {
+  id: number;
+  title: string;
+  slug: string;
+  summary?: string;
+  image_url?: string;
+  published_at?: string;
+}
+
 const stats = [
   { label: 'Alunos', value: '5.000+' },
   { label: 'Cursos', value: '120+' },
@@ -90,16 +100,18 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [coursesRes, categoriesRes, testimonialsRes, faqsRes] = await Promise.allSettled([
+        const [coursesRes, categoriesRes, testimonialsRes, faqsRes, newsRes] = await Promise.allSettled([
           api.get('/courses/featured'),
           api.get('/categories'),
           api.get('/testimonials'),
           api.get('/faqs'),
+          api.get('/news/public?limit=3'),
         ]);
 
         if (coursesRes.status === 'fulfilled') {
@@ -117,6 +129,9 @@ export default function HomePage() {
         if (faqsRes.status === 'fulfilled') {
           const data = faqsRes.value.data;
           setFaqs(data.data || data || []);
+        }
+        if (newsRes.status === 'fulfilled') {
+          setNews(newsRes.value.data || []);
         }
       } catch {
         // silent fail - sections will render empty
@@ -307,6 +322,49 @@ export default function HomePage() {
                   rating={t.rating}
                   avatar={t.avatar}
                 />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Últimas Notícias */}
+      {news.length > 0 && (
+        <section className="py-8 lg:py-12">
+          <div className="container-custom">
+            <div className="text-center mb-8">
+              <h2 className="section-title">Últimas Notícias</h2>
+              <p className="section-subtitle mt-1">Confira o que há de novidades na FAD</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {news.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/noticia/${item.slug}`}
+                  className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                >
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-secondary-100 dark:from-primary-900/30 dark:to-secondary-900/30 flex items-center justify-center">
+                      <FiBookOpen className="text-4xl text-primary-300 dark:text-primary-600" />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    {item.published_at && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-2">
+                        <FiCalendar className="text-sm" />
+                        {new Date(item.published_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      </div>
+                    )}
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-primary-500 transition-colors">
+                      {item.title}
+                    </h3>
+                    {item.summary && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{item.summary}</p>
+                    )}
+                  </div>
+                </Link>
               ))}
             </div>
           </div>

@@ -47,6 +47,7 @@ const productOrderRoutes = require('./routes/productOrders');
 const contactRoutes = require('./routes/contact');
 const adminManagerRoutes = require('./routes/adminManagers');
 const editalRoutes = require('./routes/editais');
+const newsRoutes = require('./routes/news');
 
 const app = express();
 const server = http.createServer(app);
@@ -151,6 +152,7 @@ app.use('/api/products', productOrderRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminManagerRoutes);
 app.use('/api/editais', editalRoutes);
+app.use('/api/news', newsRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
