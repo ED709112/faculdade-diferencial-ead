@@ -16,6 +16,7 @@ import CourseCard from '@/components/courses/CourseCard';
 import CategoryCard from '@/components/courses/CategoryCard';
 import TestimonialCard from '@/components/courses/TestimonialCard';
 import FAQAccordion from '@/components/courses/FAQAccordion';
+import HeroSlider from '@/components/ui/HeroSlider';
 import Loading from '@/components/ui/Loading';
 import api from '@/lib/api';
 
@@ -150,33 +151,8 @@ export default function HomePage() {
       <div className="bg-secondary-50/50 dark:bg-gray-900">
       {loading && <Loading fullScreen />}
 
-      {/* Hero Banner */}
-      <section className="relative w-full bg-gradient-to-br from-primary-600 via-primary-500 to-secondary-500 overflow-hidden">
-        <div className="flex flex-col lg:flex-row items-center min-h-[400px] lg:min-h-[480px]">
-          <div className="w-full lg:w-1/2 h-full">
-            <img
-              src="/images/hero-banner.jpg"
-              alt="Capacitação e Formação Continuada"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-start justify-center text-center lg:text-left px-6 py-10 lg:px-12 lg:py-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
-              Invista em você!
-            </h2>
-            <p className="text-lg sm:text-xl text-white/90 mt-4 leading-relaxed">
-              Cursos EAD com flexibilidade, qualidade e certificação para o mercado de trabalho.
-            </p>
-            <Link
-              href="/cursos"
-              className="inline-flex items-center gap-2 mt-8 bg-white text-primary-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg"
-            >
-              Ver Cursos
-              <FiArrowRight className="text-xl" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero Banner Slider */}
+      <HeroSlider />
 
       {/* Stats */}
       <section className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
