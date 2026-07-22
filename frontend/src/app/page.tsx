@@ -179,6 +179,34 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Portais */}
+      <section className="py-8 lg:py-12">
+        <div className="container-custom">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <Link href="/aluno/cursos" className="group flex items-center gap-5 bg-gradient-to-br from-primary-500 to-primary-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-300">
+              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <FiBookOpen className="text-2xl" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Portal do Aluno</h3>
+                <p className="text-sm text-white/80">Acesse seus cursos, notas e certificados</p>
+              </div>
+              <FiArrowRight className="text-xl ml-auto opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </Link>
+            <Link href="/professor/cursos" className="group flex items-center gap-5 bg-gradient-to-br from-secondary-500 to-secondary-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl hover:from-secondary-600 hover:to-secondary-700 transition-all duration-300">
+              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <FiUserPlus className="text-2xl" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Portal do Professor</h3>
+                <p className="text-sm text-white/80">Gerencie seus cursos e turmas</p>
+              </div>
+              <FiArrowRight className="text-xl ml-auto opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Courses */}
       {featuredCourses.length > 0 && (
         <section className="py-8 lg:py-12">
