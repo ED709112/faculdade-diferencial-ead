@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { FiMenu, FiX, FiUser, FiLogOut, FiChevronDown, FiBookOpen, FiGrid, FiInfo, FiPhone, FiShoppingBag, FiShoppingCart, FiSun, FiMoon, FiHome, FiBuilding } from 'react-icons/fi';
+import { FiMenu, FiX, FiUser, FiLogOut, FiChevronDown, FiBookOpen, FiGrid, FiInfo, FiPhone, FiShoppingBag, FiShoppingCart, FiSun, FiMoon, FiHome } from 'react-icons/fi';
 import { useCart } from '@/hooks/useCart';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -21,7 +21,7 @@ const instituicaoLinks = [
 
 const navLinks = [
   { label: 'Início', href: '/', icon: FiHome },
-  { label: 'Instituição', href: '/sobre', icon: FiBuilding, hasDropdown: true },
+  { label: 'Instituição', href: '/sobre', icon: FiGrid, hasDropdown: true },
   { label: 'Produtos', href: '/produtos', icon: FiShoppingBag },
   { label: 'Matrícula', href: '/matricula', icon: FiGrid },
   { label: 'Categorias', href: '/categorias', icon: FiGrid },
@@ -104,7 +104,7 @@ export default function Header() {
                           : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
                       }`}
                     >
-                      <FiBuilding className="text-base" />
+                      <FiGrid className="text-base" />
                       Instituição
                       <FiChevronDown className={`text-gray-400 transition-transform duration-200 ${instituicaoOpen ? 'rotate-180' : ''}`} />
                     </button>
@@ -248,7 +248,7 @@ export default function Header() {
                           : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
                       }`}
                     >
-                      <FiBuilding className="text-lg" />
+                      <FiGrid className="text-lg" />
                       Instituição
                       <FiChevronDown className={`ml-auto text-gray-400 transition-transform duration-200 ${instituicaoOpen ? 'rotate-180' : ''}`} />
                     </button>
