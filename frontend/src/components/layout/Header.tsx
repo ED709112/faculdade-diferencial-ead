@@ -4,17 +4,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { FiMenu, FiX, FiUser, FiLogOut, FiChevronDown, FiBookOpen, FiGrid, FiInfo, FiPhone, FiShoppingBag, FiShoppingCart, FiSun, FiMoon, FiHome } from 'react-icons/fi';
+import { FiMenu, FiX, FiUser, FiLogOut, FiChevronDown, FiBookOpen, FiGrid, FiInfo, FiPhone, FiShoppingBag, FiShoppingCart, FiSun, FiMoon, FiHome, FiBuilding } from 'react-icons/fi';
 import { useCart } from '@/hooks/useCart';
 import { useTheme } from '@/contexts/ThemeContext';
 
+const instituicaoLinks = [
+  { label: 'Sobre', href: '/sobre' },
+  { label: 'Histórico', href: '/sobre#historico' },
+  { label: 'Biblioteca', href: '/sobre#biblioteca' },
+  { label: 'Calendário Acadêmico', href: '/sobre#calendario' },
+  { label: 'Editais e Portarias', href: '/sobre#editais' },
+  { label: 'Missão & Visão', href: '/sobre#missao' },
+  { label: 'Monitoria', href: '/sobre#monitoria' },
+  { label: 'Portal do Egresso', href: '/sobre#egresso' },
+];
+
 const navLinks = [
   { label: 'Início', href: '/', icon: FiHome },
-  { label: 'Cursos', href: '/cursos', icon: FiBookOpen },
+  { label: 'Instituição', href: '/sobre', icon: FiBuilding, hasDropdown: true },
   { label: 'Produtos', href: '/produtos', icon: FiShoppingBag },
   { label: 'Matrícula', href: '/matricula', icon: FiGrid },
   { label: 'Categorias', href: '/categorias', icon: FiGrid },
-  { label: 'Sobre', href: '/sobre', icon: FiInfo },
   { label: 'Contato', href: '/contato', icon: FiPhone },
 ];
 
@@ -31,8 +41,10 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [instituicaoOpen, setInstituicaoOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const instituicaoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -45,6 +57,9 @@ export default function Header() {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
+      if (instituicaoRef.current && !instituicaoRef.current.contains(e.target as Node)) {
+        setInstituicaoOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -53,6 +68,7 @@ export default function Header() {
   useEffect(() => {
     setMobileOpen(false);
     setDropdownOpen(false);
+    setInstituicaoOpen(false);
   }, [pathname]);
 
   const roleInfo = user ? roleRoutes[user.role] : null;
@@ -76,21 +92,55 @@ export default function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                  link.href === '/'
-                    ? 'bg-secondary-500 text-white hover:bg-secondary-600'
-                    : pathname === link.href || pathname.startsWith(link.href + '/')
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-500'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              if (link.hasDropdown) {
+                return (
+                  <div key={link.href} className="relative" ref={instituicaoRef}>
+                    <button
+                      onClick={() => setInstituicaoOpen(!instituicaoOpen)}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                        pathname.startsWith('/sobre')
+                          ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-500'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
+                      }`}
+                    >
+                      <FiBuilding className="text-base" />
+                      Instituição
+                      <FiChevronDown className={`text-gray-400 transition-transform duration-200 ${instituicaoOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {instituicaoOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-2 animate-in fade-in z-50">
+                        {instituicaoLinks.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setInstituicaoOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                    link.href === '/'
+                      ? 'bg-secondary-500 text-white hover:bg-secondary-600'
+                      : pathname === link.href || pathname.startsWith(link.href + '/')
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-500'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Desktop Auth */}
@@ -186,22 +236,55 @@ export default function Header() {
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-gray-100 dark:border-gray-700 py-4 space-y-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  link.href === '/'
-                    ? 'bg-secondary-500 text-white hover:bg-secondary-600'
-                    : pathname === link.href || pathname.startsWith(link.href + '/')
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-500'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
-                }`}
-              >
-                <link.icon className="text-lg" />
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              if (link.hasDropdown) {
+                return (
+                  <div key={link.href}>
+                    <button
+                      onClick={() => setInstituicaoOpen(!instituicaoOpen)}
+                      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                        pathname.startsWith('/sobre')
+                          ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-500'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
+                      }`}
+                    >
+                      <FiBuilding className="text-lg" />
+                      Instituição
+                      <FiChevronDown className={`ml-auto text-gray-400 transition-transform duration-200 ${instituicaoOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {instituicaoOpen && (
+                      <div className="pl-10 space-y-1 mt-1">
+                        {instituicaoLinks.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="block px-4 py-2.5 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    link.href === '/'
+                      ? 'bg-secondary-500 text-white hover:bg-secondary-600'
+                      : pathname === link.href || pathname.startsWith(link.href + '/')
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-500'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 hover:text-secondary-600'
+                  }`}
+                >
+                  <link.icon className="text-lg" />
+                  {link.label}
+                </Link>
+              );
+            })}
 
             <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2 space-y-1">
               <Link
