@@ -51,8 +51,12 @@ export default function AdminProfessoresPage() {
       const params: Record<string, any> = { role: 'teacher', page, limit: 10 };
       if (search) params.search = search;
       const { data } = await api.get('/admin/users', { params });
-      setTeachers(data.users || data.data || []);
-      setTotalPages(data.totalPages || Math.ceil((data.total || 0) / 10));
+      const users = (data.users || data.data || []).map((u: any) => ({
+        ...u,
+        status: u.is_active ? 'active' : 'inactive',
+      }));
+      setTeachers(users);
+      setTotalPages(data.totalPages || data.pagination?.totalPages || Math.ceil((data.total || 0) / 10));
     } catch {
       toast.error('Erro ao carregar professores');
     } finally {
@@ -108,10 +112,10 @@ export default function AdminProfessoresPage() {
   };
 
   const handleToggleStatus = async (id: number, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const newActive = currentStatus === 'active' ? 0 : 1;
     try {
-      await api.patch(`/admin/users/${id}`, { status: newStatus });
-      toast.success(`Professor ${newStatus === 'active' ? 'ativado' : 'desativado'}`);
+      await api.patch(`/admin/users/${id}`, { is_active: newActive });
+      toast.success(`Professor ${newActive ? 'ativado' : 'desativado'}`);
       fetchTeachers();
     } catch {
       toast.error('Erro ao atualizar status');
