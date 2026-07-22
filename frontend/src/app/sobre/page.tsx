@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   FiArrowRight,
@@ -10,8 +11,35 @@ import {
   FiAward,
   FiUsers,
   FiMonitor,
+  FiFileText,
+  FiDownload,
 } from 'react-icons/fi';
 import PublicLayout from '@/components/layout/PublicLayout';
+import api from '@/lib/api';
+
+interface Edital {
+  id: number;
+  title: string;
+  description?: string;
+  type: string;
+  file_url: string;
+  file_name?: string;
+  published_at?: string;
+}
+
+const typeLabels: Record<string, string> = {
+  edital: 'Edital',
+  portaria: 'Portaria',
+  resolucao: 'Resolução',
+  outro: 'Outro',
+};
+
+const typeColors: Record<string, string> = {
+  edital: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  portaria: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  resolucao: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  outro: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+};
 
 const stats = [
   { label: 'Alunos', value: '5.000+' },
@@ -65,6 +93,12 @@ const features = [
 ];
 
 export default function SobrePage() {
+  const [editais, setEditais] = useState<Edital[]>([]);
+
+  useEffect(() => {
+    api.get('/editais/public').then(({ data }) => setEditais(data || [])).catch(() => {});
+  }, []);
+
   return (
     <PublicLayout>
       {/* Hero */}
@@ -139,7 +173,7 @@ export default function SobrePage() {
       </section>
 
       {/* Missão, Visão e Valores */}
-      <section className="py-8 lg:py-12 bg-secondary-50 dark:bg-secondary-900/20">
+      <section id="missao" className="py-8 lg:py-12 bg-secondary-50 dark:bg-secondary-900/20 scroll-mt-24">
         <div className="container-custom">
           <div className="text-center mb-10">
             <h2 className="section-title">Missão, Visão e Valores</h2>
@@ -163,6 +197,60 @@ export default function SobrePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Editais e Portarias */}
+      <section id="editais" className="py-12 lg:py-16 scroll-mt-24">
+        <div className="container-custom">
+          <div className="text-center mb-10">
+            <h2 className="section-title">Editais e Portarias</h2>
+            <p className="section-subtitle mt-1">Documentos oficiais da instituição</p>
+          </div>
+          {editais.length === 0 ? (
+            <div className="text-center py-12">
+              <FiFileText className="text-5xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">Nenhum documento publicado no momento.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+              {editais.map((edital) => (
+                <div
+                  key={edital.id}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                    <FiFileText className="text-xl text-red-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${typeColors[edital.type] || typeColors.outro}`}>
+                        {typeLabels[edital.type] || edital.type}
+                      </span>
+                      {edital.published_at && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {new Date(edital.published_at).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">{edital.title}</h3>
+                    {edital.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">{edital.description}</p>
+                    )}
+                    <a
+                      href={edital.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-500 hover:text-primary-600 transition-colors"
+                    >
+                      <FiDownload className="text-sm" />
+                      {edital.file_name || 'Baixar documento'}
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
