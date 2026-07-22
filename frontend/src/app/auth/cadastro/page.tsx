@@ -49,14 +49,14 @@ export default function CadastroPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-500 to-secondary-500 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
-            <FaGraduationCap className="text-primary-500 text-4xl" />
-            <span className="text-2xl font-bold text-gray-900">
-              Faculdade Diferencial <span className="text-primary-500">EAD</span>
+            <FaGraduationCap className="text-white text-4xl" />
+            <span className="text-2xl font-bold text-white">
+              Faculdade Diferencial <span className="text-secondary-300">EAD</span>
             </span>
           </Link>
         </div>
