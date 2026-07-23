@@ -871,3 +871,43 @@ CREATE TABLE student_gradebook (
     FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- =====================================================
+-- TABELAS DE FÓRUM DE DÚVIDAS
+-- =====================================================
+
+CREATE TABLE forum_posts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    course_id INT UNSIGNED NOT NULL,
+    module_id INT UNSIGNED DEFAULT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    content TEXT NOT NULL,
+    is_pinned TINYINT(1) DEFAULT 0,
+    is_resolved TINYINT(1) DEFAULT 0,
+    view_count INT UNSIGNED DEFAULT 0,
+    replies_count INT UNSIGNED DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_fp_course (course_id),
+    KEY idx_fp_module (module_id),
+    KEY idx_fp_user (user_id),
+    KEY idx_fp_pinned (is_pinned, created_at),
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE forum_replies (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    post_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    content TEXT NOT NULL,
+    is_solution TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_fr_post (post_id),
+    KEY idx_fr_user (user_id),
+    FOREIGN KEY (post_id) REFERENCES forum_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

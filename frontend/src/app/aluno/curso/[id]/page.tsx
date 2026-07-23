@@ -30,6 +30,7 @@ import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
 import toast from 'react-hot-toast';
 import AnexarAtividadeTab from '@/components/courses/AnexarAtividadeTab';
+import ForumTab from '@/components/courses/ForumTab';
 
 interface Lesson {
   id: number;
@@ -37,6 +38,7 @@ interface Lesson {
   type: 'video' | 'text' | 'pdf';
   content?: string;
   video_url?: string;
+  pdf_url?: string;
   file_url?: string;
   duration?: number;
   order: number;
@@ -61,6 +63,7 @@ interface Comment {
   id: number;
   user: { id: number; name: string; avatar?: string };
   content: string;
+  comment?: string;
   created_at: string;
 }
 
@@ -104,7 +107,7 @@ interface CourseDiscipline {
   module_name: string | null;
 }
 
-type ActiveTab = 'material' | 'disciplina' | 'avaliacoes' | 'certificado';
+type ActiveTab = 'aula' | 'forum' | 'material' | 'disciplina' | 'avaliacoes' | 'certificado';
 
 export default function CoursePlayerPage() {
   const params = useParams();
@@ -124,6 +127,14 @@ export default function CoursePlayerPage() {
   const [sendingComment, setSendingComment] = useState(false);
   const [disciplines, setDisciplines] = useState<CourseDiscipline[]>([]);
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  const [enrollmentId, setEnrollmentId] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoWatchTime, setVideoWatchTime] = useState(0);
+  const [videoLastPosition, setVideoLastPosition] = useState(0);
+  const videoRef = React.useRef<any>(null);
+  const progressIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -141,6 +152,7 @@ export default function CoursePlayerPage() {
       }
 
       const enrollmentId = enrollment.id;
+      setEnrollmentId(enrollmentId);
 
       const [enrollmentRes, progressRes] = await Promise.all([
         api.get(`/enrollments/${enrollmentId}`),
@@ -156,7 +168,13 @@ export default function CoursePlayerPage() {
 
       if (progressData.current_lesson_id) {
         const lessonRes = await api.get(`/lessons/${progressData.current_lesson_id}`);
-        setCurrentLesson(lessonRes.data);
+        const lessonData = lessonRes.data;
+        setCurrentLesson({
+          ...lessonData,
+          type: lessonData.content_type || lessonData.type || 'video',
+          order: lessonData.sort_order || lessonData.order || 0,
+          completed: lessonData.progress?.status === 'completed' || false,
+        });
       } else if (enrollmentData.modules?.[0]?.lessons?.[0]) {
         setCurrentLesson(enrollmentData.modules[0].lessons[0]);
       }
@@ -189,6 +207,17 @@ export default function CoursePlayerPage() {
   useEffect(() => {
     if (currentLesson) {
       fetchComments(currentLesson.id);
+      setVideoProgress(0);
+      setVideoWatchTime(0);
+      setVideoLastPosition(0);
+      setVideoDuration(0);
+      setPlaying(false);
+
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       setOpenModules((prev) => {
         const next = new Set(prev);
         modules.forEach((m) => {
@@ -199,7 +228,40 @@ export default function CoursePlayerPage() {
         return next;
       });
     }
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
   }, [currentLesson, modules, fetchComments]);
+
+  React.useEffect(() => {
+    if (playing && currentLesson && enrollmentId && currentLesson.type === 'video') {
+      progressIntervalRef.current = setInterval(() => {
+        if (videoWatchTime > 0) {
+          api.put(`/enrollments/${enrollmentId}/progress`, {
+            lesson_id: currentLesson.id,
+            status: 'in_progress',
+            watch_time_seconds: videoWatchTime,
+            last_position_seconds: videoLastPosition,
+            progress_percentage: videoDuration > 0 ? Math.min(Math.round((videoWatchTime / videoDuration) * 100), 99) : 0,
+          }).catch(() => {});
+        }
+      }, 15000);
+    } else {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [playing, currentLesson, enrollmentId, videoWatchTime, videoLastPosition, videoDuration]);
 
   const toggleModule = (moduleId: number) => {
     setOpenModules((prev) => {
@@ -219,7 +281,17 @@ export default function CoursePlayerPage() {
     if (!currentLesson) return;
     try {
       setCompletingLesson(true);
-      await api.post(`/lessons/${currentLesson.id}/complete`);
+      if (enrollmentId && currentLesson.type === 'video') {
+        await api.put(`/enrollments/${enrollmentId}/progress`, {
+          lesson_id: currentLesson.id,
+          status: 'completed',
+          watch_time_seconds: videoWatchTime || videoDuration,
+          last_position_seconds: 0,
+          progress_percentage: 100,
+        });
+      } else {
+        await api.post(`/lessons/${currentLesson.id}/complete`);
+      }
 
       setModules((prev) =>
         prev.map((m) => ({
@@ -255,7 +327,7 @@ export default function CoursePlayerPage() {
     try {
       setSendingComment(true);
       const { data } = await api.post(`/lessons/${currentLesson.id}/comments`, {
-        content: newComment.trim(),
+        comment: newComment.trim(),
       });
       setComments((prev) => [...prev, data.comment || data]);
       setNewComment('');
@@ -265,6 +337,58 @@ export default function CoursePlayerPage() {
     } finally {
       setSendingComment(false);
     }
+  };
+
+  const handleVideoProgress = (state: { played: number; playedSeconds: number; loaded: number; loadedSeconds: number }) => {
+    if (!currentLesson || !enrollmentId) return;
+    setVideoProgress(state.played * 100);
+    setVideoWatchTime(Math.floor(state.playedSeconds));
+    setVideoLastPosition(Math.floor(state.playedSeconds));
+  };
+
+  const handleVideoDuration = (duration: number) => {
+    setVideoDuration(duration);
+  };
+
+  const handleVideoEnded = async () => {
+    if (!currentLesson || !enrollmentId) return;
+    try {
+      await api.put(`/enrollments/${enrollmentId}/progress`, {
+        lesson_id: currentLesson.id,
+        status: 'completed',
+        watch_time_seconds: videoDuration,
+        last_position_seconds: 0,
+        progress_percentage: 100,
+      });
+      setModules((prev) =>
+        prev.map((m) => ({
+          ...m,
+          lessons: (m.lessons || []).map((l) =>
+            l.id === currentLesson.id ? { ...l, completed: true } : l
+          ),
+        }))
+      );
+      toast.success('Aula concluída!');
+      const { data } = await api.get(`/enrollments/${enrollmentId}/course-progress`);
+      setEnrollmentProgress(data);
+      if (data.completed) {
+        toast.success('Parabéns! Curso concluído!');
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleVideoSeek = (seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.seekTo(seconds, 'seconds');
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatDate = (date: string) =>
@@ -281,6 +405,8 @@ export default function CoursePlayerPage() {
   const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
 
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType; disabled?: boolean }[] = [
+    { id: 'aula', label: 'Aula', icon: FiPlay },
+    { id: 'forum', label: 'Fórum', icon: FiMessageSquare },
     ...(disciplines.length > 0 ? [{ id: 'disciplina' as ActiveTab, label: 'Disciplina', icon: FiBook }] : []),
     { id: 'material', label: 'Anexar Atividade', icon: FiFileText },
     { id: 'avaliacoes', label: 'Avaliações', icon: FiBook },
@@ -447,9 +573,206 @@ export default function CoursePlayerPage() {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+          {/* Aula Tab - Video Player + Content */}
+          {activeTab === 'aula' && currentLesson && (
+            <div className="max-w-5xl mx-auto space-y-6">
+              {/* Video Player / Content Area */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                {currentLesson.type === 'video' && currentLesson.video_url ? (
+                  <div className="relative bg-black">
+                    <ReactPlayer
+                      ref={videoRef}
+                      url={currentLesson.video_url}
+                      width="100%"
+                      height="auto"
+                      style={{ aspectRatio: '16/9' }}
+                      playing={playing}
+                      controls
+                      onProgress={handleVideoProgress}
+                      onDuration={handleVideoDuration}
+                      onEnded={handleVideoEnded}
+                      onPlay={() => setPlaying(true)}
+                      onPause={() => setPlaying(false)}
+                      config={{
+                        file: {
+                          attributes: {
+                            controlsList: 'nodownload',
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                ) : currentLesson.type === 'pdf' && currentLesson.pdf_url ? (
+                  <div className="p-6">
+                    <iframe
+                      src={currentLesson.pdf_url}
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
+                      style={{ minHeight: '500px' }}
+                      title={currentLesson.title}
+                    />
+                  </div>
+                ) : currentLesson.type === 'text' && currentLesson.content ? (
+                  <div className="p-6">
+                    <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
+                  </div>
+                ) : (
+                  <div className="p-8 text-center">
+                    <FiVideo className="text-4xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      Nenhum conteúdo disponível para esta aula.
+                    </p>
+                  </div>
+                )}
+
+                {/* Video Progress Bar */}
+                {currentLesson.type === 'video' && currentLesson.video_url && (
+                  <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="h-1.5 rounded-full bg-gradient-to-r from-primary-500 to-primary-400 transition-all duration-300"
+                            style={{ width: `${videoProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap font-mono">
+                        {formatTime(videoLastPosition)} / {formatTime(videoDuration)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lesson Info */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                        currentLesson.type === 'video'
+                          ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                          : currentLesson.type === 'pdf'
+                          ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                      }`}>
+                        {currentLesson.type === 'video' ? <FiPlay className="text-xs" /> : <FiFileText className="text-xs" />}
+                        {currentLesson.type === 'video' ? 'Vídeo' : currentLesson.type === 'pdf' ? 'PDF' : 'Texto'}
+                      </span>
+                      {currentLesson.duration && (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <FiClock className="text-xs" />
+                          {formatTime(currentLesson.duration)}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">{currentLesson.title}</h2>
+                    {currentLesson.content && currentLesson.type !== 'text' && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
+                        {currentLesson.content}
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0">
+                    {currentLesson.completed ? (
+                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-sm font-medium">
+                        <FiCheckCircle className="text-sm" />
+                        Concluída
+                      </span>
+                    ) : (
+                      <button
+                        onClick={completeLesson}
+                        disabled={completingLesson}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <FiCheck className="text-sm" />
+                        {completingLesson ? 'Concluindo...' : 'Marcar como Concluída'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Comments */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <FiMessageSquare className="text-gray-400" />
+                    Comentários ({comments.length})
+                  </h3>
+                </div>
+
+                {/* Comment Form */}
+                <div className="p-4 border-b border-gray-50 dark:border-gray-700/50">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && sendComment()}
+                      placeholder="Escreva um comentário..."
+                      className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={sendComment}
+                      disabled={!newComment.trim() || sendingComment}
+                      className="px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                    >
+                      <FiSend className="text-sm" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Comments List */}
+                <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                  {comments.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+                      Nenhum comentário ainda. Seja o primeiro!
+                    </div>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center shrink-0">
+                            <FiUser className="text-primary-500 text-sm" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{comment.user?.name || 'Aluno'}</span>
+                              <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate(comment.created_at)}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content || comment.comment}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Aula Tab - No lesson selected */}
+          {activeTab === 'aula' && !currentLesson && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
+                <FiPlay className="text-4xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Selecione uma Aula</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  Escolha uma aula no menu lateral para começar.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Material Tab - Anexar Atividade */}
           {activeTab === 'material' && (
             <AnexarAtividadeTab courseId={courseId} disciplines={selectedModuleId ? disciplines.filter(d => d.module_id === selectedModuleId) : disciplines} modules={modules} />
+          )}
+
+          {/* Forum Tab */}
+          {activeTab === 'forum' && (
+            <ForumTab courseId={courseId} modules={modules} currentUserId={undefined} />
           )}
 
           {/* Disciplina Tab */}

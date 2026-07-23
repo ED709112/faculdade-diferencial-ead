@@ -118,6 +118,8 @@ export default function EditCoursePage() {
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonType, setLessonType] = useState<Lesson['type']>('video');
   const [lessonSaving, setLessonSaving] = useState(false);
+  const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
+  const lessonVideoInputRef = useRef<HTMLInputElement>(null);
 
   // Reviews state
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -321,6 +323,7 @@ export default function EditCoursePage() {
     setEditingLesson(lesson || null);
     setLessonTitle(lesson?.title || '');
     setLessonType(lesson?.type || 'video');
+    setLessonVideoFile(null);
     setShowLessonForm(true);
   };
 
@@ -328,21 +331,36 @@ export default function EditCoursePage() {
     if (!lessonTitle.trim() || !lessonModuleId) { toast.error('Título obrigatório.'); return; }
     try {
       setLessonSaving(true);
+      let lessonId: number;
       if (editingLesson) {
-        await api.put(
-          `/courses/${courseId}/modules/${lessonModuleId}/lessons/${editingLesson.id}`,
-          { title: lessonTitle, type: lessonType }
-        );
+        await api.put(`/lessons/${editingLesson.id}`, {
+          title: lessonTitle,
+          content_type: lessonType,
+        });
+        lessonId = editingLesson.id;
         toast.success('Aula atualizada!');
       } else {
         const mod = modules.find(m => m.id === lessonModuleId);
-        await api.post(
-          `/courses/${courseId}/modules/${lessonModuleId}/lessons`,
-          { title: lessonTitle, type: lessonType, order: (mod?.lessons?.length || 0) + 1 }
-        );
+        const { data } = await api.post('/lessons', {
+          module_id: lessonModuleId,
+          title: lessonTitle,
+          content_type: lessonType,
+          sort_order: (mod?.lessons?.length || 0) + 1,
+        });
+        lessonId = data.id || data.lesson?.id;
         toast.success('Aula criada!');
       }
+
+      if (lessonVideoFile && lessonId) {
+        const fd = new FormData();
+        fd.append('video', lessonVideoFile);
+        await api.post(`/lessons/${lessonId}/video`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       setShowLessonForm(false);
+      setLessonVideoFile(null);
       fetchModules();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Erro ao salvar aula.');
@@ -354,7 +372,7 @@ export default function EditCoursePage() {
   const handleDeleteLesson = async (moduleId: number, lessonId: number) => {
     if (!confirm('Excluir esta aula?')) return;
     try {
-      await api.delete(`/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`);
+      await api.delete(`/lessons/${lessonId}`);
       toast.success('Aula excluída!');
       fetchModules();
     } catch {
@@ -789,6 +807,34 @@ export default function EditCoursePage() {
                   ))}
                 </div>
               </div>
+              {lessonType === 'video' && (
+                <div>
+                  <label className="label">Arquivo de Vídeo</label>
+                  <input
+                    ref={lessonVideoInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg"
+                    className="hidden"
+                    onChange={e => setLessonVideoFile(e.target.files?.[0] || null)}
+                  />
+                  <button
+                    onClick={() => lessonVideoInputRef.current?.click()}
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-600 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                  >
+                    <FiVideo className="text-red-500" />
+                    {lessonVideoFile ? lessonVideoFile.name : 'Selecionar vídeo do computador'}
+                  </button>
+                  {lessonVideoFile && (
+                    <button
+                      onClick={() => setLessonVideoFile(null)}
+                      className="mt-1 text-xs text-red-500 hover:text-red-600"
+                    >
+                      Remover arquivo
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => setShowLessonForm(false)} className="btn-ghost text-sm">Cancelar</button>

@@ -99,6 +99,9 @@ export default function EditarCursoAdminPage() {
   const [newModuleTitle, setNewModuleTitle] = useState('');
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
   const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
+  const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const lessonVideoInputRef = useRef<HTMLInputElement>(null);
 
   // Quiz state
   interface QuizQuestionOption { label: string; text: string; is_correct: boolean; }
@@ -266,24 +269,39 @@ export default function EditarCursoAdminPage() {
   const handleAddLesson = async (moduleId: number) => {
     if (!newLesson.title.trim()) return;
     try {
+      setUploadingVideo(true);
       const mod = modules.find(m => m.id === moduleId);
       const { data } = await api.post('/lessons', {
         module_id: moduleId,
         title: newLesson.title,
-        content_type: newLesson.content_type,
-        video_url: newLesson.video_url,
+        content_type: lessonVideoFile ? 'video' : newLesson.content_type,
+        video_url: newLesson.video_url || null,
         sort_order: (mod?.lessons?.length || 0) + 1,
       });
+
+      const lessonId = data.lesson?.id || data.id;
+
+      if (lessonVideoFile && lessonId) {
+        const fd = new FormData();
+        fd.append('video', lessonVideoFile);
+        await api.post(`/lessons/${lessonId}/video`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       setModules(modules.map(m =>
         m.id === moduleId
           ? { ...m, lessons: [...(m.lessons || []), data.lesson || data] }
           : m
       ));
       setNewLesson({ title: '', content_type: 'video', video_url: '' });
+      setLessonVideoFile(null);
       setShowNewLesson(null);
       toast.success('Aula criada!');
     } catch {
       toast.error('Erro ao criar aula');
+    } finally {
+      setUploadingVideo(false);
     }
   };
 
@@ -656,9 +674,40 @@ export default function EditarCursoAdminPage() {
                           className="input-field text-sm flex-1"
                         />
                       </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={lessonVideoInputRef}
+                          type="file"
+                          accept="video/mp4,video/webm,video/ogg"
+                          className="hidden"
+                          onChange={e => setLessonVideoFile(e.target.files?.[0] || null)}
+                        />
+                        <button
+                          onClick={() => lessonVideoInputRef.current?.click()}
+                          type="button"
+                          className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <FiVideo className="text-red-500" />
+                          {lessonVideoFile ? lessonVideoFile.name : 'Enviar vídeo do computador'}
+                        </button>
+                        {lessonVideoFile && (
+                          <button
+                            onClick={() => setLessonVideoFile(null)}
+                            className="p-1 text-red-500 hover:text-red-600"
+                          >
+                            <FiX className="text-sm" />
+                          </button>
+                        )}
+                      </div>
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => setShowNewLesson(null)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                        <button onClick={() => handleAddLesson(mod.id)} className="px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600">Criar Aula</button>
+                        <button onClick={() => { setShowNewLesson(null); setLessonVideoFile(null); }} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                        <button
+                          onClick={() => handleAddLesson(mod.id)}
+                          disabled={uploadingVideo}
+                          className="px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                        >
+                          {uploadingVideo ? 'Enviando...' : 'Criar Aula'}
+                        </button>
                       </div>
                     </div>
                   )}

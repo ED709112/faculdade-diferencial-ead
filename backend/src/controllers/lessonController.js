@@ -377,6 +377,44 @@ const markComplete = async (req, res) => {
   }
 };
 
+const uploadVideo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    }
+
+    const [lessons] = await db.query(
+      `SELECT l.id, c.teacher_id FROM lessons l
+       JOIN modules m ON l.module_id = m.id
+       JOIN courses c ON m.course_id = c.id
+       WHERE l.id = ?`,
+      [id]
+    );
+
+    if (lessons.length === 0) {
+      return res.status(404).json({ error: 'Aula não encontrada.' });
+    }
+
+    if (req.user.role !== 'admin' && lessons[0].teacher_id !== req.user.id) {
+      return res.status(403).json({ error: 'Sem permissão para editar esta aula.' });
+    }
+
+    const videoUrl = `/uploads/courses/${req.file.filename}`;
+
+    await db.query('UPDATE lessons SET video_url = ?, content_type = ? WHERE id = ?', [videoUrl, 'video', id]);
+
+    const [updated] = await db.query('SELECT * FROM lessons WHERE id = ?', [id]);
+
+    console.log(`Video uploaded for lesson ${id}: ${req.file.filename}`);
+    res.json({ message: 'Vídeo enviado com sucesso.', video_url: videoUrl, lesson: updated[0] });
+  } catch (error) {
+    console.error('Erro ao fazer upload de vídeo:', error);
+    res.status(500).json({ error: 'Erro ao fazer upload de vídeo.' });
+  }
+};
+
 module.exports = {
   getById,
   getByModule,
@@ -385,5 +423,6 @@ module.exports = {
   delete: delete_lesson,
   addComment,
   getComments,
-  markComplete
+  markComplete,
+  uploadVideo
 };
