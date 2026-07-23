@@ -7,6 +7,8 @@ const db = require('../config/database');
 const { sendEmail, emailTemplates } = require('../services/emailService');
 const { paginate, paginateResult } = require('../utils/pagination');
 
+const LOGO_PATH = path.join(__dirname, '..', 'assets', 'logo.jpg');
+
 const generate = async (req, res) => {
   try {
     const { course_id } = req.body;
@@ -147,6 +149,40 @@ const verify = async (req, res) => {
   }
 };
 
+const drawBrasao = (doc, x, y, size) => {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+
+  doc.save();
+
+  doc.roundedRect(x, y, size, size * 0.75, 4).lineWidth(1.5).fillAndStroke('#1a3a5c', '#1a3a5c');
+
+  const starCx = cx;
+  const starCy = cy - size * 0.05;
+  const outerR = size * 0.18;
+  const innerR = outerR * 0.4;
+
+  doc.moveTo(starCx, starCy - outerR);
+  for (let i = 0; i < 5; i++) {
+    const outerAngle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+    const innerAngle = outerAngle + Math.PI / 5;
+    const ox = starCx + outerR * Math.cos(outerAngle);
+    const oy = starCy + outerR * Math.sin(outerAngle);
+    doc.lineTo(ox, oy);
+    const ix = starCx + innerR * Math.cos(innerAngle);
+    const iy = starCy + innerR * Math.sin(innerAngle);
+    doc.lineTo(ix, iy);
+  }
+  doc.closePath().fill('#f9d71c');
+
+  doc.fontSize(5).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('REPÚBLICA', x + 2, y + size * 0.78, { width: size - 4, align: 'center' });
+  doc.fontSize(4).font('Helvetica').fillColor('#ffffff')
+    .text('FEDERATIVA DO BRASIL', x + 2, y + size * 0.87, { width: size - 4, align: 'center' });
+
+  doc.restore();
+};
+
 const download = async (req, res) => {
   try {
     const { id } = req.params;
@@ -177,7 +213,7 @@ const download = async (req, res) => {
     const workload_hours = cert.workload_certificate || cert.workload;
 
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verificar-certificado/${cert.certificate_code}`;
-    const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 150, margin: 1, color: { dark: '#1a56db', light: '#ffffff' } });
+    const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 120, margin: 1, color: { dark: '#1a56db', light: '#ffffff' } });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="certificado-${cert.course_title.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
@@ -194,56 +230,104 @@ const download = async (req, res) => {
 
     doc.pipe(res);
 
-    const borderX = 50;
-    const borderY = 50;
-    const borderW = doc.page.width - 100;
-    const borderH = doc.page.height - 100;
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
 
-    doc.rect(borderX, borderY, borderW, borderH).stroke('#1a56db');
-    doc.rect(borderX + 5, borderY + 5, borderW - 10, borderH - 10).stroke('#f97316');
+    doc.rect(0, 0, pageW, pageH).fill('#faf9f6');
 
-    doc.fontSize(28).font('Helvetica-Bold').fillColor('#1a56db')
-      .text('FACULDADE DIFERENCIAL EAD', { align: 'center', y: 100 });
+    doc.rect(30, 30, pageW - 60, pageH - 60).lineWidth(2).stroke('#1a56db');
+    doc.rect(36, 36, pageW - 72, pageH - 72).lineWidth(0.5).stroke('#f97316');
 
-    doc.moveTo(200, 140).lineTo(doc.page.width - 200, 140).stroke('#f97316');
-
-    doc.fontSize(18).font('Helvetica').fillColor('#333')
-      .text('CERTIFICADO DE CONCLUSÃO', { align: 'center', y: 160 });
-
-    doc.fontSize(14).font('Helvetica').fillColor('#555')
-      .text('Certificamos que', { align: 'center', y: 200 });
-
-    doc.fontSize(22).font('Helvetica-Bold').fillColor('#1a56db')
-      .text(cert.user_name.toUpperCase(), { align: 'center', y: 230 });
-
-    doc.fontSize(14).font('Helvetica').fillColor('#555')
-      .text('concluiu o curso', { align: 'center', y: 270 });
-
-    doc.fontSize(18).font('Helvetica-Bold').fillColor('#f97316')
-      .text(cert.course_title, { align: 'center', y: 300 });
-
-    doc.fontSize(12).font('Helvetica').fillColor('#555')
-      .text(`Com carga horária de ${workload_hours} horas`, { align: 'center', y: 340 });
-
-    if (cert.final_grade) {
-      doc.text(`Nota final: ${parseFloat(cert.final_grade).toFixed(1)}%`, { align: 'center', y: 365 });
+    if (fs.existsSync(LOGO_PATH)) {
+      doc.image(LOGO_PATH, 60, 55, { width: 100, height: 72, fit: [100, 72] });
     }
 
-    doc.fontSize(11).fillColor('#777')
-      .text(`Código de verificação: ${cert.certificate_code}`, { align: 'center', y: 400 });
+    const centerX = pageW / 2;
 
-    doc.fontSize(10).fillColor('#999')
-      .text(`Emitido em: ${new Date(cert.issued_at).toLocaleDateString('pt-BR')}`, { align: 'center', y: 420 });
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a56db')
+      .text('FACULDADE DIFERENCIAL EAD', 180, 60, { width: pageW - 360, align: 'center' });
 
-    doc.image(qrBuffer, doc.page.width - 150, doc.page.height - 130, { width: 80, height: 80 });
+    doc.fontSize(9).font('Helvetica').fillColor('#666')
+      .text('Rua João da Cruz Monteiro, 1728 — Cristo Rei — Teresina/PI — CEP 64.014-210', 180, 85, { width: pageW - 360, align: 'center' });
 
-    doc.fontSize(8).fillColor('#999')
-      .text('Escaneie para verificar', doc.page.width - 155, doc.page.height - 48, { width: 90, align: 'center' });
+    doc.moveTo(180, 105).lineTo(pageW - 180, 105).lineWidth(1).stroke('#f97316');
 
-    doc.fontSize(12).font('Helvetica').fillColor('#333')
-      .text('_________________________________', { align: 'center', y: 490 });
-    doc.fontSize(11).fillColor('#555')
-      .text(cert.teacher_name || 'Professor', { align: 'center', y: 510 });
+    doc.fontSize(22).font('Helvetica-Bold').fillColor('#1a56db')
+      .text('CERTIFICADO', 0, 130, { width: pageW, align: 'center' });
+
+    const userName = cert.user_name || '';
+    const userCpf = cert.user_cpf || '_______________________';
+    const courseName = cert.course_title || '';
+    const hours = workload_hours || 40;
+
+    const issuedDate = new Date(cert.issued_at);
+    const monthNames = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const monthYear = `${monthNames[issuedDate.getMonth()]} de ${issuedDate.getFullYear()}`;
+
+    doc.fontSize(13).font('Helvetica').fillColor('#333');
+
+    const textY = 185;
+    const lineH = 28;
+    const textW = pageW - 160;
+
+    doc.text('Certificamos que', centerX - textW / 2, textY, { width: textW, align: 'center' });
+
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a56db');
+    const nameText = userName.toUpperCase();
+    const nameW = doc.widthOfString(nameText, { font: 'Helvetica-Bold', fontSize: 18 });
+    doc.text(nameText, centerX - nameW / 2, textY + 30, { width: nameW });
+    doc.moveTo(centerX - nameW / 2, textY + 52).lineTo(centerX + nameW / 2, textY + 52).lineWidth(0.5).stroke('#ccc');
+
+    doc.fontSize(13).font('Helvetica').fillColor('#333');
+    doc.text('portador(a) do CPF:', centerX - textW / 2, textY + 65, { width: textW, align: 'center' });
+
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#1a56db');
+    const cpfText = userCpf;
+    const cpfW = doc.widthOfString(cpfText, { font: 'Helvetica-Bold', fontSize: 14 });
+    doc.text(cpfText, centerX - cpfW / 2, textY + 85, { width: cpfW });
+
+    doc.fontSize(13).font('Helvetica').fillColor('#333');
+    doc.text('participou do curso de', centerX - textW / 2, textY + 115, { width: textW, align: 'center' });
+
+    doc.fontSize(15).font('Helvetica-Bold').fillColor('#f97316');
+    const titleText = `"${courseName}"`;
+    doc.text(titleText, centerX - textW / 2, textY + 140, { width: textW, align: 'center' });
+
+    doc.fontSize(13).font('Helvetica').fillColor('#333');
+    doc.text(`com carga horária de ${hours} horas, realizado em ${monthYear}.`, centerX - textW / 2, textY + 175, { width: textW, align: 'center' });
+
+    const lineY = textY + 230;
+    doc.fontSize(10).font('Helvetica').fillColor('#555')
+      .text('________________________________________', 120, lineY, { width: 200, align: 'center' });
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#333')
+      .text(cert.teacher_name || 'Diretor(a)', 120, lineY + 16, { width: 200, align: 'center' });
+    doc.fontSize(7).font('Helvetica').fillColor('#888')
+      .text('Direção / Coordenação', 120, lineY + 30, { width: 200, align: 'center' });
+
+    doc.fontSize(10).font('Helvetica').fillColor('#555')
+      .text('________________________________________', pageW - 320, lineY, { width: 200, align: 'center' });
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#333')
+      .text('Reitor(a)', pageW - 320, lineY + 16, { width: 200, align: 'center' });
+    doc.fontSize(7).font('Helvetica').fillColor('#888')
+      .text('Faculdade Diferencial EAD', pageW - 320, lineY + 30, { width: 200, align: 'center' });
+
+    const footerY = pageH - 85;
+
+    doc.rect(50, footerY, pageW - 100, 45).lineWidth(0.3).fillAndStroke('#f0f4f8', '#ddd');
+
+    doc.fontSize(7).font('Helvetica-Bold').fillColor('#1a56db')
+      .text('CÓDIGO DE VERIFICAÇÃO', 65, footerY + 6, { width: 150, align: 'center' });
+    doc.fontSize(8).font('Courier-Bold').fillColor('#333')
+      .text(cert.certificate_code, 65, footerY + 18, { width: 150, align: 'center' });
+
+    doc.fontSize(7).font('Helvetica').fillColor('#666')
+      .text('Para validar este certificado, acesse:', 230, footerY + 6, { width: 200, align: 'center' });
+    doc.fontSize(7).font('Helvetica-Bold').fillColor('#1a56db')
+      .text(verifyUrl, 230, footerY + 18, { width: 250, align: 'center' });
+
+    doc.image(qrBuffer, pageW - 140, footerY + 2, { width: 55, height: 55 });
+    doc.fontSize(6).font('Helvetica').fillColor('#888')
+      .text('Escaneie o QR Code', pageW - 145, footerY + 58, { width: 65, align: 'center' });
 
     doc.end();
   } catch (error) {

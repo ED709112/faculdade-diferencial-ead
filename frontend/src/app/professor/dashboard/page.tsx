@@ -129,20 +129,6 @@ export default function TeacherDashboardPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
-          href="/professor/curso/novo"
-          className="flex items-center gap-4 bg-white rounded-xl shadow-md p-5 hover:shadow-lg hover:border-primary-200 border border-transparent transition-all group"
-        >
-          <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center group-hover:bg-primary-500 transition-colors">
-            <FiPlus className="text-xl text-primary-500 group-hover:text-white transition-colors" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 group-hover:text-primary-500 transition-colors">Criar Curso</h3>
-            <p className="text-sm text-gray-500">Adicione um novo curso à plataforma</p>
-          </div>
-          <FiArrowRight className="text-gray-300 group-hover:text-primary-500 transition-colors" />
-        </Link>
-
-        <Link
           href="/professor/alunos"
           className="flex items-center gap-4 bg-white rounded-xl shadow-md p-5 hover:shadow-lg hover:border-primary-200 border border-transparent transition-all group"
         >

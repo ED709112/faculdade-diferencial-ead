@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   FiGrid,
   FiBookOpen,
+  FiBook,
   FiUsers,
   FiUser,
   FiTag,
@@ -27,6 +28,7 @@ import {
   FiStar,
   FiCalendar,
   FiShoppingBag,
+  FiFile,
 } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 
@@ -47,6 +49,8 @@ const adminMenu: MenuItem[] = [
   { label: 'Professores', href: '/admin/professores', icon: FiUsers },
   { label: 'Alunos', href: '/admin/alunos', icon: FiUser },
   { label: 'Matrículas', href: '/admin/matriculas', icon: FiPercent },
+  { label: 'Disciplinas', href: '/admin/disciplinas', icon: FiBook },
+  { label: 'Documentos', href: '/admin/documentos', icon: FiFile },
   { label: 'Duração dos Cursos', href: '/admin/duracao-cursos', icon: FiCalendar },
   { label: 'Cupons', href: '/admin/cupons', icon: FiDollarSign },
   { label: 'Produtos', href: '/admin/produtos', icon: FiShoppingBag },
@@ -68,6 +72,7 @@ const adminPermissionMap: Record<string, string> = {
   '/admin/professores': 'teachers',
   '/admin/alunos': 'students',
   '/admin/matriculas': 'enrollments',
+  '/admin/disciplinas': 'courses',
   '/admin/duracao-cursos': 'durations',
   '/admin/cupons': 'coupons',
   '/admin/produtos': 'products',
@@ -78,13 +83,16 @@ const adminPermissionMap: Record<string, string> = {
   '/admin/banners': 'banners',
   '/admin/editais': 'editais',
   '/admin/noticias': 'news',
+  '/admin/documentos': 'students',
   '/admin/logs': 'logs',
   '/admin/gerenciar-admins': 'admin_managers',
 };
 
 const teacherMenu: MenuItem[] = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: FiGrid },
-  { label: 'Meus Cursos', href: '/professor/cursos', icon: FiBookOpen },
+  { label: 'Disciplinas', href: '/professor/disciplinas', icon: FiBookOpen },
+  { label: 'Correções', href: '/professor/correcoes', icon: FiFileText },
+  { label: 'Diário de Notas', href: '/professor/diario', icon: FiBarChart2 },
   { label: 'Alunos', href: '/professor/alunos', icon: FiUsers },
   { label: 'Certificados', href: '/professor/certificados', icon: FiAward },
 ];
@@ -95,6 +103,7 @@ const studentMenu: MenuItem[] = [
   { label: 'Calendário', href: '/aluno/calendario', icon: FiCalendar },
   { label: 'Certificados', href: '/aluno/certificados', icon: FiAward },
   { label: 'Conquistas', href: '/aluno/conquistas', icon: FiStar },
+  { label: 'Documentos', href: '/aluno/documentos', icon: FiFile },
   { label: 'Downloads', href: '/aluno/download', icon: FiDownload },
   { label: 'Favoritos', href: '/aluno/favoritos', icon: FiHeart },
   { label: 'Perfil', href: '/aluno/perfil', icon: FiUser },
@@ -130,18 +139,18 @@ export default function Sidebar({ role }: SidebarProps) {
 
   return (
     <aside
-      className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${
+      className={`bg-secondary-50 dark:bg-gray-800 border-r border-secondary-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${
         collapsed ? 'w-[72px]' : 'w-64'
       }`}
     >
       {/* User Info */}
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-4 border-b border-secondary-200 dark:border-gray-700">
         <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-          <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-secondary-200 dark:bg-secondary-900/40 flex items-center justify-center shrink-0 overflow-hidden">
             {user?.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
             ) : (
-              <FaGraduationCap className="text-primary-500" />
+              <FaGraduationCap className="text-secondary-500" />
             )}
           </div>
           {!collapsed && (
@@ -176,7 +185,7 @@ export default function Sidebar({ role }: SidebarProps) {
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="p-3 border-t border-gray-100 dark:border-gray-700">
+      <div className="p-3 border-t border-secondary-200 dark:border-gray-700">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="sidebar-link w-full justify-center"

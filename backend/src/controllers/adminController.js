@@ -367,15 +367,78 @@ const getFinancialReport = async (req, res) => {
       params
     );
 
+    const [monthlyRev] = await db.query(
+      `SELECT DATE_FORMAT(o.paid_at, '%b') as month, 
+              COALESCE(SUM(o.total_amount), 0) as revenue
+       FROM orders o
+       WHERE o.status = 'paid' AND o.paid_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+       GROUP BY YEAR(o.paid_at), MONTH(o.paid_at), DATE_FORMAT(o.paid_at, '%b')
+       ORDER BY YEAR(o.paid_at), MONTH(o.paid_at)`
+    );
+
+    const monthMap = { 'Jan':'Jan','Fev':'Fev','Mar':'Mar','Abr':'Abr','Mai':'Mai','Jun':'Jun','Jul':'Jul','Ago':'Ago','Set':'Set','Out':'Out','Nov':'Nov','Dez':'Dez' };
+    const fullMonths = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const monthlyRevenue = fullMonths.map(m => {
+      const found = monthlyRev.find(r => r.month === m);
+      return { month: m, revenue: found ? parseFloat(found.revenue) : 0 };
+    });
+
+    const [recentTx] = await db.query(
+      `SELECT o.id, 
+              CONCAT('Matrícula - ', COALESCE(c.title, 'Produto')) as description,
+              o.total_amount as amount,
+              CASE WHEN o.status = 'refunded' THEN 'refund' ELSE 'income' END as type,
+              o.payment_method,
+              u.name as student_name,
+              o.created_at
+       FROM orders o
+       LEFT JOIN courses c ON o.course_id = c.id
+       LEFT JOIN users u ON o.user_id = u.id
+       ORDER BY o.created_at DESC
+       LIMIT 10`
+    );
+
+    const [totalRevResult] = await db.query(
+      `SELECT COALESCE(SUM(total_amount), 0) as total
+       FROM orders WHERE status = 'paid'`
+    );
+
+    const now = new Date();
+    const [monthRevResult] = await db.query(
+      `SELECT COALESCE(SUM(total_amount), 0) as total
+       FROM orders WHERE status = 'paid' AND MONTH(paid_at) = ? AND YEAR(paid_at) = ?`,
+      [now.getMonth() + 1, now.getFullYear()]
+    );
+
+    const [yearRevResult] = await db.query(
+      `SELECT COALESCE(SUM(total_amount), 0) as total
+       FROM orders WHERE status = 'paid' AND YEAR(paid_at) = ?`,
+      [now.getFullYear()]
+    );
+
+    const [pendingResult] = await db.query(
+      `SELECT COALESCE(SUM(total_amount), 0) as total
+       FROM orders WHERE status = 'pending'`
+    );
+
     res.json({
       summary: {
-        total_orders: summary[0].total_orders,
-        total_revenue: parseFloat(summary[0].total_revenue).toFixed(2),
-        avg_ticket: parseFloat(summary[0].avg_ticket).toFixed(2),
-        paid_orders: summary[0].paid_orders,
-        refunded_orders: summary[0].refunded_orders,
-        pending_orders: summary[0].pending_orders
+        totalRevenue: parseFloat(totalRevResult[0].total),
+        monthRevenue: parseFloat(monthRevResult[0].total),
+        yearRevenue: parseFloat(yearRevResult[0].total),
+        pendingAmount: parseFloat(pendingResult[0].total),
+        totalChange: summary[0].total_orders > 0 ? 100 : 0,
+        monthChange: 0,
+        yearChange: 0,
+        pendingChange: 0
       },
+      paymentMethods: paymentMethods.map(pm => ({
+        name: pm.payment_method || 'Não informado',
+        value: summary[0].total_orders > 0 ? Math.round((pm.count / summary[0].total_orders) * 100) : 0,
+        color: pm.payment_method === 'PIX' ? '#10b981' : pm.payment_method === 'cartao' ? '#3b82f6' : pm.payment_method === 'boleto' ? '#f59e0b' : '#6b7280'
+      })),
+      monthlyRevenue,
+      recentTransactions: recentTx,
       payment_methods: paymentMethods,
       top_courses: topCourses
     });

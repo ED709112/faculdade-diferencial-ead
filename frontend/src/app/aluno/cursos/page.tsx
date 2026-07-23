@@ -53,20 +53,14 @@ export default function MyCoursesPage() {
     }
   }, [page, filter]);
 
-  useEffect(() => {
-    fetchEnrollments();
-  }, [fetchEnrollments]);
+  useEffect(() => { fetchEnrollments(); }, [fetchEnrollments]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter]);
+  useEffect(() => { setPage(1); }, [filter]);
 
   const formatDate = (date: string) => {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
+      day: '2-digit', month: 'short', year: 'numeric',
     });
   };
 
@@ -82,7 +76,6 @@ export default function MyCoursesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Meus Cursos</h2>
@@ -90,27 +83,26 @@ export default function MyCoursesPage() {
             Acompanhe seu progresso e continue aprendendo
           </p>
         </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-          <FiFilter className="text-gray-400 dark:text-gray-500 ml-2" />
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                filter === f.value
-                  ? 'bg-white dark:bg-gray-800 text-primary-500 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Empty State */}
+      {/* Filters */}
+      <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 w-fit">
+        <FiFilter className="text-gray-400 dark:text-gray-500 ml-2" />
+        {filters.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              filter === f.value
+                ? 'bg-white dark:bg-gray-800 text-primary-500 shadow-sm'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {!loading && enrollments.length === 0 && (
         <EmptyState
           icon={<FiBookOpen />}
@@ -126,7 +118,6 @@ export default function MyCoursesPage() {
         />
       )}
 
-      {/* Course Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {enrollments.map((enrollment) => (
           <Link
@@ -134,7 +125,6 @@ export default function MyCoursesPage() {
             href={`/aluno/curso/${enrollment.course_id}`}
             className="card group"
           >
-            {/* Image */}
             <div className="relative h-40 overflow-hidden">
               {enrollment.course_image ? (
                 <img
@@ -149,8 +139,6 @@ export default function MyCoursesPage() {
                   </span>
                 </div>
               )}
-
-              {/* Progress Badge */}
               <div className="absolute top-3 right-3 w-12 h-12">
                 <CircularProgressbar
                   value={enrollment.progress_percentage || 0}
@@ -165,15 +153,12 @@ export default function MyCoursesPage() {
                   })}
                 />
               </div>
-
               {enrollment.status === 'completed' && (
                 <div className="absolute top-3 left-3 badge-success">
                   <FiCheckCircle className="mr-1" /> Concluído
                 </div>
               )}
             </div>
-
-            {/* Content */}
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 mb-1 group-hover:text-primary-500 transition-colors">
                 {enrollment.course_title}
@@ -183,8 +168,6 @@ export default function MyCoursesPage() {
                   por {enrollment.teacher_name}
                 </p>
               )}
-
-              {/* Progress bar */}
               <div className="mb-3">
                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                   <span>Progresso</span>
@@ -199,8 +182,6 @@ export default function MyCoursesPage() {
                   />
                 </div>
               </div>
-
-              {/* Meta */}
               <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-100 dark:border-gray-700">
                 {enrollment.workload ? (
                   <div className="flex items-center gap-1">
@@ -215,14 +196,9 @@ export default function MyCoursesPage() {
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-6">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
     </div>

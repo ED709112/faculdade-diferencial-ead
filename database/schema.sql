@@ -140,6 +140,57 @@ CREATE TABLE course_tags (
     INDEX idx_course_tags_tag (tag)
 ) ENGINE=InnoDB;
 
+-- =====================================================
+-- TABELAS DE DISCIPLINAS
+-- =====================================================
+
+CREATE TABLE disciplines (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    teacher_id INT UNSIGNED NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    workload INT NOT NULL DEFAULT 0,
+    titulacao VARCHAR(100) DEFAULT NULL,
+    ementa TEXT DEFAULT NULL,
+    objetivo TEXT DEFAULT NULL,
+    conteudo_programatico TEXT DEFAULT NULL,
+    metodologia TEXT DEFAULT NULL,
+    metodologia_ensino TEXT DEFAULT NULL,
+    avaliacao TEXT DEFAULT NULL,
+    recursos_didaticos TEXT DEFAULT NULL,
+    referencias TEXT DEFAULT NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_disciplines_teacher (teacher_id),
+    KEY idx_disciplines_status (status),
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE discipline_materials (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    discipline_id INT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT DEFAULT NULL,
+    material_type ENUM('apostila','atividade','video','documento','link','outro') DEFAULT 'documento',
+    file_url VARCHAR(500) DEFAULT NULL,
+    external_url VARCHAR(500) DEFAULT NULL,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_dm_discipline (discipline_id),
+    FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE course_disciplines (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    course_id INT UNSIGNED NOT NULL,
+    discipline_id INT UNSIGNED NOT NULL,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_course_discipline (course_id, discipline_id),
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE course_images (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     course_id INT UNSIGNED NOT NULL,
@@ -771,3 +822,52 @@ INSERT INTO faqs (question, answer, category, sort_order) VALUES
 ('Posso solicitar reembolso?', 'Sim, dentro do prazo de 7 dias após a compra, conforme o Código de Defesa do Consumidor.', 'Pagamentos', 6),
 ('Como entro em contato com o professor?', 'Acesse a aula desejada e utilize a seção de comentários, ou envie uma mensagem pela área do aluno.', 'Suporte', 7),
 ('Os cursos têm prazo para conclusão?', 'Não! Você tem acesso vitalício ao curso e pode estudar no seu próprio ritmo.', 'Acesso', 8);
+
+-- =====================================================
+-- TABELAS DE ATIVIDADES E DIÁRIO
+-- =====================================================
+
+CREATE TABLE activity_submissions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    student_id INT UNSIGNED NOT NULL,
+    discipline_id INT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT DEFAULT NULL,
+    file_url VARCHAR(500) DEFAULT NULL,
+    status ENUM('pending','graded','rejected') NOT NULL DEFAULT 'pending',
+    grade DECIMAL(5,2) DEFAULT NULL,
+    max_grade DECIMAL(5,2) DEFAULT 10.00,
+    feedback TEXT DEFAULT NULL,
+    graded_by INT UNSIGNED DEFAULT NULL,
+    graded_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_as_student (student_id),
+    KEY idx_as_discipline (discipline_id),
+    KEY idx_as_status (status),
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE CASCADE,
+    FOREIGN KEY (graded_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE student_gradebook (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    student_id INT UNSIGNED NOT NULL,
+    discipline_id INT UNSIGNED NOT NULL,
+    bimester TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    grade1 DECIMAL(5,2) DEFAULT NULL,
+    grade2 DECIMAL(5,2) DEFAULT NULL,
+    grade3 DECIMAL(5,2) DEFAULT NULL,
+    grade4 DECIMAL(5,2) DEFAULT NULL,
+    absences INT UNSIGNED DEFAULT 0,
+    observations TEXT DEFAULT NULL,
+    created_by INT UNSIGNED DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_gradebook (student_id, discipline_id, bimester),
+    KEY idx_sg_student (student_id),
+    KEY idx_sg_discipline (discipline_id),
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;

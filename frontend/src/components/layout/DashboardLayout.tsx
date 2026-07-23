@@ -137,7 +137,7 @@ export default function DashboardLayout({ role, title, children }: DashboardLayo
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+        <main className={`flex-1 overflow-y-auto p-4 lg:p-6 ${role === 'teacher' ? 'bg-secondary-50/30 dark:bg-gray-900' : ''}`}>{children}</main>
       </div>
     </div>
   );

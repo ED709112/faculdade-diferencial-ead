@@ -75,11 +75,11 @@ body {
 
   .sidebar-link {
     @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300
-           hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-500 transition-colors duration-200;
+           hover:bg-secondary-50 dark:hover:bg-secondary-900/30 hover:text-secondary-500 transition-colors duration-200;
   }
 
   .sidebar-link.active {
-    @apply bg-primary-50 dark:bg-primary-900/30 text-primary-500 font-semibold;
+    @apply bg-secondary-100 dark:bg-secondary-900/30 text-secondary-600 dark:text-secondary-400 font-semibold;
   }
 
   .badge {

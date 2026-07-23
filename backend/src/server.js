@@ -48,6 +48,12 @@ const contactRoutes = require('./routes/contact');
 const adminManagerRoutes = require('./routes/adminManagers');
 const editalRoutes = require('./routes/editais');
 const newsRoutes = require('./routes/news');
+const studentDocumentRoutes = require('./routes/studentDocuments');
+const adminDocumentRoutes = require('./routes/adminDocuments');
+const disciplineRoutes = require('./routes/disciplines');
+const studentDisciplineRoutes = require('./routes/studentDisciplines');
+const courseDisciplineAdminRoutes = require('./routes/courseDisciplines');
+const submissionRoutes = require('./routes/submissions');
 
 const app = express();
 const server = http.createServer(app);
@@ -153,6 +159,12 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminManagerRoutes);
 app.use('/api/editais', editalRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/documents', studentDocumentRoutes);
+app.use('/api/admin/documents', adminDocumentRoutes);
+app.use('/api/teacher/disciplines', disciplineRoutes);
+app.use('/api/student/disciplines', studentDisciplineRoutes);
+app.use('/api/admin/course-disciplines', courseDisciplineAdminRoutes);
+app.use('/api/submissions', submissionRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

@@ -82,10 +82,14 @@ export default function AdminAlunosPage() {
     setLoading(true);
     try {
       const params: Record<string, any> = { role: 'student', page, limit: 10 };
-      if (statusFilter !== 'all') params.status = statusFilter;
+      if (statusFilter !== 'all') params.is_active = statusFilter === 'active' ? '1' : '0';
       if (search) params.search = search;
       const { data } = await api.get('/admin/users', { params });
-      setStudents(data.data || data.users || []);
+      const users = (data.data || data.users || []).map((u: any) => ({
+        ...u,
+        status: u.is_active ? 'active' : 'inactive',
+      }));
+      setStudents(users);
       setTotalPages(data.pagination?.totalPages || Math.ceil((data.total || 0) / 10));
     } catch {
       toast.error('Erro ao carregar alunos');
@@ -107,7 +111,7 @@ export default function AdminAlunosPage() {
     setShowModal(true);
     try {
       const { data } = await api.get(`/admin/users/${student.id}`);
-      setSelectedStudent({ ...student, ...data });
+      setSelectedStudent({ ...student, ...data, status: data.is_active ? 'active' : 'inactive' });
     } catch {
       setSelectedStudent(student);
     } finally {

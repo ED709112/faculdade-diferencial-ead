@@ -16,6 +16,12 @@ import {
   FiChevronRight,
   FiBook,
   FiSend,
+  FiFolder,
+  FiExternalLink,
+  FiLink,
+  FiVideo,
+  FiClock,
+  FiUser,
 } from 'react-icons/fi';
 import ReactPlayer from 'react-player';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -23,6 +29,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
 import toast from 'react-hot-toast';
+import AnexarAtividadeTab from '@/components/courses/AnexarAtividadeTab';
 
 interface Lesson {
   id: number;
@@ -67,7 +74,37 @@ interface EnrollmentProgress {
   quizzes_passed: number;
 }
 
-type ActiveTab = 'aula' | 'material' | 'avaliacoes' | 'certificado';
+interface DisciplineMaterial {
+  id: number;
+  title: string;
+  description: string;
+  material_type: string;
+  file_url: string;
+  external_url: string;
+  created_at: string;
+}
+
+interface CourseDiscipline {
+  id: number;
+  name: string;
+  workload: number;
+  titulacao: string;
+  ementa: string;
+  objetivo: string;
+  conteudo_programatico: string;
+  metodologia: string;
+  metodologia_ensino: string;
+  avaliacao: string;
+  recursos_didaticos: string;
+  referencias: string;
+  teacher_name: string;
+  materials_count: number;
+  materials: DisciplineMaterial[];
+  module_id: number | null;
+  module_name: string | null;
+}
+
+type ActiveTab = 'material' | 'disciplina' | 'avaliacoes' | 'certificado';
 
 export default function CoursePlayerPage() {
   const params = useParams();
@@ -85,6 +122,8 @@ export default function CoursePlayerPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('aula');
   const [openModules, setOpenModules] = useState<Set<number>>(new Set());
   const [sendingComment, setSendingComment] = useState(false);
+  const [disciplines, setDisciplines] = useState<CourseDiscipline[]>([]);
+  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -120,6 +159,11 @@ export default function CoursePlayerPage() {
         setCurrentLesson(lessonRes.data);
       } else if (enrollmentData.modules?.[0]?.lessons?.[0]) {
         setCurrentLesson(enrollmentData.modules[0].lessons[0]);
+      }
+
+      const discRes = await api.get(`/student/disciplines/course/${courseId}`).catch(() => null);
+      if (discRes) {
+        setDisciplines(Array.isArray(discRes.data) ? discRes.data : []);
       }
     } catch {
       toast.error('Erro ao carregar curso');
@@ -237,8 +281,8 @@ export default function CoursePlayerPage() {
   const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
 
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType; disabled?: boolean }[] = [
-    { id: 'aula', label: 'Aula', icon: FiPlay },
-    { id: 'material', label: 'Material', icon: FiFileText },
+    ...(disciplines.length > 0 ? [{ id: 'disciplina' as ActiveTab, label: 'Disciplina', icon: FiBook }] : []),
+    { id: 'material', label: 'Anexar Atividade', icon: FiFileText },
     { id: 'avaliacoes', label: 'Avaliações', icon: FiBook },
     ...(enrollmentProgress?.completed
       ? [{ id: 'certificado' as ActiveTab, label: 'Certificado', icon: FiAward }]
@@ -291,6 +335,7 @@ export default function CoursePlayerPage() {
           {modules.map((module) => {
             const isOpen = openModules.has(module.id);
             const completedCount = (module.lessons || []).filter((l) => l.completed).length;
+            const moduleDiscipline = disciplines.find(d => d.module_id === module.id);
 
             return (
               <div key={module.id} className="border-b border-gray-50 dark:border-gray-700/50">
@@ -312,6 +357,27 @@ export default function CoursePlayerPage() {
                     {completedCount}/{module.lessons?.length || 0}
                   </span>
                 </button>
+
+                {/* Discipline link for this module */}
+                {moduleDiscipline && (
+                  <button
+                    onClick={() => {
+                      setSelectedModuleId(module.id);
+                      setActiveTab('disciplina');
+                    }}
+                    className="w-full flex items-center gap-2 pl-8 pr-3 py-2 text-left hover:bg-secondary-50 dark:hover:bg-secondary-900/20 transition-colors group"
+                  >
+                    <FiBook className="text-secondary-500 shrink-0 text-xs" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-secondary-600 dark:text-secondary-400 truncate">
+                        {moduleDiscipline.name}
+                      </p>
+                      <p className="text-[10px] text-secondary-400 dark:text-secondary-500 truncate">
+                        {moduleDiscipline.teacher_name}
+                      </p>
+                    </div>
+                  </button>
+                )}
 
                 {isOpen && (
                   <div className="pb-2 pl-6 pr-2">
@@ -381,194 +447,127 @@ export default function CoursePlayerPage() {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {/* Aula Tab */}
-          {activeTab === 'aula' && currentLesson && (
+          {/* Material Tab - Anexar Atividade */}
+          {activeTab === 'material' && (
+            <AnexarAtividadeTab courseId={courseId} disciplines={selectedModuleId ? disciplines.filter(d => d.module_id === selectedModuleId) : disciplines} modules={modules} />
+          )}
+
+          {/* Disciplina Tab */}
+          {activeTab === 'disciplina' && (
             <div className="max-w-4xl mx-auto space-y-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{currentLesson.title}</h3>
-
-              {/* Video Player */}
-              {currentLesson.type === 'video' && currentLesson.video_url && (
-                <div className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
-                  <ReactPlayer
-                    url={currentLesson.video_url}
-                    width="100%"
-                    height="100%"
-                    controls
-                  />
-                </div>
-              )}
-
-              {/* Text Content */}
-              {currentLesson.type === 'text' && currentLesson.content && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm prose prose-gray max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
-                </div>
-              )}
-
-              {/* PDF Viewer */}
-              {currentLesson.type === 'pdf' && currentLesson.file_url && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
-                  <iframe
-                    src={currentLesson.file_url}
-                    className="w-full min-h-[600px]"
-                    title={currentLesson.title}
-                  />
-                </div>
-              )}
-
-              {/* Complete Button */}
-              <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  {currentLesson.completed ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <FiCheckCircle className="text-xl" />
-                      <span className="font-medium">Aula concluída</span>
+              {(() => {
+                const filtered = selectedModuleId
+                  ? disciplines.filter(d => d.module_id === selectedModuleId)
+                  : disciplines;
+                if (filtered.length === 0) {
+                  return (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
+                      <FiBook className="text-4xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {selectedModuleId
+                          ? 'Nenhuma disciplina vinculada a este módulo.'
+                          : 'Nenhuma disciplina vinculada a este curso.'}
+                      </p>
                     </div>
-                  ) : (
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">
-                      Assista/atenda a aula e clique para concluir
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={completeLesson}
-                  disabled={currentLesson.completed || completingLesson}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-colors ${
-                    currentLesson.completed
-                      ? 'bg-green-100 text-green-700 cursor-default'
-                      : 'bg-primary-500 text-white hover:bg-primary-600'
-                  } disabled:opacity-60`}
-                >
-                  <FiCheck />
-                  {completingLesson
-                    ? 'Concluindo...'
-                    : currentLesson.completed
-                    ? 'Concluída'
-                    : 'Concluir Aula'}
-                </button>
-              </div>
-
-              {/* Comments Section */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                  <h4 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <FiMessageSquare /> Comentários
-                  </h4>
-                </div>
-
-                <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
-                  {comments.length === 0 ? (
-                    <p className="p-6 text-center text-gray-400 dark:text-gray-500 text-sm">
-                      Nenhum comentário ainda. Seja o primeiro!
-                    </p>
-                  ) : (
-                    comments.map((comment) => (
-                      <div key={comment.id} className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center shrink-0 overflow-hidden">
-                            {comment.user.avatar ? (
-                              <img
-                                src={comment.user.avatar}
-                                alt={comment.user.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-xs font-semibold text-primary-500">
-                                {comment.user.name.charAt(0).toUpperCase()}
+                  );
+                }
+                return filtered.map((disc) => (
+                  <div key={disc.id} className="space-y-4">
+                    {/* Discipline Header */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-secondary-100 dark:bg-secondary-900/40 flex items-center justify-center shrink-0">
+                          <FiBook className="text-secondary-500 text-xl" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{disc.name}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1"><FiUser className="text-xs" /> {disc.teacher_name}</span>
+                            {disc.workload > 0 && <span className="flex items-center gap-1"><FiClock className="text-xs" /> {disc.workload}h</span>}
+                            {disc.module_name && (
+                              <span className="flex items-center gap-1 text-secondary-500 dark:text-secondary-400">
+                                <FiBook className="text-xs" /> {disc.module_name}
                               </span>
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {comment.user.name}
-                              </span>
-                              <span className="text-xs text-gray-400 dark:text-gray-500">
-                                {formatDate(comment.created_at)}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{comment.content}</p>
-                          </div>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Send Comment */}
-                <div className="p-4 border-t border-gray-100 dark:border-gray-700">
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && sendComment()}
-                      placeholder="Escreva um comentário..."
-                      className="input-field text-sm"
-                    />
-                    <button
-                      onClick={sendComment}
-                      disabled={!newComment.trim() || sendingComment}
-                      className="btn-primary px-4 py-2 flex items-center gap-2 text-sm"
-                    >
-                      <FiSend />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Material Tab */}
-          {activeTab === 'material' && (
-            <div className="max-w-4xl mx-auto space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Materiais do Curso</h3>
-              {modules.map((module) => {
-                const materials = (module.lessons || []).filter((l) => l.file_url);
-                if (materials.length === 0) return null;
-                return (
-                  <div key={module.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">{module.title}</h4>
                     </div>
-                    <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                      {materials.map((lesson) => (
-                        <div
-                          key={lesson.id}
-                          className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <FiFileText className="text-gray-400 dark:text-gray-500 shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {lesson.title}
-                              </p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase">
-                                {lesson.type.toUpperCase()}
-                              </p>
-                            </div>
-                          </div>
-                          <a
-                            href={lesson.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-primary-500 hover:text-primary-600 text-sm font-medium shrink-0"
-                          >
-                            <FiDownload /> Baixar
-                          </a>
+
+                    {/* Ementa Sections */}
+                    {[
+                      { label: 'EMENTA', content: disc.ementa },
+                      { label: 'OBJETIVO', content: disc.objetivo },
+                      { label: 'CONTEÚDO PROGRAMÁTICO', content: disc.conteudo_programatico },
+                      { label: 'METODOLOGIA', content: disc.metodologia },
+                      { label: 'METODOLOGIA DO ENSINO', content: disc.metodologia_ensino },
+                      { label: 'AVALIAÇÃO', content: disc.avaliacao },
+                      { label: 'RECURSOS DIDÁTICOS', content: disc.recursos_didaticos },
+                      { label: 'REFERÊNCIAS', content: disc.referencias },
+                    ].filter(s => s.content).map((section) => (
+                      <div key={section.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+                        <h4 className="text-sm font-semibold text-secondary-600 dark:text-secondary-400 uppercase tracking-wide mb-3">{section.label}</h4>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{section.content}</p>
+                      </div>
+                    ))}
+
+                    {/* Materials */}
+                    {disc.materials && disc.materials.length > 0 && (
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                          <h4 className="font-semibold text-gray-900 dark:text-white">Materiais da Disciplina</h4>
                         </div>
-                      ))}
-                    </div>
+                        <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                          {disc.materials.map((mat) => {
+                            const isLink = mat.material_type === 'link' && mat.external_url;
+                            const typeColors: Record<string, string> = {
+                              apostila: 'bg-blue-100 text-blue-600',
+                              atividade: 'bg-emerald-100 text-emerald-600',
+                              video: 'bg-red-100 text-red-600',
+                              documento: 'bg-gray-100 text-gray-600',
+                              link: 'bg-violet-100 text-violet-600',
+                              outro: 'bg-yellow-100 text-yellow-600',
+                            };
+                            const typeLabels: Record<string, string> = {
+                              apostila: 'Apostila', atividade: 'Atividade', video: 'Vídeo',
+                              documento: 'Documento', link: 'Link', outro: 'Outro',
+                            };
+                            return (
+                              <div key={mat.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${(typeColors[mat.material_type] || typeColors.outro).split(' ')[0]}`}>
+                                  <FiFolder className={`text-sm ${(typeColors[mat.material_type] || typeColors.outro).split(' ')[1]}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{mat.title}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {typeLabels[mat.material_type] || mat.material_type} • {new Date(mat.created_at).toLocaleDateString('pt-BR')}
+                                  </p>
+                                  {mat.description && (
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-1">{mat.description}</p>
+                                  )}
+                                </div>
+                                <div className="shrink-0">
+                                  {isLink ? (
+                                    <a href={mat.external_url} target="_blank" rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 rounded-lg text-xs font-medium hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
+                                      <FiExternalLink className="text-xs" /> Abrir Link
+                                    </a>
+                                  ) : mat.file_url ? (
+                                    <a href={mat.file_url} target="_blank" rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg text-xs font-medium hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
+                                      <FiDownload className="text-xs" /> Baixar
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-              {modules.every((m) =>
-                (m.lessons || []).every((l) => !l.file_url)
-              ) && (
-                <p className="text-center text-gray-400 dark:text-gray-500 py-12">
-                  Nenhum material disponível para este curso.
-                </p>
-              )}
+                ));
+              })()}
             </div>
           )}
 
@@ -625,19 +624,6 @@ export default function CoursePlayerPage() {
                   {enrollmentProgress.total_lessons} aulas concluídas
                 </p>
               </div>
-            </div>
-          )}
-
-          {/* No lesson selected */}
-          {!currentLesson && activeTab === 'aula' && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <FiPlay className="text-5xl text-gray-300 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Selecione uma aula
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Escolha uma aula no menu lateral para começar.
-              </p>
             </div>
           )}
         </div>
