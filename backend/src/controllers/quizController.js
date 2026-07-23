@@ -57,7 +57,7 @@ const getById = async (req, res) => {
     );
 
     const shouldHideAnswers = quizzes[0].show_answers_after === 'never'
-      || (quizzes[0].show_answers_after === 'after_submit' && true);
+      || (quizzes[0].show_answers_after === 'after_submit' && !req.query.show_answers);
 
     const safeQuestions = questions.map(q => ({
       ...q,
@@ -95,11 +95,21 @@ const create = async (req, res) => {
     if (questions && Array.isArray(questions)) {
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
+        let correctAnswer = q.correct_answer || null;
+
+        if (q.question_type === 'true_false' && q.options && !correctAnswer) {
+          try {
+            const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+            const correctOpt = opts.find(o => o.is_correct);
+            if (correctOpt) correctAnswer = correctOpt.text;
+          } catch {}
+        }
+
         await db.query(
           `INSERT INTO quiz_questions (quiz_id, question_text, question_type, options, correct_answer, points, explanation, sort_order)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [result.insertId, q.question_text, q.question_type || 'multiple_choice',
-            q.options ? JSON.stringify(q.options) : null, q.correct_answer || null,
+            q.options ? JSON.stringify(q.options) : null, correctAnswer,
             q.points || 1, q.explanation || null, i + 1]
         );
       }
@@ -154,11 +164,21 @@ const update = async (req, res) => {
       await db.query('DELETE FROM quiz_questions WHERE quiz_id = ?', [id]);
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
+        let correctAnswer = q.correct_answer || null;
+
+        if (q.question_type === 'true_false' && q.options && !correctAnswer) {
+          try {
+            const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+            const correctOpt = opts.find(o => o.is_correct);
+            if (correctOpt) correctAnswer = correctOpt.text;
+          } catch {}
+        }
+
         await db.query(
           `INSERT INTO quiz_questions (quiz_id, question_text, question_type, options, correct_answer, points, explanation, sort_order)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [id, q.question_text, q.question_type || 'multiple_choice',
-            q.options ? JSON.stringify(q.options) : null, q.correct_answer || null,
+            q.options ? JSON.stringify(q.options) : null, correctAnswer,
             q.points || 1, q.explanation || null, i + 1]
         );
       }
@@ -266,8 +286,13 @@ const startAttempt = async (req, res) => {
 
 const submitAttempt = async (req, res) => {
   try {
-    const { quizId, attemptId } = req.params;
+    const { quizId } = req.params;
+    const attemptId = req.params.attemptId || req.body.attempt_id;
     const { answers, time_spent_seconds } = req.body;
+
+    if (!attemptId) {
+      return res.status(400).json({ error: 'ID da tentativa é obrigatório.' });
+    }
 
     const [attempts] = await db.query(
       'SELECT * FROM quiz_attempts WHERE id = ? AND quiz_id = ? AND user_id = ? AND status = \'in_progress\'',
@@ -278,8 +303,28 @@ const submitAttempt = async (req, res) => {
       return res.status(404).json({ error: 'Tentativa não encontrada ou já finalizada.' });
     }
 
+    const attempt = attempts[0];
+
+    const [quiz] = await db.query('SELECT time_limit_minutes FROM quizzes WHERE id = ?', [quizId]);
+    if (quiz.length > 0 && quiz[0].time_limit_minutes) {
+      const startedAt = new Date(attempt.started_at).getTime();
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+      const timeLimitSeconds = quiz[0].time_limit_minutes * 60;
+
+      if (elapsedSeconds > timeLimitSeconds + 30) {
+        await db.query(
+          `UPDATE quiz_attempts SET status = 'submitted', submitted_at = NOW(),
+           time_spent_seconds = ?, score = 0, total_points = 0, is_passed = 0
+           WHERE id = ?`,
+          [elapsedSeconds, attemptId]
+        );
+        return res.status(400).json({ error: 'Tempo esgotado. A tentativa foi finalizada automaticamente.' });
+      }
+    }
+
     const [questions] = await db.query(
-      'SELECT id, question_type, correct_answer, points FROM quiz_questions WHERE quiz_id = ?',
+      'SELECT id, question_type, correct_answer, options, points FROM quiz_questions WHERE quiz_id = ?',
       [quizId]
     );
 
@@ -297,11 +342,29 @@ const submitAttempt = async (req, res) => {
 
       if (question.question_type === 'essay') {
         isCorrect = false;
+      } else if (question.question_type === 'true_false') {
+        let correctValue = question.correct_answer;
+        if (!correctValue && question.options) {
+          try {
+            const opts = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+            const correctOpt = opts.find(o => o.is_correct);
+            if (correctOpt) correctValue = correctOpt.text;
+          } catch {}
+        }
+        isCorrect = String(answer.answer).trim().toLowerCase() === String(correctValue).trim().toLowerCase();
+        if (isCorrect) earnedPoints += parseFloat(question.points);
       } else {
         isCorrect = String(answer.answer).trim().toLowerCase() === String(question.correct_answer).trim().toLowerCase();
-        if (isCorrect) {
-          earnedPoints += parseFloat(question.points);
-        }
+        if (isCorrect) earnedPoints += parseFloat(question.points);
+      }
+
+      let correctDisplay = question.correct_answer;
+      if (!correctDisplay && question.question_type === 'true_false' && question.options) {
+        try {
+          const opts = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+          const correctOpt = opts.find(o => o.is_correct);
+          if (correctOpt) correctDisplay = correctOpt.text;
+        } catch {}
       }
 
       gradedAnswers.push({
@@ -309,7 +372,7 @@ const submitAttempt = async (req, res) => {
         answer: answer.answer,
         is_correct: isCorrect,
         points_earned: isCorrect ? parseFloat(question.points) : 0,
-        correct_answer: question.question_type !== 'essay' ? question.correct_answer : null
+        correct_answer: question.question_type !== 'essay' ? correctDisplay : null
       });
     }
 
@@ -418,7 +481,12 @@ const getAttempts = async (req, res) => {
 
 const getResults = async (req, res) => {
   try {
-    const { quizId, attemptId } = req.params;
+    const { quizId } = req.params;
+    const attemptId = req.params.attemptId || req.query.attempt_id;
+
+    if (!attemptId) {
+      return res.status(400).json({ error: 'ID da tentativa é obrigatório.' });
+    }
 
     const [attempts] = await db.query(
       `SELECT qa.*, q.title as quiz_title, q.passing_grade, q.show_answers_after
@@ -451,7 +519,7 @@ const getResults = async (req, res) => {
       answers = [];
     }
 
-    const showAnswers = attempt.show_answers_after !== 'never';
+    const showAnswers = attempt.show_answers_after === 'after_submit' || attempt.show_answers_after === 'after_deadline';
 
     const results = questions.map(q => {
       const userAnswer = answers.find(a => parseInt(a.question_id) === q.id);

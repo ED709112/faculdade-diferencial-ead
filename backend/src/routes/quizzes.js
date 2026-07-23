@@ -20,6 +20,8 @@ router.post('/:id/submit', authenticate, quizController.submitAttempt);
 
 router.get('/:id/attempts', authenticate, quizController.getAttempts);
 
+router.get('/:id/results/:attemptId', authenticate, quizController.getResults);
+
 router.get('/:id/results', authenticate, quizController.getResults);
 
 module.exports = router;

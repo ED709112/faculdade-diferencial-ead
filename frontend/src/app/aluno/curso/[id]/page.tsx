@@ -31,6 +31,7 @@ import Loading from '@/components/ui/Loading';
 import toast from 'react-hot-toast';
 import AnexarAtividadeTab from '@/components/courses/AnexarAtividadeTab';
 import ForumTab from '@/components/courses/ForumTab';
+import QuizTab from '@/components/courses/QuizTab';
 
 interface Lesson {
   id: number;
@@ -896,15 +897,7 @@ export default function CoursePlayerPage() {
 
           {/* Avaliações Tab */}
           {activeTab === 'avaliacoes' && (
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
-                <FiBook className="text-4xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Avaliações</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  As avaliações do curso aparecerão aqui quando estiverem disponíveis.
-                </p>
-              </div>
-            </div>
+            <QuizTab courseId={courseId} />
           )}
 
           {/* Certificado Tab */}

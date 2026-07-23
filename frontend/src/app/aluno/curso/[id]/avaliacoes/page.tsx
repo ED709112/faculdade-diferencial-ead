@@ -227,9 +227,7 @@ export default function AvaliacoesPage() {
 
   const fetchResults = async (quizId: string, attId: string) => {
     try {
-      const response = await api.get(`/quizzes/${quizId}/results`, {
-        params: { attempt_id: attId },
-      });
+      const response = await api.get(`/quizzes/${quizId}/results/${attId}`);
       setResultData(response.data);
     } catch {
       toast.error('Erro ao carregar resultados');
@@ -258,7 +256,9 @@ export default function AvaliacoesPage() {
         }));
 
         const response = await api.post(`/quizzes/${currentQuiz.id}/submit`, {
+          attempt_id: attemptId,
           answers: formattedAnswers,
+          time_spent_seconds: timeRemaining !== null ? (currentQuiz.time_limit_minutes || 0) * 60 - timeRemaining : null,
         });
 
         const submitData: SubmitResponse = response.data;
