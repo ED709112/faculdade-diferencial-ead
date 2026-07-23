@@ -98,6 +98,7 @@ const teacherMenu: MenuItem[] = [
 ];
 
 const studentMenu: MenuItem[] = [
+  { label: 'Dashboard', href: '/aluno', icon: FiGrid },
   { label: 'Meus Cursos', href: '/aluno/cursos', icon: FiBookOpen },
   { label: 'Loja', href: '/aluno/loja', icon: FiShoppingBag },
   { label: 'Calendário', href: '/aluno/calendario', icon: FiCalendar },
