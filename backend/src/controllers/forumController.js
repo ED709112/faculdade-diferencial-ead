@@ -117,6 +117,14 @@ const createPost = async (req, res) => {
       [result.insertId]
     );
 
+    // Award points for forum post (+5 pts)
+    if (req.user.role === 'student') {
+      await db.query(
+        'INSERT INTO user_points (user_id, points, reason, reference_type, reference_id) VALUES (?, 5, ?, ?, ?)',
+        [req.user.id, 'Post no fórum', 'forum_post', result.insertId]
+      );
+    }
+
     res.status(201).json(post[0]);
   } catch (error) {
     console.error('Erro ao criar post:', error);
@@ -217,6 +225,14 @@ const createReply = async (req, res) => {
     );
 
     await db.query('UPDATE forum_posts SET replies_count = replies_count + 1 WHERE id = ?', [postId]);
+
+    // Award points for forum reply (+3 pts)
+    if (req.user.role === 'student') {
+      await db.query(
+        'INSERT INTO user_points (user_id, points, reason, reference_type, reference_id) VALUES (?, 3, ?, ?, ?)',
+        [req.user.id, 'Resposta no fórum', 'forum_reply', result.insertId]
+      );
+    }
 
     const [reply] = await db.query(
       `SELECT fr.*, u.name as author_name, u.avatar as author_avatar, u.role as author_role

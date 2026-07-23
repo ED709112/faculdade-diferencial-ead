@@ -164,8 +164,8 @@ const getRanking = async (req, res) => {
     res.json({
       ranking,
       me: {
-        rank: currentUserRank[0].rank,
-        total_points: currentUser[0].total_points,
+        rank: currentUserRank[0]?.rank || 1,
+        total_points: Number(currentUser[0].total_points),
         badge_count: currentUser[0].badge_count,
       },
     });

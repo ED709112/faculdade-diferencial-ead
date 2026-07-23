@@ -804,7 +804,12 @@ INSERT INTO badges (name, description, icon, points) VALUES
 ('Explorador', 'Favoritou 5 cursos', 'heart', 15),
 ('Comentarista', 'Deixou 10 comentários em aulas', 'message-circle', 20),
 ('Perfeccionista', 'Tirou nota 10 em uma prova', 'target', 75),
-('Graduado', 'Completou 3 cursos', 'graduation-cap', 150);
+('Graduado', 'Completou 3 cursos', 'graduation-cap', 150),
+('Participante Ativo', 'Criou 5 posts no fórum', 'message-square', 30),
+('Colaborador', 'Respondeu 10 posts no fórum', 'users', 25),
+('Maratonista', 'Completou 20 aulas', 'zap', 60),
+('Estrela Ascendente', 'Alcançou 100 pontos', 'trending-up', 20),
+('Lenda do Conhecimento', 'Alcançou 500 pontos', 'award', 200);
 
 -- Depoimentos padrão
 INSERT INTO testimonials (name, role, content, rating, sort_order) VALUES

@@ -702,8 +702,75 @@ const getReports = async (req, res) => {
         return res.json(data);
       }
 
+      case 'dropout': {
+        const [data] = await db.query(
+          `SELECT u.id, u.name, u.email, u.last_login,
+                  c.title as course_title, c.id as course_id,
+                  e.progress_percentage, e.created_at as enrolled_at,
+                  DATEDIFF(NOW(), COALESCE(e.last_accessed_at, e.created_at)) as days_inactive
+           FROM enrollments e
+           JOIN users u ON e.user_id = u.id
+           JOIN courses c ON e.course_id = c.id
+           WHERE e.status = 'active'
+             AND e.progress_percentage < 100
+             AND DATEDIFF(NOW(), COALESCE(e.last_accessed_at, e.created_at)) >= 7
+           ORDER BY days_inactive DESC
+           LIMIT 50`
+        );
+
+        const [summary] = await db.query(
+          `SELECT
+             COUNT(CASE WHEN DATEDIFF(NOW(), COALESCE(e.last_accessed_at, e.created_at)) >= 30 THEN 1 END) as critical,
+             COUNT(CASE WHEN DATEDIFF(NOW(), COALESCE(e.last_accessed_at, e.created_at)) BETWEEN 15 AND 29 THEN 1 END) as warning,
+             COUNT(CASE WHEN DATEDIFF(NOW(), COALESCE(e.last_accessed_at, e.created_at)) BETWEEN 7 AND 14 THEN 1 END) as at_risk
+           FROM enrollments e
+           WHERE e.status = 'active' AND e.progress_percentage < 100`
+        );
+
+        return res.json({ students: data, summary: summary[0] });
+      }
+
+      case 'performance': {
+        const [coursePerformance] = await db.query(
+          `SELECT c.id, c.title,
+                  c.enrollment_count,
+                  COUNT(CASE WHEN e.status = 'completed' THEN 1 END) as completed,
+                  ROUND(AVG(CASE WHEN e.final_grade IS NOT NULL THEN e.final_grade END), 1) as avg_grade,
+                  COALESCE((
+                    SELECT SUM(lp.watch_time_seconds)
+                    FROM lesson_progress lp
+                    JOIN lessons l ON lp.lesson_id = l.id
+                    JOIN modules m ON l.module_id = m.id
+                    WHERE m.course_id = c.id
+                  ), 0) as total_watch_seconds,
+                  ROUND(AVG(e.progress_percentage), 1) as avg_progress
+           FROM courses c
+           LEFT JOIN enrollments e ON e.course_id = c.id
+           WHERE c.status = 'published'
+           GROUP BY c.id
+           ORDER BY enrollment_count DESC`
+        );
+
+        const [globalStats] = await db.query(
+          `SELECT
+             COUNT(DISTINCT e.user_id) as total_active_students,
+             ROUND(AVG(e.progress_percentage), 1) as avg_progress,
+             ROUND(AVG(CASE WHEN e.final_grade IS NOT NULL THEN e.final_grade END), 1) as avg_grade,
+             COUNT(CASE WHEN e.status = 'completed' THEN 1 END) as total_completed,
+             COUNT(CASE WHEN e.status = 'active' THEN 1 END) as total_in_progress
+           FROM enrollments e`
+        );
+
+        const [globalWatch] = await db.query(
+          `SELECT COALESCE(SUM(lp.watch_time_seconds), 0) as total_watch_seconds
+           FROM lesson_progress lp`
+        );
+
+        return res.json({ courses: coursePerformance, global: { ...globalStats[0], total_watch_seconds: globalWatch[0].total_watch_seconds } });
+      }
+
       default: {
-        return res.status(400).json({ error: 'Tipo de relatório inválido. Tipos: enrollments, students, certificates, completion_rate' });
+        return res.status(400).json({ error: 'Tipo de relatório inválido. Tipos: enrollments, students, certificates, completion_rate, dropout, performance' });
       }
     }
   } catch (error) {

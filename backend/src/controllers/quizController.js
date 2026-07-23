@@ -390,6 +390,18 @@ const submitAttempt = async (req, res) => {
     );
 
     if (isPassed) {
+      // Award points for quiz pass (+20 pts)
+      const [existingPoints] = await db.query(
+        `SELECT id FROM user_points WHERE user_id = ? AND reference_type = 'quiz' AND reference_id = ?`,
+        [req.user.id, quizId]
+      );
+      if (existingPoints.length === 0) {
+        await db.query(
+          'INSERT INTO user_points (user_id, points, reason, reference_type, reference_id) VALUES (?, 20, ?, ?, ?)',
+          [req.user.id, 'Prova aprovada', 'quiz', quizId]
+        );
+      }
+
       const [quiz] = await db.query('SELECT course_id FROM quizzes WHERE id = ?', [quizId]);
       if (quiz.length > 0) {
         await db.query(
@@ -435,10 +447,21 @@ const submitAttempt = async (req, res) => {
           );
 
           if (pct >= 100) {
+            const [prev] = await db.query('SELECT status FROM enrollments WHERE id = ?', [eid]);
+            const wasActive = prev.length > 0 && prev[0].status === 'active';
+
             await db.query(
               "UPDATE enrollments SET status = 'completed', completed_at = NOW() WHERE id = ? AND status = 'active'",
               [eid]
             );
+
+            // Award points for course completion (+50 pts)
+            if (wasActive) {
+              await db.query(
+                'INSERT INTO user_points (user_id, points, reason, reference_type, reference_id) VALUES (?, 50, ?, ?, ?)',
+                [req.user.id, 'Curso concluído', 'course', cid]
+              );
+            }
           }
         }
       }

@@ -10,6 +10,10 @@ import {
   FiDownload,
   FiCalendar,
   FiBarChart2,
+  FiAlertTriangle,
+  FiTrendingDown,
+  FiClock,
+  FiAward,
 } from 'react-icons/fi';
 import {
   BarChart,
@@ -22,6 +26,9 @@ import {
   Legend,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
@@ -41,6 +48,8 @@ const reportTypes: ReportConfig[] = [
   { key: 'revenue-period', label: 'Receita por Período', icon: FiDollarSign, color: 'bg-emerald-50 text-emerald-600' },
   { key: 'course-performance', label: 'Desempenho dos Cursos', icon: FiBook, color: 'bg-violet-50 text-violet-600' },
   { key: 'teacher-performance', label: 'Desempenho dos Professores', icon: FiUser, color: 'bg-secondary-50 text-secondary-600' },
+  { key: 'dropout', label: 'Evasão de Alunos', icon: FiTrendingDown, color: 'bg-red-50 text-red-600' },
+  { key: 'performance', label: 'Desempenho Geral', icon: FiBarChart2, color: 'bg-blue-50 text-blue-600' },
 ];
 
 export default function AdminRelatoriosPage() {
@@ -59,14 +68,16 @@ export default function AdminRelatoriosPage() {
     setLoading(true);
     setGenerated(false);
     try {
-      const { data } = await api.get('/admin/reports', {
-        params: { type: selectedReport, start_date: startDate, end_date: endDate },
-      });
+      const params: any = { type: selectedReport };
+      if (!['dropout', 'performance'].includes(selectedReport)) {
+        params.start_date = startDate;
+        params.end_date = endDate;
+      }
+      const { data } = await api.get('/admin/reports', { params });
       setReportData(data);
       setGenerated(true);
       toast.success('Relatório gerado com sucesso');
     } catch {
-      // use fallback
       setReportData(getFallbackData(selectedReport));
       setGenerated(true);
     } finally {
@@ -123,6 +134,24 @@ export default function AdminRelatoriosPage() {
             { teacher: 'Prof. Carlos', courses: 5, students: 198, rating: 4.4 },
             { teacher: 'Prof. Maria', courses: 7, students: 312, rating: 4.6 },
           ],
+        };
+      case 'dropout':
+        return {
+          students: [
+            { name: 'Aluno A', email: 'a@email.com', course_title: 'Administração', progress_percentage: 30, days_inactive: 45, last_login: '2026-06-01' },
+            { name: 'Aluno B', email: 'b@email.com', course_title: 'Direito', progress_percentage: 55, days_inactive: 22, last_login: '2026-06-22' },
+            { name: 'Aluno C', email: 'c@email.com', course_title: 'Psicologia', progress_percentage: 15, days_inactive: 10, last_login: '2026-07-05' },
+          ],
+          summary: { critical: 3, warning: 8, at_risk: 12 },
+        };
+      case 'performance':
+        return {
+          courses: [
+            { title: 'Administração', enrollment_count: 145, completed: 98, avg_progress: 72.5, avg_grade: 78.3, total_watch_seconds: 126000 },
+            { title: 'Direito', enrollment_count: 128, completed: 83, avg_progress: 65.1, avg_grade: 71.2, total_watch_seconds: 98000 },
+            { title: 'Psicologia', enrollment_count: 98, completed: 78, avg_progress: 80.4, avg_grade: 82.7, total_watch_seconds: 82000 },
+          ],
+          global: { total_active_students: 286, total_completed: 259, avg_progress: 72.7, avg_grade: 77.4, total_watch_seconds: 306000, total_in_progress: 187 },
         };
       default:
         return {};
@@ -185,6 +214,96 @@ export default function AdminRelatoriosPage() {
             </BarChart>
           </ResponsiveContainer>
         );
+      case 'dropout':
+        if (reportData.summary) {
+          const pieData = [
+            { name: 'Crítico (30+ dias)', value: reportData.summary.critical || 0, color: '#ef4444' },
+            { name: 'Alerta (15-29 dias)', value: reportData.summary.warning || 0, color: '#f97316' },
+            { name: 'Em Risco (7-14 dias)', value: reportData.summary.at_risk || 0, color: '#eab308' },
+          ].filter(d => d.value > 0);
+          return (
+            <div>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="text-center p-4 bg-red-50 rounded-xl">
+                  <FiAlertTriangle className="text-red-500 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-red-600">{reportData.summary.critical || 0}</p>
+                  <p className="text-xs text-red-500">Crítico (30+ dias)</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-xl">
+                  <FiClock className="text-orange-500 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-orange-600">{reportData.summary.warning || 0}</p>
+                  <p className="text-xs text-orange-500">Alerta (15-29 dias)</p>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 rounded-xl">
+                  <FiTrendingDown className="text-yellow-500 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-yellow-600">{reportData.summary.at_risk || 0}</p>
+                  <p className="text-xs text-yellow-500">Em Risco (7-14 dias)</p>
+                </div>
+              </div>
+              {pieData.length > 0 && (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}: ${value}`}>
+                      {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          );
+        }
+        return null;
+      case 'performance':
+        if (reportData.global) {
+          const g = reportData.global;
+          const watchHours = Math.round((g.total_watch_seconds || 0) / 3600);
+          return (
+            <div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div className="text-center p-4 bg-primary-50 rounded-xl">
+                  <p className="text-2xl font-bold text-primary-600">{g.total_active_students || 0}</p>
+                  <p className="text-xs text-primary-500">Alunos Ativos</p>
+                </div>
+                <div className="text-center p-4 bg-emerald-50 rounded-xl">
+                  <p className="text-2xl font-bold text-emerald-600">{g.total_completed || 0}</p>
+                  <p className="text-xs text-emerald-500">Concluídos</p>
+                </div>
+                <div className="text-center p-4 bg-violet-50 rounded-xl">
+                  <p className="text-2xl font-bold text-violet-600">{g.avg_progress || 0}%</p>
+                  <p className="text-xs text-violet-500">Progresso Médio</p>
+                </div>
+                <div className="text-center p-4 bg-secondary-50 rounded-xl">
+                  <p className="text-2xl font-bold text-secondary-600">{g.avg_grade || '-'}</p>
+                  <p className="text-xs text-secondary-500">Nota Média</p>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 rounded-xl">
+                  <p className="text-2xl font-bold text-yellow-600">{watchHours}h</p>
+                  <p className="text-xs text-yellow-500">Horas Estudadas</p>
+                </div>
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <p className="text-2xl font-bold text-blue-600">{g.total_in_progress || 0}</p>
+                  <p className="text-xs text-blue-500">Em Andamento</p>
+                </div>
+              </div>
+              {reportData.courses && reportData.courses.length > 0 && (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={reportData.courses} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="title" tick={{ fontSize: 11, fill: '#94a3b8' }} angle={-20} textAnchor="end" height={80} />
+                    <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="avg_progress" name="Progresso Médio (%)" fill="#1a56db" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="avg_grade" name="Nota Média" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          );
+        }
+        return null;
       default:
         return null;
     }
@@ -271,6 +390,96 @@ export default function AdminRelatoriosPage() {
       );
     }
 
+    if (selectedReport === 'dropout' && reportData.students) {
+      if (reportData.students.length === 0) {
+        return <p className="text-center text-gray-500 py-8">Nenhum aluno em risco de evasão encontrado</p>;
+      }
+      return (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Aluno</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Curso</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Progresso</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Dias Inativo</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Último Acesso</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.students.map((row: any, idx: number) => {
+              const daysClass = row.days_inactive >= 30 ? 'text-red-600 bg-red-50' : row.days_inactive >= 15 ? 'text-orange-600 bg-orange-50' : 'text-yellow-600 bg-yellow-50';
+              return (
+                <tr key={idx} className="border-b border-gray-50">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-gray-900">{row.name}</p>
+                    <p className="text-xs text-gray-400">{row.email}</p>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{row.course_title}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 bg-gray-100 rounded-full h-2">
+                        <div className="h-2 rounded-full bg-primary-500" style={{ width: `${row.progress_percentage || 0}%` }} />
+                      </div>
+                      <span className="text-xs text-gray-600">{row.progress_percentage || 0}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${daysClass}`}>
+                      {row.days_inactive} dias
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {row.last_login ? new Date(row.last_login).toLocaleDateString('pt-BR') : 'Nunca'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      );
+    }
+
+    if (selectedReport === 'performance' && reportData.courses) {
+      if (reportData.courses.length === 0) {
+        return <p className="text-center text-gray-500 py-8">Nenhum curso com dados disponíveis</p>;
+      }
+      return (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Curso</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Matriculados</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Concluídos</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Progresso Médio</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Nota Média</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Horas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.courses.map((row: any, idx: number) => (
+              <tr key={idx} className="border-b border-gray-50">
+                <td className="px-4 py-3 font-medium text-gray-900">{row.title}</td>
+                <td className="px-4 py-3 text-gray-600">{row.enrollment_count || 0}</td>
+                <td className="px-4 py-3 text-gray-600">{row.completed || 0}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 bg-gray-100 rounded-full h-2">
+                      <div className="h-2 rounded-full bg-primary-500" style={{ width: `${row.avg_progress || 0}%` }} />
+                    </div>
+                    <span className="text-xs text-gray-600">{row.avg_progress || 0}%</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-sm font-medium text-gray-900">{row.avg_grade || '-'}</span>
+                </td>
+                <td className="px-4 py-3 text-gray-600">{Math.round((row.total_watch_seconds || 0) / 3600)}h</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
+
     return null;
   };
 
@@ -282,7 +491,7 @@ export default function AdminRelatoriosPage() {
       </div>
 
       {/* Report Type Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {reportTypes.map((rt) => (
           <button
             key={rt.key}

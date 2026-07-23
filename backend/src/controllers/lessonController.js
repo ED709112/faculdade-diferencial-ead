@@ -358,11 +358,39 @@ const markComplete = async (req, res) => {
     );
 
     if (percentage >= 100) {
+      const [prev] = await db.query(
+        `SELECT status FROM enrollments WHERE id = ?`,
+        [enrollmentId]
+      );
+      const wasActive = prev.length > 0 && prev[0].status === 'active';
+
       await db.query(
         `UPDATE enrollments SET status = 'completed', completed_at = NOW()
          WHERE id = ? AND status = 'active'`,
         [enrollmentId]
       );
+
+      // Award points for course completion (+50 pts)
+      if (wasActive) {
+        await db.query(
+          'INSERT INTO user_points (user_id, points, reason, reference_type, reference_id) VALUES (?, 50, ?, ?, ?)',
+          [req.user.id, 'Curso concluído', 'course', lessons[0].course_id]
+        );
+      }
+    }
+
+    // Award points for lesson completion (+10 pts)
+    if (completed > 0) {
+      const [existingPoints] = await db.query(
+        `SELECT id FROM user_points WHERE user_id = ? AND reference_type = 'lesson' AND reference_id = ?`,
+        [req.user.id, lessonId]
+      );
+      if (existingPoints.length === 0) {
+        await db.query(
+          'INSERT INTO user_points (user_id, points, reason, reference_type, reference_id) VALUES (?, 10, ?, ?, ?)',
+          [req.user.id, 'Aula concluída', 'lesson', lessonId]
+        );
+      }
     }
 
     res.json({
