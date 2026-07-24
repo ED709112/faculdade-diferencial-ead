@@ -22,9 +22,11 @@ const getByCourse = async (req, res) => {
 
     const [modules] = await db.query(
       `SELECT m.*,
+              u.name as teacher_name,
               (SELECT COUNT(*) FROM lessons WHERE module_id = m.id) as lessons_count,
               (SELECT SUM(video_duration) FROM lessons WHERE module_id = m.id) as total_video_duration
        FROM modules m
+       LEFT JOIN users u ON m.teacher_id = u.id
        WHERE m.course_id = ?
        ORDER BY m.sort_order ASC`,
       [courseId]
@@ -48,7 +50,7 @@ const getByCourse = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const { course_id, title, description, period, workload, is_free } = req.body;
+    const { course_id, title, description, period, workload, teacher_id, is_free } = req.body;
 
     const [courses] = await db.query('SELECT id, teacher_id FROM courses WHERE id = ?', [course_id]);
     if (courses.length === 0) {
@@ -66,8 +68,8 @@ const create = async (req, res) => {
     const sortOrder = (maxOrder[0].max_order || 0) + 1;
 
     const [result] = await db.query(
-      'INSERT INTO modules (course_id, title, description, period, workload, sort_order, is_free) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [course_id, title, description || null, period || null, parseInt(workload) || 0, sortOrder, is_free ? 1 : 0]
+      'INSERT INTO modules (course_id, title, description, period, workload, teacher_id, sort_order, is_free) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [course_id, title, description || null, period || null, parseInt(workload) || 0, teacher_id || null, sortOrder, is_free ? 1 : 0]
     );
 
     await recalcCourseWorkload(course_id);
@@ -86,10 +88,10 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, period, workload, is_free } = req.body;
+    const { title, description, period, workload, teacher_id, is_free } = req.body;
 
     const [modules] = await db.query(
-      `SELECT m.*, c.teacher_id FROM modules m JOIN courses c ON m.course_id = c.id WHERE m.id = ?`,
+      `SELECT m.*, c.teacher_id as course_teacher_id FROM modules m JOIN courses c ON m.course_id = c.id WHERE m.id = ?`,
       [id]
     );
 
@@ -97,7 +99,7 @@ const update = async (req, res) => {
       return res.status(404).json({ error: 'Disciplina não encontrada.' });
     }
 
-    if (req.user.role !== 'admin' && modules[0].teacher_id !== req.user.id) {
+    if (req.user.role !== 'admin' && modules[0].course_teacher_id !== req.user.id) {
       return res.status(403).json({ error: 'Sem permissão para editar esta disciplina.' });
     }
 
@@ -108,6 +110,7 @@ const update = async (req, res) => {
     if (description !== undefined) { fields.push('description = ?'); values.push(description); }
     if (period !== undefined) { fields.push('period = ?'); values.push(period || null); }
     if (workload !== undefined) { fields.push('workload = ?'); values.push(parseInt(workload) || 0); }
+    if (teacher_id !== undefined) { fields.push('teacher_id = ?'); values.push(teacher_id || null); }
     if (is_free !== undefined) { fields.push('is_free = ?'); values.push(is_free ? 1 : 0); }
 
     if (fields.length > 0) {

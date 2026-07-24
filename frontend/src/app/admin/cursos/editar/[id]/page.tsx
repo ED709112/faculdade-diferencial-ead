@@ -38,6 +38,8 @@ interface Module {
   description: string;
   period: number | null;
   workload: number;
+  teacher_id: number | null;
+  teacher_name?: string;
   sort_order: number;
   lessons?: Lesson[];
 }
@@ -101,6 +103,7 @@ export default function EditarCursoAdminPage() {
   const [newModuleTitle, setNewModuleTitle] = useState('');
   const [newModulePeriod, setNewModulePeriod] = useState<number | ''>('');
   const [newModuleWorkload, setNewModuleWorkload] = useState('');
+  const [newModuleTeacher, setNewModuleTeacher] = useState('');
   const [courseWorkload, setCourseWorkload] = useState(0);
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
   const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
@@ -252,6 +255,7 @@ export default function EditarCursoAdminPage() {
         title: newModuleTitle,
         period: newModulePeriod || null,
         workload: parseInt(newModuleWorkload) || 0,
+        teacher_id: newModuleTeacher ? parseInt(newModuleTeacher) : null,
         sort_order: modules.length + 1,
       });
       const mod = data.module || data;
@@ -260,6 +264,7 @@ export default function EditarCursoAdminPage() {
       setNewModuleTitle('');
       setNewModulePeriod('');
       setNewModuleWorkload('');
+      setNewModuleTeacher('');
       setShowNewModule(false);
       toast.success('Disciplina criada!');
     } catch {
@@ -631,7 +636,7 @@ export default function EditarCursoAdminPage() {
                   <div>
                     <p className="font-semibold text-gray-900">{mod.title}</p>
                     <p className="text-xs text-gray-500">
-                      {mod.period ? `${mod.period}º Período · ` : ''}{mod.workload ? `${mod.workload}h · ` : ''}{mod.lessons?.length || 0} aulas
+                      {mod.period ? `${mod.period}º Período · ` : ''}{mod.workload ? `${mod.workload}h · ` : ''}{mod.teacher_name ? `${mod.teacher_name} · ` : ''}{mod.lessons?.length || 0} aulas
                     </p>
                   </div>
                 </button>
@@ -771,8 +776,18 @@ export default function EditarCursoAdminPage() {
                 className="input-field"
                 min="0"
               />
+              <select
+                value={newModuleTeacher}
+                onChange={e => setNewModuleTeacher(e.target.value)}
+                className="input-field"
+              >
+                <option value="">Selecione o professor</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); setNewModuleWorkload(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); setNewModuleWorkload(''); setNewModuleTeacher(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                 <button onClick={handleAddModule} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600">Criar Disciplina</button>
               </div>
             </div>

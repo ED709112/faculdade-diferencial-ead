@@ -213,13 +213,16 @@ CREATE TABLE modules (
     description TEXT DEFAULT NULL,
     period INT DEFAULT NULL,
     workload INT DEFAULT 0,
+    teacher_id INT UNSIGNED DEFAULT NULL,
     sort_order INT NOT NULL DEFAULT 0,
     is_free TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    INDEX idx_modules_course (course_id)
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_modules_course (course_id),
+    INDEX idx_modules_teacher (teacher_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE lessons (

@@ -4,10 +4,12 @@ const getModulesByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const [rows] = await db.query(
-      `SELECT id, title, sort_order, description
-       FROM modules
-       WHERE course_id = ?
-       ORDER BY sort_order ASC`,
+      `SELECT m.id, m.title, m.sort_order, m.description, m.period, m.workload, m.teacher_id,
+              u.name as teacher_name
+       FROM modules m
+       LEFT JOIN users u ON m.teacher_id = u.id
+       WHERE m.course_id = ?
+       ORDER BY m.sort_order ASC`,
       [courseId]
     );
     res.json(rows);

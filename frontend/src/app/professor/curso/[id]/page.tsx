@@ -172,7 +172,8 @@ export default function EditCoursePage() {
     try {
       setModulesLoading(true);
       const { data } = await api.get(`/courses/${courseId}/modules`);
-      setModules(data.modules || data.data || data || []);
+      const allModules = data.modules || data.data || data || [];
+      setModules(allModules);
     } catch {
       // silently fail
     } finally {
