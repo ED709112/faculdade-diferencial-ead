@@ -36,6 +36,7 @@ interface Module {
   id: number;
   title: string;
   description: string;
+  period: number | null;
   sort_order: number;
   lessons?: Lesson[];
 }
@@ -97,6 +98,7 @@ export default function EditarCursoAdminPage() {
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
   const [showNewModule, setShowNewModule] = useState(false);
   const [newModuleTitle, setNewModuleTitle] = useState('');
+  const [newModulePeriod, setNewModulePeriod] = useState<number | ''>('');
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
   const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
   const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
@@ -244,25 +246,27 @@ export default function EditarCursoAdminPage() {
       const { data } = await api.post('/modules', {
         course_id: parseInt(courseId),
         title: newModuleTitle,
+        period: newModulePeriod || null,
         sort_order: modules.length + 1,
       });
       setModules([...modules, { ...data.module || data, lessons: [] }]);
       setNewModuleTitle('');
+      setNewModulePeriod('');
       setShowNewModule(false);
-      toast.success('Módulo criado!');
+      toast.success('Disciplina criada!');
     } catch {
-      toast.error('Erro ao criar módulo');
+      toast.error('Erro ao criar disciplina');
     }
   };
 
   const handleDeleteModule = async (moduleId: number) => {
-    if (!confirm('Excluir este módulo e todas as suas aulas?')) return;
+    if (!confirm('Excluir esta disciplina e todas as suas aulas?')) return;
     try {
       await api.delete(`/modules/${moduleId}`);
       setModules(modules.filter(m => m.id !== moduleId));
-      toast.success('Módulo excluído!');
+      toast.success('Disciplina excluída!');
     } catch {
-      toast.error('Erro ao excluir módulo');
+      toast.error('Erro ao excluir disciplina');
     }
   };
 
@@ -420,7 +424,7 @@ export default function EditarCursoAdminPage() {
 
   const tabs = [
     { key: 'dados', label: 'Dados do Curso' },
-    { key: 'modulos', label: 'Módulos & Aulas' },
+    { key: 'modulos', label: 'Disciplinas & Aulas' },
     { key: 'avaliacoes', label: 'Avaliações (Quiz)' },
   ];
 
@@ -593,7 +597,7 @@ export default function EditarCursoAdminPage() {
         </div>
       )}
 
-      {/* Tab: Módulos */}
+      {/* Tab: Disciplinas */}
       {activeTab === 'modulos' && (
         <div className="space-y-4">
           {modules.map(mod => (
@@ -606,7 +610,9 @@ export default function EditarCursoAdminPage() {
                   {expandedModule === mod.id ? <FiChevronUp /> : <FiChevronDown />}
                   <div>
                     <p className="font-semibold text-gray-900">{mod.title}</p>
-                    <p className="text-xs text-gray-500">{mod.lessons?.length || 0} aulas</p>
+                    <p className="text-xs text-gray-500">
+                      {mod.period ? `${mod.period}º Período · ` : ''}{mod.lessons?.length || 0} aulas
+                    </p>
                   </div>
                 </button>
                 <div className="flex items-center gap-1">
@@ -620,7 +626,7 @@ export default function EditarCursoAdminPage() {
                   <button
                     onClick={() => handleDeleteModule(mod.id)}
                     className="p-2 rounded-lg hover:bg-red-50 text-red-600"
-                    title="Excluir módulo"
+                    title="Excluir disciplina"
                   >
                     <FiTrash2 />
                   </button>
@@ -716,19 +722,30 @@ export default function EditarCursoAdminPage() {
             </div>
           ))}
 
-          {/* New Module */}
+          {/* New Discipline */}
           {showNewModule ? (
             <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
               <input
-                placeholder="Título do módulo"
+                placeholder="Nome da disciplina"
                 value={newModuleTitle}
                 onChange={e => setNewModuleTitle(e.target.value)}
                 className="input-field"
                 autoFocus
               />
+              <select
+                value={newModulePeriod}
+                onChange={e => setNewModulePeriod(e.target.value ? parseInt(e.target.value) : '')}
+                className="input-field"
+              >
+                <option value="">Selecione o período</option>
+                <option value="1">1º Período</option>
+                <option value="2">2º Período</option>
+                <option value="3">3º Período</option>
+                <option value="4">4º Período</option>
+              </select>
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button onClick={handleAddModule} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600">Criar Módulo</button>
+                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button onClick={handleAddModule} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600">Criar Disciplina</button>
               </div>
             </div>
           ) : (
@@ -736,7 +753,7 @@ export default function EditarCursoAdminPage() {
               onClick={() => setShowNewModule(true)}
               className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-primary-500 hover:text-primary-500 flex items-center justify-center gap-2 transition-colors"
             >
-              <FiPlus /> Adicionar Módulo
+              <FiPlus /> Adicionar Disciplina
             </button>
           )}
         </div>

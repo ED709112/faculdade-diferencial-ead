@@ -37,7 +37,7 @@ const getByCourse = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const { course_id, title, description, is_free } = req.body;
+    const { course_id, title, description, period, is_free } = req.body;
 
     const [courses] = await db.query('SELECT id, teacher_id FROM courses WHERE id = ?', [course_id]);
     if (courses.length === 0) {
@@ -55,8 +55,8 @@ const create = async (req, res) => {
     const sortOrder = (maxOrder[0].max_order || 0) + 1;
 
     const [result] = await db.query(
-      'INSERT INTO modules (course_id, title, description, sort_order, is_free) VALUES (?, ?, ?, ?, ?)',
-      [course_id, title, description || null, sortOrder, is_free ? 1 : 0]
+      'INSERT INTO modules (course_id, title, description, period, sort_order, is_free) VALUES (?, ?, ?, ?, ?, ?)',
+      [course_id, title, description || null, period || null, sortOrder, is_free ? 1 : 0]
     );
 
     const [module] = await db.query('SELECT * FROM modules WHERE id = ?', [result.insertId]);
@@ -72,7 +72,7 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, is_free } = req.body;
+    const { title, description, period, is_free } = req.body;
 
     const [modules] = await db.query(
       `SELECT m.*, c.teacher_id FROM modules m JOIN courses c ON m.course_id = c.id WHERE m.id = ?`,
@@ -92,6 +92,7 @@ const update = async (req, res) => {
 
     if (title !== undefined) { fields.push('title = ?'); values.push(title); }
     if (description !== undefined) { fields.push('description = ?'); values.push(description); }
+    if (period !== undefined) { fields.push('period = ?'); values.push(period || null); }
     if (is_free !== undefined) { fields.push('is_free = ?'); values.push(is_free ? 1 : 0); }
 
     if (fields.length > 0) {
