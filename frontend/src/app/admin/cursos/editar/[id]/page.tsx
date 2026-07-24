@@ -37,6 +37,7 @@ interface Module {
   title: string;
   description: string;
   period: number | null;
+  workload: number;
   sort_order: number;
   lessons?: Lesson[];
 }
@@ -99,6 +100,8 @@ export default function EditarCursoAdminPage() {
   const [showNewModule, setShowNewModule] = useState(false);
   const [newModuleTitle, setNewModuleTitle] = useState('');
   const [newModulePeriod, setNewModulePeriod] = useState<number | ''>('');
+  const [newModuleWorkload, setNewModuleWorkload] = useState('');
+  const [courseWorkload, setCourseWorkload] = useState(0);
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
   const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
   const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
@@ -172,6 +175,7 @@ export default function EditarCursoAdminPage() {
         });
 
         if (c.image) setImagePreview(c.image);
+        setCourseWorkload(c.workload || 0);
         setCategories(catRes.data.data || catRes.data.categories || catRes.data || []);
         setTeachers(teacherRes.data.data || teacherRes.data.users || teacherRes.data || []);
         setModules(modRes.data.modules || modRes.data.data || modRes.data || []);
@@ -247,11 +251,15 @@ export default function EditarCursoAdminPage() {
         course_id: parseInt(courseId),
         title: newModuleTitle,
         period: newModulePeriod || null,
+        workload: parseInt(newModuleWorkload) || 0,
         sort_order: modules.length + 1,
       });
-      setModules([...modules, { ...data.module || data, lessons: [] }]);
+      const mod = data.module || data;
+      setModules([...modules, { ...mod, lessons: [] }]);
+      if (data.course_workload !== undefined) setCourseWorkload(data.course_workload);
       setNewModuleTitle('');
       setNewModulePeriod('');
+      setNewModuleWorkload('');
       setShowNewModule(false);
       toast.success('Disciplina criada!');
     } catch {
@@ -262,8 +270,9 @@ export default function EditarCursoAdminPage() {
   const handleDeleteModule = async (moduleId: number) => {
     if (!confirm('Excluir esta disciplina e todas as suas aulas?')) return;
     try {
-      await api.delete(`/modules/${moduleId}`);
+      const { data } = await api.delete(`/modules/${moduleId}`);
       setModules(modules.filter(m => m.id !== moduleId));
+      if (data.course_workload !== undefined) setCourseWorkload(data.course_workload);
       toast.success('Disciplina excluída!');
     } catch {
       toast.error('Erro ao excluir disciplina');
@@ -600,6 +609,17 @@ export default function EditarCursoAdminPage() {
       {/* Tab: Disciplinas */}
       {activeTab === 'modulos' && (
         <div className="space-y-4">
+          {/* Carga horária total */}
+          <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Carga Horária Total do Curso</p>
+              <p className="text-2xl font-bold text-primary-600">{courseWorkload}h</p>
+            </div>
+            <div className="text-right text-sm text-gray-500">
+              {modules.length} disciplina{modules.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
           {modules.map(mod => (
             <div key={mod.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
               <div className="flex items-center justify-between p-4 bg-gray-50">
@@ -611,7 +631,7 @@ export default function EditarCursoAdminPage() {
                   <div>
                     <p className="font-semibold text-gray-900">{mod.title}</p>
                     <p className="text-xs text-gray-500">
-                      {mod.period ? `${mod.period}º Período · ` : ''}{mod.lessons?.length || 0} aulas
+                      {mod.period ? `${mod.period}º Período · ` : ''}{mod.workload ? `${mod.workload}h · ` : ''}{mod.lessons?.length || 0} aulas
                     </p>
                   </div>
                 </button>
@@ -743,8 +763,16 @@ export default function EditarCursoAdminPage() {
                 <option value="3">3º Período</option>
                 <option value="4">4º Período</option>
               </select>
+              <input
+                type="number"
+                placeholder="Carga horária (horas)"
+                value={newModuleWorkload}
+                onChange={e => setNewModuleWorkload(e.target.value)}
+                className="input-field"
+                min="0"
+              />
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); setNewModuleWorkload(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                 <button onClick={handleAddModule} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600">Criar Disciplina</button>
               </div>
             </div>

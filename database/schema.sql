@@ -212,6 +212,7 @@ CREATE TABLE modules (
     title VARCHAR(500) NOT NULL,
     description TEXT DEFAULT NULL,
     period INT DEFAULT NULL,
+    workload INT DEFAULT 0,
     sort_order INT NOT NULL DEFAULT 0,
     is_free TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
