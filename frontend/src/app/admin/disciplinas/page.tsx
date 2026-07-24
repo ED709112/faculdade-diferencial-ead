@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  FiPlus, FiEdit2, FiTrash2, FiSearch, FiBook, FiUser, FiClock, FiX,
+  FiPlus, FiEdit2, FiTrash2, FiSearch, FiBook, FiClock, FiX,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
@@ -13,35 +13,23 @@ interface Discipline {
   id: number;
   name: string;
   workload: number;
-  teacher_id: number | null;
-  teacher_name: string | null;
   status: string;
   materials_count?: number;
 }
 
-interface Teacher {
-  id: number;
-  name: string;
-}
-
 export default function AdminDisciplinesPage() {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: '', workload: '', teacher_id: '' });
+  const [form, setForm] = useState({ name: '', workload: '' });
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [discRes, teacherRes] = await Promise.all([
-        api.get('/admin/course-disciplines/disciplines'),
-        api.get('/admin/users', { params: { role: 'teacher', limit: 100 } }),
-      ]);
-      setDisciplines(Array.isArray(discRes.data) ? discRes.data : discRes.data.data || []);
-      setTeachers(Array.isArray(teacherRes.data) ? teacherRes.data : teacherRes.data.data || teacherRes.data.users || []);
+      const { data } = await api.get('/admin/course-disciplines/disciplines');
+      setDisciplines(Array.isArray(data) ? data : data.data || []);
     } catch {
       toast.error('Erro ao carregar disciplinas');
     } finally {
@@ -53,17 +41,13 @@ export default function AdminDisciplinesPage() {
 
   const openNew = () => {
     setEditingId(null);
-    setForm({ name: '', workload: '', teacher_id: '' });
+    setForm({ name: '', workload: '' });
     setShowForm(true);
   };
 
   const openEdit = (d: Discipline) => {
     setEditingId(d.id);
-    setForm({
-      name: d.name,
-      workload: d.workload?.toString() || '',
-      teacher_id: d.teacher_id?.toString() || '',
-    });
+    setForm({ name: d.name, workload: d.workload?.toString() || '' });
     setShowForm(true);
   };
 
@@ -73,11 +57,7 @@ export default function AdminDisciplinesPage() {
       return;
     }
     try {
-      const payload = {
-        name: form.name.trim(),
-        workload: parseInt(form.workload) || 0,
-        teacher_id: form.teacher_id ? parseInt(form.teacher_id) : null,
-      };
+      const payload = { name: form.name.trim(), workload: parseInt(form.workload) || 0 };
 
       if (editingId) {
         const { data } = await api.put(`/admin/course-disciplines/disciplines/${editingId}`, payload);
@@ -90,7 +70,7 @@ export default function AdminDisciplinesPage() {
       }
       setShowForm(false);
       setEditingId(null);
-      setForm({ name: '', workload: '', teacher_id: '' });
+      setForm({ name: '', workload: '' });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Erro ao salvar disciplina');
     }
@@ -108,8 +88,7 @@ export default function AdminDisciplinesPage() {
   };
 
   const filtered = disciplines.filter(d =>
-    d.name?.toLowerCase().includes(search.toLowerCase()) ||
-    d.teacher_name?.toLowerCase().includes(search.toLowerCase())
+    d.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) return <Loading text="Carregando disciplinas..." />;
@@ -129,19 +108,17 @@ export default function AdminDisciplinesPage() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5">
         <FiSearch className="text-gray-400 mr-2" />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar disciplina ou professor..."
+          placeholder="Buscar disciplina..."
           className="flex-1 outline-none text-sm"
         />
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
@@ -172,17 +149,6 @@ export default function AdminDisciplinesPage() {
               min="0"
             />
 
-            <select
-              value={form.teacher_id}
-              onChange={e => setForm({ ...form, teacher_id: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-            >
-              <option value="">Selecione o professor</option>
-              {teachers.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-
             <div className="flex gap-2 justify-end pt-2">
               <button
                 onClick={() => { setShowForm(false); setEditingId(null); }}
@@ -201,7 +167,6 @@ export default function AdminDisciplinesPage() {
         </div>
       )}
 
-      {/* Disciplines List */}
       {filtered.length === 0 ? (
         <EmptyState
           icon={<FiBook />}
@@ -215,7 +180,6 @@ export default function AdminDisciplinesPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-5 py-3 font-medium text-gray-500">Disciplina</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500">Professor</th>
                 <th className="text-left px-5 py-3 font-medium text-gray-500">Carga Horária</th>
                 <th className="text-right px-5 py-3 font-medium text-gray-500">Ações</th>
               </tr>
@@ -225,9 +189,7 @@ export default function AdminDisciplinesPage() {
                 <tr key={d.id} className="hover:bg-gray-50">
                   <td className="px-5 py-3">
                     <p className="font-medium text-gray-900">{d.name}</p>
-                    <p className="text-xs text-gray-400">ID: {d.id}</p>
                   </td>
-                  <td className="px-5 py-3 text-gray-600">{d.teacher_name || <span className="text-gray-400 italic">Não atribuído</span>}</td>
                   <td className="px-5 py-3">
                     <span className="inline-flex items-center gap-1 text-gray-700">
                       <FiClock className="text-xs text-gray-400" /> {d.workload || 0}h

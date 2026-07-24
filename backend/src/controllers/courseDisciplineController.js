@@ -54,10 +54,8 @@ const getAllDisciplinesForAdmin = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT d.id, d.name, d.workload, d.titulacao, d.status,
-              u.name as teacher_name, u.id as teacher_id,
               (SELECT COUNT(*) FROM discipline_materials dm WHERE dm.discipline_id = d.id) as materials_count
        FROM disciplines d
-       JOIN users u ON d.teacher_id = u.id
        ORDER BY d.name ASC`
     );
     res.json(rows);
@@ -81,7 +79,7 @@ const getUnlinkedDisciplines = async (req, res) => {
       `SELECT d.id, d.name, d.workload, d.titulacao, d.status,
               u.name as teacher_name, u.id as teacher_id
        FROM disciplines d
-       JOIN users u ON d.teacher_id = u.id
+       LEFT JOIN users u ON d.teacher_id = u.id
        WHERE d.id NOT IN (
          SELECT cd.discipline_id FROM course_disciplines cd WHERE ${excludeCondition}
        )
@@ -159,21 +157,18 @@ const updateSortOrder = async (req, res) => {
 
 const createDisciplineAdmin = async (req, res) => {
   try {
-    const { name, workload, teacher_id } = req.body;
+    const { name, workload } = req.body;
     if (!name) return res.status(400).json({ error: 'Nome da disciplina é obrigatório.' });
 
     const [existing] = await db.query('SELECT id FROM disciplines WHERE name = ?', [name]);
     if (existing.length > 0) return res.status(400).json({ error: 'Já existe uma disciplina com este nome.' });
 
     const [result] = await db.query(
-      'INSERT INTO disciplines (teacher_id, name, workload, status) VALUES (?, ?, ?, ?)',
-      [teacher_id || null, name, parseInt(workload) || 0, 'active']
+      'INSERT INTO disciplines (name, workload, status) VALUES (?, ?, ?)',
+      [name, parseInt(workload) || 0, 'active']
     );
 
-    const [discipline] = await db.query(
-      `SELECT d.*, u.name as teacher_name FROM disciplines d LEFT JOIN users u ON d.teacher_id = u.id WHERE d.id = ?`,
-      [result.insertId]
-    );
+    const [discipline] = await db.query('SELECT * FROM disciplines WHERE id = ?', [result.insertId]);
     res.status(201).json(discipline[0]);
   } catch (error) {
     console.error('Erro ao criar disciplina:', error);
@@ -184,7 +179,7 @@ const createDisciplineAdmin = async (req, res) => {
 const updateDisciplineAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, workload, teacher_id, status } = req.body;
+    const { name, workload, status } = req.body;
 
     const [existing] = await db.query('SELECT id FROM disciplines WHERE id = ?', [id]);
     if (existing.length === 0) return res.status(404).json({ error: 'Disciplina não encontrada.' });
@@ -193,8 +188,8 @@ const updateDisciplineAdmin = async (req, res) => {
     if (duplicate.length > 0) return res.status(400).json({ error: 'Já existe outra disciplina com este nome.' });
 
     await db.query(
-      'UPDATE disciplines SET name = ?, workload = ?, teacher_id = ?, status = ? WHERE id = ?',
-      [name, parseInt(workload) || 0, teacher_id || null, status || 'active', id]
+      'UPDATE disciplines SET name = ?, workload = ?, status = ? WHERE id = ?',
+      [name, parseInt(workload) || 0, status || 'active', id]
     );
 
     const [discipline] = await db.query(

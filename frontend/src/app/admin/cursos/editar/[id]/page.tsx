@@ -106,7 +106,7 @@ export default function EditarCursoAdminPage() {
   const [newModuleTeacher, setNewModuleTeacher] = useState('');
   const [newModuleDiscipline, setNewModuleDiscipline] = useState('');
   const [courseWorkload, setCourseWorkload] = useState(0);
-  const [catalogDisciplines, setCatalogDisciplines] = useState<{id: number; name: string; workload: number; teacher_id: number | null; teacher_name: string}[]>([]);
+  const [catalogDisciplines, setCatalogDisciplines] = useState<{id: number; name: string; workload: number}[]>([]);
   const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
   const [editModuleForm, setEditModuleForm] = useState({ title: '', period: '' as number | '', workload: '', teacher_id: '' });
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
@@ -267,7 +267,7 @@ export default function EditarCursoAdminPage() {
         title,
         period: newModulePeriod || null,
         workload: selectedDisc ? selectedDisc.workload : (parseInt(newModuleWorkload) || 0),
-        teacher_id: selectedDisc ? selectedDisc.teacher_id : (newModuleTeacher ? parseInt(newModuleTeacher) : null),
+        teacher_id: newModuleTeacher ? parseInt(newModuleTeacher) : null,
         discipline_id: selectedDisc ? selectedDisc.id : null,
         sort_order: modules.length + 1,
       });
@@ -855,18 +855,16 @@ export default function EditarCursoAdminPage() {
                   if (disc) {
                     setNewModuleTitle(disc.name);
                     setNewModuleWorkload(disc.workload?.toString() || '');
-                    setNewModuleTeacher(disc.teacher_id?.toString() || '');
                   } else {
                     setNewModuleTitle('');
                     setNewModuleWorkload('');
-                    setNewModuleTeacher('');
                   }
                 }}
                 className="input-field"
               >
                 <option value="">Selecione a disciplina do catálogo</option>
                 {catalogDisciplines.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.workload}h) - {d.teacher_name || 'Sem professor'}</option>
+                  <option key={d.id} value={d.id}>{d.name} ({d.workload}h)</option>
                 ))}
               </select>
 
@@ -894,7 +892,6 @@ export default function EditarCursoAdminPage() {
               {newModuleDiscipline && catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline)) && (
                 <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
                   <p>Carga horária: <strong>{catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline))?.workload}h</strong></p>
-                  <p>Professor: <strong>{catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline))?.teacher_name || 'Não atribuído'}</strong></p>
                 </div>
               )}
 
