@@ -105,6 +105,8 @@ export default function EditarCursoAdminPage() {
   const [newModuleWorkload, setNewModuleWorkload] = useState('');
   const [newModuleTeacher, setNewModuleTeacher] = useState('');
   const [courseWorkload, setCourseWorkload] = useState(0);
+  const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
+  const [editModuleForm, setEditModuleForm] = useState({ title: '', period: '' as number | '', workload: '', teacher_id: '' });
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
   const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
   const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
@@ -281,6 +283,35 @@ export default function EditarCursoAdminPage() {
       toast.success('Disciplina excluída!');
     } catch {
       toast.error('Erro ao excluir disciplina');
+    }
+  };
+
+  const openEditModule = (mod: Module) => {
+    setEditingModuleId(mod.id);
+    setEditModuleForm({
+      title: mod.title,
+      period: mod.period || '',
+      workload: mod.workload?.toString() || '',
+      teacher_id: mod.teacher_id?.toString() || '',
+    });
+  };
+
+  const handleUpdateModule = async (moduleId: number) => {
+    if (!editModuleForm.title.trim()) return;
+    try {
+      const { data } = await api.put(`/modules/${moduleId}`, {
+        title: editModuleForm.title,
+        period: editModuleForm.period || null,
+        workload: parseInt(editModuleForm.workload) || 0,
+        teacher_id: editModuleForm.teacher_id ? parseInt(editModuleForm.teacher_id) : null,
+      });
+      const mod = data.module || data;
+      setModules(modules.map(m => m.id === moduleId ? { ...m, ...mod } : m));
+      if (data.course_workload !== undefined) setCourseWorkload(data.course_workload);
+      setEditingModuleId(null);
+      toast.success('Disciplina atualizada!');
+    } catch {
+      toast.error('Erro ao atualizar disciplina');
     }
   };
 
@@ -649,6 +680,13 @@ export default function EditarCursoAdminPage() {
                     <FiPlus />
                   </button>
                   <button
+                    onClick={() => openEditModule(mod)}
+                    className="p-2 rounded-lg hover:bg-yellow-50 text-yellow-600"
+                    title="Editar disciplina"
+                  >
+                    <FiEdit2 />
+                  </button>
+                  <button
                     onClick={() => handleDeleteModule(mod.id)}
                     className="p-2 rounded-lg hover:bg-red-50 text-red-600"
                     title="Excluir disciplina"
@@ -660,6 +698,52 @@ export default function EditarCursoAdminPage() {
 
               {expandedModule === mod.id && (
                 <div className="p-4 space-y-2">
+                  {/* Inline Edit Form */}
+                  {editingModuleId === mod.id && (
+                    <div className="bg-yellow-50 rounded-lg p-4 space-y-3 mb-3 border border-yellow-200">
+                      <p className="text-sm font-medium text-yellow-800">Editando disciplina</p>
+                      <input
+                        value={editModuleForm.title}
+                        onChange={e => setEditModuleForm({ ...editModuleForm, title: e.target.value })}
+                        className="input-field"
+                        placeholder="Nome da disciplina"
+                      />
+                      <select
+                        value={editModuleForm.period}
+                        onChange={e => setEditModuleForm({ ...editModuleForm, period: e.target.value ? parseInt(e.target.value) : '' })}
+                        className="input-field"
+                      >
+                        <option value="">Selecione o período</option>
+                        <option value="1">1º Período</option>
+                        <option value="2">2º Período</option>
+                        <option value="3">3º Período</option>
+                        <option value="4">4º Período</option>
+                      </select>
+                      <input
+                        type="number"
+                        value={editModuleForm.workload}
+                        onChange={e => setEditModuleForm({ ...editModuleForm, workload: e.target.value })}
+                        className="input-field"
+                        placeholder="Carga horária (horas)"
+                        min="0"
+                      />
+                      <select
+                        value={editModuleForm.teacher_id}
+                        onChange={e => setEditModuleForm({ ...editModuleForm, teacher_id: e.target.value })}
+                        className="input-field"
+                      >
+                        <option value="">Selecione o professor</option>
+                        {teachers.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => setEditingModuleId(null)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                        <button onClick={() => handleUpdateModule(mod.id)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Salvar</button>
+                      </div>
+                    </div>
+                  )}
+
                   {(mod.lessons || []).map(lesson => {
                     const Icon = lessonTypeIcons[lesson.content_type] || FiFileText;
                     return (
