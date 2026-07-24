@@ -157,6 +157,78 @@ const updateSortOrder = async (req, res) => {
   }
 };
 
+const createDisciplineAdmin = async (req, res) => {
+  try {
+    const { name, workload, teacher_id } = req.body;
+    if (!name) return res.status(400).json({ error: 'Nome da disciplina é obrigatório.' });
+
+    const [existing] = await db.query('SELECT id FROM disciplines WHERE name = ?', [name]);
+    if (existing.length > 0) return res.status(400).json({ error: 'Já existe uma disciplina com este nome.' });
+
+    const [result] = await db.query(
+      'INSERT INTO disciplines (teacher_id, name, workload, status) VALUES (?, ?, ?, ?)',
+      [teacher_id || null, name, parseInt(workload) || 0, 'active']
+    );
+
+    const [discipline] = await db.query(
+      `SELECT d.*, u.name as teacher_name FROM disciplines d LEFT JOIN users u ON d.teacher_id = u.id WHERE d.id = ?`,
+      [result.insertId]
+    );
+    res.status(201).json(discipline[0]);
+  } catch (error) {
+    console.error('Erro ao criar disciplina:', error);
+    res.status(500).json({ error: 'Erro ao criar disciplina.' });
+  }
+};
+
+const updateDisciplineAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, workload, teacher_id, status } = req.body;
+
+    const [existing] = await db.query('SELECT id FROM disciplines WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Disciplina não encontrada.' });
+
+    const [duplicate] = await db.query('SELECT id FROM disciplines WHERE name = ? AND id != ?', [name, id]);
+    if (duplicate.length > 0) return res.status(400).json({ error: 'Já existe outra disciplina com este nome.' });
+
+    await db.query(
+      'UPDATE disciplines SET name = ?, workload = ?, teacher_id = ?, status = ? WHERE id = ?',
+      [name, parseInt(workload) || 0, teacher_id || null, status || 'active', id]
+    );
+
+    const [discipline] = await db.query(
+      `SELECT d.*, u.name as teacher_name FROM disciplines d LEFT JOIN users u ON d.teacher_id = u.id WHERE d.id = ?`,
+      [id]
+    );
+    res.json(discipline[0]);
+  } catch (error) {
+    console.error('Erro ao atualizar disciplina:', error);
+    res.status(500).json({ error: 'Erro ao atualizar disciplina.' });
+  }
+};
+
+const deleteDisciplineAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [existing] = await db.query('SELECT id, name FROM disciplines WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Disciplina não encontrada.' });
+
+    const [linked] = await db.query(
+      'SELECT COUNT(*) as count FROM course_disciplines WHERE discipline_id = ?', [id]
+    );
+    if (linked[0].count > 0) {
+      return res.status(400).json({ error: 'Esta disciplina está vinculada a curso(s). Desvincule antes de excluir.' });
+    }
+
+    await db.query('DELETE FROM disciplines WHERE id = ?', [id]);
+    res.json({ message: 'Disciplina removida com sucesso.' });
+  } catch (error) {
+    console.error('Erro ao remover disciplina:', error);
+    res.status(500).json({ error: 'Erro ao remover disciplina.' });
+  }
+};
+
 module.exports = {
   getModulesByCourse,
   getCourseDisciplines,
@@ -165,4 +237,7 @@ module.exports = {
   linkDiscipline,
   unlinkDiscipline,
   updateSortOrder,
+  createDisciplineAdmin,
+  updateDisciplineAdmin,
+  deleteDisciplineAdmin,
 };

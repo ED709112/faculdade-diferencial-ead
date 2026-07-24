@@ -6,6 +6,9 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.use(authenticate, authorize('admin'));
 
 router.get('/disciplines', ctrl.getAllDisciplinesForAdmin);
+router.post('/disciplines', ctrl.createDisciplineAdmin);
+router.put('/disciplines/:id', ctrl.updateDisciplineAdmin);
+router.delete('/disciplines/:id', ctrl.deleteDisciplineAdmin);
 router.get('/courses/:courseId/modules', ctrl.getModulesByCourse);
 router.get('/courses/:courseId/disciplines', ctrl.getCourseDisciplines);
 router.get('/courses/:courseId/disciplines/available', ctrl.getUnlinkedDisciplines);

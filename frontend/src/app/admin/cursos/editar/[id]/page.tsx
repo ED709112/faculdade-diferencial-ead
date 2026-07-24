@@ -104,7 +104,9 @@ export default function EditarCursoAdminPage() {
   const [newModulePeriod, setNewModulePeriod] = useState<number | ''>('');
   const [newModuleWorkload, setNewModuleWorkload] = useState('');
   const [newModuleTeacher, setNewModuleTeacher] = useState('');
+  const [newModuleDiscipline, setNewModuleDiscipline] = useState('');
   const [courseWorkload, setCourseWorkload] = useState(0);
+  const [catalogDisciplines, setCatalogDisciplines] = useState<{id: number; name: string; workload: number; teacher_id: number | null; teacher_name: string}[]>([]);
   const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
   const [editModuleForm, setEditModuleForm] = useState({ title: '', period: '' as number | '', workload: '', teacher_id: '' });
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
@@ -185,6 +187,12 @@ export default function EditarCursoAdminPage() {
         setTeachers(teacherRes.data.data || teacherRes.data.users || teacherRes.data || []);
         setModules(modRes.data.modules || modRes.data.data || modRes.data || []);
 
+        // Load catalog disciplines
+        try {
+          const discRes = await api.get('/admin/course-disciplines/disciplines');
+          setCatalogDisciplines(Array.isArray(discRes.data) ? discRes.data : []);
+        } catch { /* may not exist */ }
+
         // Load quizzes
         try {
           const quizRes = await api.get(`/quizzes/course/${courseId}`);
@@ -250,14 +258,17 @@ export default function EditarCursoAdminPage() {
   };
 
   const handleAddModule = async () => {
-    if (!newModuleTitle.trim()) return;
+    const selectedDisc = catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline));
+    const title = selectedDisc ? selectedDisc.name : newModuleTitle;
+    if (!title.trim()) return;
     try {
       const { data } = await api.post('/modules', {
         course_id: parseInt(courseId),
-        title: newModuleTitle,
+        title,
         period: newModulePeriod || null,
-        workload: parseInt(newModuleWorkload) || 0,
-        teacher_id: newModuleTeacher ? parseInt(newModuleTeacher) : null,
+        workload: selectedDisc ? selectedDisc.workload : (parseInt(newModuleWorkload) || 0),
+        teacher_id: selectedDisc ? selectedDisc.teacher_id : (newModuleTeacher ? parseInt(newModuleTeacher) : null),
+        discipline_id: selectedDisc ? selectedDisc.id : null,
         sort_order: modules.length + 1,
       });
       const mod = data.module || data;
@@ -267,8 +278,9 @@ export default function EditarCursoAdminPage() {
       setNewModulePeriod('');
       setNewModuleWorkload('');
       setNewModuleTeacher('');
+      setNewModuleDiscipline('');
       setShowNewModule(false);
-      toast.success('Disciplina criada!');
+      toast.success('Disciplina vinculada ao curso!');
     } catch {
       toast.error('Erro ao criar disciplina');
     }
@@ -834,13 +846,40 @@ export default function EditarCursoAdminPage() {
           {/* New Discipline */}
           {showNewModule ? (
             <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
-              <input
-                placeholder="Nome da disciplina"
-                value={newModuleTitle}
-                onChange={e => setNewModuleTitle(e.target.value)}
+              <select
+                value={newModuleDiscipline}
+                onChange={e => {
+                  const val = e.target.value;
+                  setNewModuleDiscipline(val);
+                  const disc = catalogDisciplines.find(d => d.id === parseInt(val));
+                  if (disc) {
+                    setNewModuleTitle(disc.name);
+                    setNewModuleWorkload(disc.workload?.toString() || '');
+                    setNewModuleTeacher(disc.teacher_id?.toString() || '');
+                  } else {
+                    setNewModuleTitle('');
+                    setNewModuleWorkload('');
+                    setNewModuleTeacher('');
+                  }
+                }}
                 className="input-field"
-                autoFocus
-              />
+              >
+                <option value="">Selecione a disciplina do catálogo</option>
+                {catalogDisciplines.map(d => (
+                  <option key={d.id} value={d.id}>{d.name} ({d.workload}h) - {d.teacher_name || 'Sem professor'}</option>
+                ))}
+              </select>
+
+              {!newModuleDiscipline && (
+                <input
+                  placeholder="Ou digite o nome manualmente"
+                  value={newModuleTitle}
+                  onChange={e => setNewModuleTitle(e.target.value)}
+                  className="input-field"
+                  autoFocus
+                />
+              )}
+
               <select
                 value={newModulePeriod}
                 onChange={e => setNewModulePeriod(e.target.value ? parseInt(e.target.value) : '')}
@@ -852,26 +891,15 @@ export default function EditarCursoAdminPage() {
                 <option value="3">3º Período</option>
                 <option value="4">4º Período</option>
               </select>
-              <input
-                type="number"
-                placeholder="Carga horária (horas)"
-                value={newModuleWorkload}
-                onChange={e => setNewModuleWorkload(e.target.value)}
-                className="input-field"
-                min="0"
-              />
-              <select
-                value={newModuleTeacher}
-                onChange={e => setNewModuleTeacher(e.target.value)}
-                className="input-field"
-              >
-                <option value="">Selecione o professor</option>
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              {newModuleDiscipline && catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline)) && (
+                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                  <p>Carga horária: <strong>{catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline))?.workload}h</strong></p>
+                  <p>Professor: <strong>{catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline))?.teacher_name || 'Não atribuído'}</strong></p>
+                </div>
+              )}
+
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); setNewModuleWorkload(''); setNewModuleTeacher(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button onClick={() => { setShowNewModule(false); setNewModuleTitle(''); setNewModulePeriod(''); setNewModuleWorkload(''); setNewModuleTeacher(''); setNewModuleDiscipline(''); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                 <button onClick={handleAddModule} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600">Criar Disciplina</button>
               </div>
             </div>

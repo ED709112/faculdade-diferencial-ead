@@ -50,7 +50,7 @@ const getByCourse = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const { course_id, title, description, period, workload, teacher_id, is_free } = req.body;
+    const { course_id, title, description, period, workload, teacher_id, discipline_id, is_free } = req.body;
 
     const [courses] = await db.query('SELECT id, teacher_id FROM courses WHERE id = ?', [course_id]);
     if (courses.length === 0) {
@@ -68,8 +68,8 @@ const create = async (req, res) => {
     const sortOrder = (maxOrder[0].max_order || 0) + 1;
 
     const [result] = await db.query(
-      'INSERT INTO modules (course_id, title, description, period, workload, teacher_id, sort_order, is_free) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [course_id, title, description || null, period || null, parseInt(workload) || 0, teacher_id || null, sortOrder, is_free ? 1 : 0]
+      'INSERT INTO modules (course_id, title, description, period, workload, teacher_id, discipline_id, sort_order, is_free) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [course_id, title, description || null, period || null, parseInt(workload) || 0, teacher_id || null, discipline_id || null, sortOrder, is_free ? 1 : 0]
     );
 
     await recalcCourseWorkload(course_id);
@@ -88,7 +88,7 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, period, workload, teacher_id, is_free } = req.body;
+    const { title, description, period, workload, teacher_id, discipline_id, is_free } = req.body;
 
     const [modules] = await db.query(
       `SELECT m.*, c.teacher_id as course_teacher_id FROM modules m JOIN courses c ON m.course_id = c.id WHERE m.id = ?`,
@@ -111,6 +111,7 @@ const update = async (req, res) => {
     if (period !== undefined) { fields.push('period = ?'); values.push(period || null); }
     if (workload !== undefined) { fields.push('workload = ?'); values.push(parseInt(workload) || 0); }
     if (teacher_id !== undefined) { fields.push('teacher_id = ?'); values.push(teacher_id || null); }
+    if (discipline_id !== undefined) { fields.push('discipline_id = ?'); values.push(discipline_id || null); }
     if (is_free !== undefined) { fields.push('is_free = ?'); values.push(is_free ? 1 : 0); }
 
     if (fields.length > 0) {
