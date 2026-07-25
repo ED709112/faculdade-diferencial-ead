@@ -3,14 +3,6 @@ import Link from 'next/link';
 import { FaGraduationCap, FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube } from 'react-icons/fa';
 import { FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
 
-const courseLinks = [
-  { label: 'Administração', href: '/cursos?categoria=administracao' },
-  { label: 'Direito', href: '/cursos?categoria=direito' },
-  { label: 'Enfermagem', href: '/cursos?categoria=enfermagem' },
-  { label: 'Engenharia', href: '/cursos?categoria=engenharia' },
-  { label: 'Psicologia', href: '/cursos?categoria=psicologia' },
-];
-
 const usefulLinks = [
   { label: 'Sobre Nós', href: '/sobre' },
   { label: 'Blog', href: '/blog' },
@@ -30,7 +22,7 @@ export default function Footer() {
   return (
     <footer className="bg-primary-800 text-white">
       <div className="container-custom py-12 lg:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Sobre */}
           <div>
             <div className="mb-4">
@@ -56,23 +48,6 @@ export default function Footer() {
                 </a>
               ))}
             </div>
-          </div>
-
-          {/* Cursos */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Cursos</h3>
-            <ul className="space-y-2.5">
-              {courseLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-primary-200 text-sm hover:text-white hover:pl-1 transition-all duration-200"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* Links Úteis */}
