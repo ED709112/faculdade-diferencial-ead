@@ -61,6 +61,8 @@ const adminMenu: MenuItem[] = [
   { label: 'Banners', href: '/admin/banners', icon: FiImage },
   { label: 'Editais & Portarias', href: '/admin/editais', icon: FiFileText },
   { label: 'Notícias', href: '/admin/noticias', icon: FiFileText },
+  { label: 'Egressos', href: '/admin/egressos', icon: FiUsers },
+  { label: 'Depoimentos', href: '/admin/depoimentos', icon: FiMessageSquare },
   { label: 'Logs', href: '/admin/logs', icon: FiBell },
   { label: 'Gerenciar Admins', href: '/admin/gerenciar-admins', icon: FiShield },
 ];
@@ -83,6 +85,8 @@ const adminPermissionMap: Record<string, string> = {
   '/admin/banners': 'banners',
   '/admin/editais': 'editais',
   '/admin/noticias': 'news',
+  '/admin/egressos': 'news',
+  '/admin/depoimentos': 'news',
   '/admin/documentos': 'students',
   '/admin/logs': 'logs',
   '/admin/gerenciar-admins': 'admin_managers',

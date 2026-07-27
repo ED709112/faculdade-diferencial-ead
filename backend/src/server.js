@@ -56,6 +56,7 @@ const courseDisciplineAdminRoutes = require('./routes/courseDisciplines');
 const submissionRoutes = require('./routes/submissions');
 const forumRoutes = require('./routes/forum');
 const studentDashboardRoutes = require('./routes/studentDashboard');
+const alumniRoutes = require('./routes/alumni');
 
 const app = express();
 const server = http.createServer(app);
@@ -169,6 +170,7 @@ app.use('/api/admin/course-disciplines', courseDisciplineAdminRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/students/dashboard', studentDashboardRoutes);
+app.use('/api/alumni', alumniRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
