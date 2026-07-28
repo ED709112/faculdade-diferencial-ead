@@ -27,7 +27,7 @@ export default function Footer() {
           {/* Sobre */}
           <div className="sm:col-span-1">
             <div className="mb-4">
-              <span className="text-xl font-bold text-white">Faculdade Diferencial EAD</span>
+              <span className="text-xl font-bold text-white">Faculdade Diferencial</span>
             </div>
             <p className="text-primary-200 text-sm leading-relaxed mb-6">
               Oferecemos educação de qualidade com flexibilidade para que você possa
@@ -113,7 +113,7 @@ export default function Footer() {
       <div className="border-t border-primary-700">
         <div className="container-custom py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-primary-300 text-sm text-center sm:text-left">
-            &copy; {new Date().getFullYear()} Faculdade Diferencial EAD. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} Faculdade Diferencial. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-4 text-sm text-primary-300">
             <Link href="/privacidade" className="hover:text-white transition-colors">

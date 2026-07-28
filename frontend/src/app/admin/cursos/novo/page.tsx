@@ -19,6 +19,13 @@ interface Category {
   name: string;
 }
 
+interface Polo {
+  id: number;
+  name: string;
+  city: string;
+  state: string;
+}
+
 interface Teacher {
   id: number;
   name: string;
@@ -31,6 +38,7 @@ interface CourseFormData {
   description: string;
   content_program: string;
   category_id: string;
+  polo_id: string;
   teacher_id: string;
   price: string;
   original_price: string;
@@ -55,6 +63,7 @@ export default function NovoCursoAdminPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [polos, setPolos] = useState<Polo[]>([]);
 
   const [form, setForm] = useState<CourseFormData>({
     title: '',
@@ -62,6 +71,7 @@ export default function NovoCursoAdminPage() {
     description: '',
     content_program: '',
     category_id: '',
+    polo_id: '',
     teacher_id: '',
     price: '',
     original_price: '',
@@ -81,12 +91,14 @@ export default function NovoCursoAdminPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, teacherRes] = await Promise.all([
+        const [catRes, teacherRes, polosRes] = await Promise.all([
           api.get('/categories'),
           api.get('/admin/users', { params: { role: 'teacher', limit: 100 } }),
+          api.get('/polos'),
         ]);
         setCategories(catRes.data.data || catRes.data.categories || catRes.data || []);
         setTeachers(teacherRes.data.data || teacherRes.data.users || teacherRes.data || []);
+        setPolos(Array.isArray(polosRes.data) ? polosRes.data : polosRes.data.data || []);
       } catch {
         toast.error('Erro ao carregar dados');
       }
@@ -138,6 +150,7 @@ export default function NovoCursoAdminPage() {
         workload: parseInt(form.workload) || 0,
         workload_certificate: parseInt(form.workload_certificate) || null,
         category_id: form.category_id ? parseInt(form.category_id) : null,
+        polo_id: form.polo_id ? parseInt(form.polo_id) : null,
         teacher_id: parseInt(form.teacher_id),
         max_installments: parseInt(form.max_installments) || 1,
         status,
@@ -259,9 +272,9 @@ export default function NovoCursoAdminPage() {
 
       {/* Teacher & Category */}
       <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Professor e Categoria</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Professor, Categoria e Polo</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="label">Professor *</label>
             <select name="teacher_id" value={form.teacher_id} onChange={handleChange} className="input-field">
@@ -278,6 +291,16 @@ export default function NovoCursoAdminPage() {
               <option value="">Selecione a categoria</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Polo (Cidade)</label>
+            <select name="polo_id" value={form.polo_id} onChange={handleChange} className="input-field">
+              <option value="">Selecione o polo</option>
+              {polos.map(p => (
+                <option key={p.id} value={p.id}>{p.name} - {p.city}/{p.state}</option>
               ))}
             </select>
           </div>

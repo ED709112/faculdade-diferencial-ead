@@ -271,13 +271,13 @@ const create = async (req, res) => {
     });
 
     const [result] = await db.query(
-      `INSERT INTO courses (teacher_id, category_id, title, slug, subtitle, description,
+      `INSERT INTO courses (teacher_id, category_id, polo_id, title, slug, subtitle, description,
         content_program, price, original_price, discount_price, workload,
         workload_certificate, is_free, has_certificate, status, requirements,
         target_audience, what_you_learn, meta_title, meta_description,
         max_students, start_date, end_date, max_installments)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teacherId, category_id || null, title, slug, subtitle || null, description || null,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [teacherId, category_id || null, polo_id || null, title, slug, subtitle || null, description || null,
         content_program || null, price || 0, original_price || null, discount_price || null,
         workload, workload_certificate || workload, is_free ? 1 : 0, has_certificate !== false ? 1 : 0,
         status || 'draft', requirements || null, target_audience || null, what_you_learn || null,
@@ -318,7 +318,7 @@ const update = async (req, res) => {
 
     const {
       title, subtitle, description, content_program, price, original_price,
-      discount_price, workload, workload_certificate, category_id, is_free,
+      discount_price, workload, workload_certificate, category_id, polo_id, is_free,
       has_certificate, status, image, video_presentation, requirements,
       target_audience, what_you_learn, meta_title, meta_description,
       max_students, start_date, end_date, max_installments, tags
@@ -344,6 +344,7 @@ const update = async (req, res) => {
     if (workload !== undefined) { fields.push('workload = ?'); values.push(workload); }
     if (workload_certificate !== undefined) { fields.push('workload_certificate = ?'); values.push(workload_certificate); }
     if (category_id !== undefined) { fields.push('category_id = ?'); values.push(category_id || null); }
+    if (polo_id !== undefined) { fields.push('polo_id = ?'); values.push(polo_id || null); }
     if (is_free !== undefined) { fields.push('is_free = ?'); values.push(is_free ? 1 : 0); }
     if (has_certificate !== undefined) { fields.push('has_certificate = ?'); values.push(has_certificate ? 1 : 0); }
     if (status !== undefined) { fields.push('status = ?'); values.push(status); }

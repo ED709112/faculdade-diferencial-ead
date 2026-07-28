@@ -24,6 +24,8 @@ interface Permission {
 
 const allPermissions: Permission[] = [
   { key: 'dashboard', label: 'Dashboard' },
+  { key: 'crm', label: 'CRM' },
+  { key: 'chatbot', label: 'Chatbot' },
   { key: 'courses', label: 'Cursos' },
   { key: 'categories', label: 'Categorias' },
   { key: 'teachers', label: 'Professores' },

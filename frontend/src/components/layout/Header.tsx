@@ -16,7 +16,7 @@ const instituicaoLinks = [
   { label: 'Editais e Portarias', href: '/sobre#editais' },
   { label: 'Missão & Visão', href: '/sobre#missao' },
   { label: 'Monitoria', href: '/sobre#monitoria' },
-  { label: 'Portal do Egresso', href: '/sobre#egresso' },
+  { label: 'Portal do Egresso', href: '/egressos' },
 ];
 
 const navLinks = [

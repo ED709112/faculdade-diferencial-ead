@@ -9,6 +9,21 @@ export const metadata: Metadata = {
   title: 'Faculdade Diferencial EAD',
   description:
     'Plataforma de ensino superior a distância da Faculdade Diferencial. Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/images/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/images/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/images/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    other: [
+      { url: '/images/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

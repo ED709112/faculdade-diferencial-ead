@@ -34,7 +34,7 @@ import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
 import toast from 'react-hot-toast';
 
-type ReportType = 'students-course' | 'revenue-period' | 'course-performance' | 'teacher-performance';
+type ReportType = 'students-course' | 'revenue-period' | 'course-performance' | 'teacher-performance' | 'dropout' | 'performance';
 
 interface ReportConfig {
   key: ReportType;

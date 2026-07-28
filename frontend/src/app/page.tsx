@@ -9,8 +9,11 @@ import {
   FiMonitor,
   FiAward,
   FiCalendar,
+  FiUser,
+  FiBook,
+  FiBarChart2,
+  FiCreditCard,
 } from 'react-icons/fi';
-import { FaPlayCircle } from 'react-icons/fa';
 import PublicLayout from '@/components/layout/PublicLayout';
 import CourseCard from '@/components/courses/CourseCard';
 import CategoryCard from '@/components/courses/CategoryCard';
@@ -66,13 +69,6 @@ interface NewsItem {
   published_at?: string;
 }
 
-const stats = [
-  { label: 'Alunos', value: '5.000+' },
-  { label: 'Cursos', value: '120+' },
-  { label: 'Professores', value: '80+' },
-  { label: 'Certificados', value: '3.000+' },
-];
-
 const steps = [
   {
     icon: FiUserPlus,
@@ -82,12 +78,12 @@ const steps = [
   {
     icon: FiBookOpen,
     title: 'Escolha o Curso',
-    description: 'Explore nosso catálogo e encontre o curso ideal para você.',
+    description: 'Explore nosso catalogo e encontre o curso ideal para voce.',
   },
   {
     icon: FiMonitor,
     title: 'Estude',
-    description: 'Assista às aulas no seu ritmo, de qualquer dispositivo.',
+    description: 'Assista as aulas no seu ritmo, de qualquer dispositivo.',
   },
   {
     icon: FiAward,
@@ -135,7 +131,7 @@ export default function HomePage() {
           setNews(newsRes.value.data || []);
         }
       } catch {
-        // silent fail - sections will render empty
+        // silent fail
       } finally {
         setLoading(false);
       }
@@ -151,54 +147,55 @@ export default function HomePage() {
       <div className="bg-secondary-50/50 dark:bg-gray-900">
       {loading && <Loading fullScreen />}
 
-      {/* Hero Banner Slider */}
       <HeroSlider />
 
-      {/* Stats */}
       <section className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="container-custom py-12">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-3xl lg:text-4xl font-extrabold text-primary-500 mb-1">
-                  {stat.value}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{stat.label}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link href="/auth/login" className="group flex items-center gap-4 bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-100 p-5 rounded-2xl hover:shadow-md hover:border-primary-200 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <FiBookOpen className="text-xl text-white" />
               </div>
-            ))}
+              <div>
+                <p className="text-xs text-primary-400 font-semibold uppercase tracking-wide">Portal do</p>
+                <p className="text-base font-bold text-gray-900">Aluno</p>
+              </div>
+            </Link>
+
+            <a href="#" className="group flex items-center gap-4 bg-gradient-to-br from-secondary-50 to-secondary-100/50 border border-secondary-100 p-5 rounded-2xl hover:shadow-md hover:border-secondary-200 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-secondary-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <FiMonitor className="text-xl text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-secondary-400 font-semibold uppercase tracking-wide">AVA</p>
+                <p className="text-base font-bold text-gray-900">Academico</p>
+              </div>
+            </a>
+
+            <Link href="/auth/login" className="group flex items-center gap-4 bg-gradient-to-br from-violet-50 to-violet-100/50 border border-violet-100 p-5 rounded-2xl hover:shadow-md hover:border-violet-200 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-violet-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <FiUser className="text-xl text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-violet-400 font-semibold uppercase tracking-wide">Portal do</p>
+                <p className="text-base font-bold text-gray-900">Professor</p>
+              </div>
+            </Link>
+
+            <a href="#" className="group flex items-center gap-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100 p-5 rounded-2xl hover:shadow-md hover:border-emerald-200 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <FiBarChart2 className="text-xl text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-emerald-400 font-semibold uppercase tracking-wide">Avaliacao</p>
+                <p className="text-base font-bold text-gray-900">Institucional</p>
+              </div>
+            </a>
+
           </div>
         </div>
       </section>
 
-      {/* Portais */}
-      <section className="py-8 lg:py-12">
-        <div className="container-custom">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            <Link href="/aluno/cursos" className="group flex items-center gap-5 bg-gradient-to-br from-primary-500 to-primary-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-300">
-              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <FiBookOpen className="text-2xl" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">Portal do Aluno</h3>
-                <p className="text-sm text-white/80">Acesse seus cursos, notas e certificados</p>
-              </div>
-              <FiArrowRight className="text-xl ml-auto opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-            </Link>
-            <Link href="/professor/cursos" className="group flex items-center gap-5 bg-gradient-to-br from-secondary-500 to-secondary-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl hover:from-secondary-600 hover:to-secondary-700 transition-all duration-300">
-              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <FiUserPlus className="text-2xl" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">Portal do Professor</h3>
-                <p className="text-sm text-white/80">Gerencie seus cursos e turmas</p>
-              </div>
-              <FiArrowRight className="text-xl ml-auto opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Courses */}
       {featuredCourses.length > 0 && (
         <section className="py-8 lg:py-12">
           <div className="container-custom">
@@ -228,7 +225,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Categories */}
       {categories.length > 0 && (
         <section className="py-8 lg:py-12 bg-gray-50 dark:bg-gray-900">
           <div className="container-custom">
@@ -251,7 +247,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* How It Works */}
       <section id="como-funciona" className="py-8 lg:py-12">
         <div className="container-custom">
           <div className="text-center mb-12">
@@ -280,7 +275,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
       {testimonials.length > 0 && (
         <section className="py-8 lg:py-12 bg-gray-50 dark:bg-gray-900">
           <div className="container-custom">
@@ -304,13 +298,12 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Últimas Notícias */}
       {news.length > 0 && (
         <section className="py-8 lg:py-12">
           <div className="container-custom">
             <div className="text-center mb-8">
-              <h2 className="section-title">Últimas Notícias</h2>
-              <p className="section-subtitle mt-1">Confira o que há de novidades na FAD</p>
+              <h2 className="section-title">Ultimas Noticias</h2>
+              <p className="section-subtitle mt-1">Confira o que ha de novidades na FAD</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {news.map((item) => (
@@ -347,7 +340,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* FAQ */}
       {faqItems.length > 0 && (
         <section className="py-8 lg:py-12">
           <div className="container-custom">
@@ -360,7 +352,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Bottom CTA */}
       <section className="py-16 lg:py-24 bg-gradient-to-r from-primary-600 to-primary-500">
         <div className="container-custom text-center">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-white mb-4">

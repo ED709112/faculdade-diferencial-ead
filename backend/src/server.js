@@ -57,6 +57,9 @@ const submissionRoutes = require('./routes/submissions');
 const forumRoutes = require('./routes/forum');
 const studentDashboardRoutes = require('./routes/studentDashboard');
 const alumniRoutes = require('./routes/alumni');
+const poloRoutes = require('./routes/polos');
+const crmRoutes = require('./routes/crm');
+const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
 const server = http.createServer(app);
@@ -171,6 +174,9 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/students/dashboard', studentDashboardRoutes);
 app.use('/api/alumni', alumniRoutes);
+app.use('/api/polos', poloRoutes);
+app.use('/api/crm', crmRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

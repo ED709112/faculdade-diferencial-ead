@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaGraduationCap } from 'react-icons/fa';
 import { FiLock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import api from '@/lib/api';
 
-export default function RedefinirSenhaPage() {
+function RedefinirSenhaContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -34,12 +34,12 @@ export default function RedefinirSenhaPage() {
     }
 
     if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-      setError('A senha deve conter ao menos: 1 letra maiúscula, 1 minúscula e 1 número.');
+      setError('A senha deve conter ao menos: 1 letra maiuscula, 1 minuscula e 1 numero.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setError('As senhas nao coincidem.');
       return;
     }
 
@@ -68,8 +68,8 @@ export default function RedefinirSenhaPage() {
             <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-red-100 flex items-center justify-center">
               <FiAlertCircle className="text-3xl text-red-500" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Link inválido</h1>
-            <p className="text-gray-500 text-sm mb-6">Este link de recuperação é inválido ou expirou.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Link invalido</h1>
+            <p className="text-gray-500 text-sm mb-6">Este link de recuperacao e invalido ou expirou.</p>
             <Link href="/auth/recuperar-senha" className="inline-flex items-center gap-2 text-primary-500 hover:text-primary-600 font-semibold text-sm">
               Solicitar novo link
             </Link>
@@ -99,7 +99,7 @@ export default function RedefinirSenhaPage() {
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Senha redefinida!</h1>
               <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                Sua senha foi alterada com sucesso. Agora você pode fazer login.
+                Sua senha foi alterada com sucesso. Agora voce pode fazer login.
               </p>
               <Link
                 href="/auth/login"
@@ -132,7 +132,7 @@ export default function RedefinirSenhaPage() {
                       type="password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="Mín. 8 caracteres, maiúscula, minúscula e número"
+                      placeholder="Min. 8 caracteres, maiuscula, minuscula e numero"
                       required
                       minLength={8}
                       className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
@@ -182,5 +182,17 @@ export default function RedefinirSenhaPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RedefinirSenhaPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <RedefinirSenhaContent />
+    </Suspense>
   );
 }

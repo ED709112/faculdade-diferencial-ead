@@ -29,6 +29,8 @@ import {
   FiCalendar,
   FiShoppingBag,
   FiFile,
+  FiMapPin,
+  FiTarget,
 } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 
@@ -43,9 +45,12 @@ interface MenuItem {
 }
 
 const adminMenu: MenuItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: FiGrid },
+  { label: 'Dashboard', href: '/admin/dashboard', icon: FiGrid },
+  { label: 'CRM', href: '/admin/crm', icon: FiTarget },
+  { label: 'Chatbot', href: '/admin/chatbot', icon: FiMessageSquare },
   { label: 'Cursos', href: '/admin/cursos', icon: FiBookOpen },
   { label: 'Categorias', href: '/admin/categorias', icon: FiTag },
+  { label: 'Polos', href: '/admin/polos', icon: FiMapPin },
   { label: 'Professores', href: '/admin/professores', icon: FiUsers },
   { label: 'Alunos', href: '/admin/alunos', icon: FiUser },
   { label: 'Matrículas', href: '/admin/matriculas', icon: FiPercent },
@@ -68,9 +73,12 @@ const adminMenu: MenuItem[] = [
 ];
 
 const adminPermissionMap: Record<string, string> = {
-  '/admin': 'dashboard',
+  '/admin/dashboard': 'dashboard',
+  '/admin/crm': 'crm',
+  '/admin/chatbot': 'chatbot',
   '/admin/cursos': 'courses',
   '/admin/categorias': 'categories',
+  '/admin/polos': 'courses',
   '/admin/professores': 'teachers',
   '/admin/alunos': 'students',
   '/admin/matriculas': 'enrollments',

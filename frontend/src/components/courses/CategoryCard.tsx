@@ -12,19 +12,18 @@ export default function CategoryCard({ name, slug, icon, courseCount }: Category
   return (
     <Link
       href={`/cursos?categoria=${slug}`}
-      className="card group p-6 flex flex-col items-center text-center gap-3"
+      className="card group p-6 flex flex-col items-center text-center gap-3 bg-secondary-500 hover:bg-secondary-600 transition-colors duration-200"
     >
-      <div className="w-14 h-14 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center
-                      group-hover:bg-primary-500 transition-colors duration-200">
-        <span className="text-2xl text-primary-500 group-hover:text-white transition-colors duration-200">
+      <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+        <span className="text-2xl text-white">
           {icon}
         </span>
       </div>
       <div>
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-500 transition-colors">
+        <h3 className="font-semibold text-white">
           {name}
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-sm text-white/80 mt-1">
           {courseCount} {courseCount === 1 ? 'curso' : 'cursos'}
         </p>
       </div>

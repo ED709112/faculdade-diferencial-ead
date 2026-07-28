@@ -82,10 +82,26 @@ CREATE TABLE categories (
     INDEX idx_categories_active (is_active)
 ) ENGINE=InnoDB;
 
+CREATE TABLE polos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(2) NOT NULL,
+    coordinator_name VARCHAR(150) NOT NULL,
+    coordinator_phone VARCHAR(20),
+    coordinator_email VARCHAR(150),
+    coordinator_pix TEXT,
+    coordinator_bank_info TEXT,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE courses (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     teacher_id INT UNSIGNED NOT NULL,
     category_id INT UNSIGNED DEFAULT NULL,
+    polo_id INT DEFAULT NULL,
     title VARCHAR(500) NOT NULL,
     slug VARCHAR(500) NOT NULL UNIQUE,
     subtitle VARCHAR(500) DEFAULT NULL,

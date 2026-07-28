@@ -27,6 +27,13 @@ interface Category {
   name: string;
 }
 
+interface Polo {
+  id: number;
+  name: string;
+  city: string;
+  state: string;
+}
+
 interface Teacher {
   id: number;
   name: string;
@@ -61,6 +68,7 @@ interface CourseData {
   content_program: string;
   image: string;
   category_id: number;
+  polo_id: number | null;
   teacher_id: number;
   price: number;
   original_price: number;
@@ -96,6 +104,7 @@ export default function EditarCursoAdminPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [polos, setPolos] = useState<Polo[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
@@ -132,6 +141,7 @@ export default function EditarCursoAdminPage() {
     description: '',
     content_program: '',
     category_id: '',
+    polo_id: '',
     teacher_id: '',
     price: '',
     original_price: '',
@@ -151,11 +161,12 @@ export default function EditarCursoAdminPage() {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [courseRes, catRes, teacherRes, modRes] = await Promise.all([
+        const [courseRes, catRes, teacherRes, modRes, polosRes] = await Promise.all([
           api.get(`/courses/${courseId}`),
           api.get('/categories'),
           api.get('/admin/users', { params: { role: 'teacher', limit: 100 } }),
           api.get(`/modules/course/${courseId}`),
+          api.get('/polos'),
         ]);
 
         const c = courseRes.data.course || courseRes.data;
@@ -165,6 +176,7 @@ export default function EditarCursoAdminPage() {
           description: c.description || '',
           content_program: c.content_program || '',
           category_id: c.category_id?.toString() || '',
+          polo_id: c.polo_id?.toString() || '',
           teacher_id: c.teacher_id?.toString() || '',
           price: c.price?.toString() || '',
           original_price: c.original_price?.toString() || '',
@@ -185,6 +197,7 @@ export default function EditarCursoAdminPage() {
         setCourseWorkload(c.workload || 0);
         setCategories(catRes.data.data || catRes.data.categories || catRes.data || []);
         setTeachers(teacherRes.data.data || teacherRes.data.users || teacherRes.data || []);
+        setPolos(Array.isArray(polosRes.data) ? polosRes.data : polosRes.data.data || []);
         setModules(modRes.data.modules || modRes.data.data || modRes.data || []);
 
         // Load catalog disciplines
@@ -233,6 +246,7 @@ export default function EditarCursoAdminPage() {
         workload: parseInt(form.workload) || 0,
         workload_certificate: parseInt(form.workload_certificate) || null,
         category_id: form.category_id ? parseInt(form.category_id) : null,
+        polo_id: form.polo_id ? parseInt(form.polo_id) : null,
         teacher_id: parseInt(form.teacher_id),
         max_installments: parseInt(form.max_installments) || 1,
       };
@@ -570,8 +584,8 @@ export default function EditarCursoAdminPage() {
 
           {/* Teacher & Category */}
           <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Professor e Categoria</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <h2 className="text-lg font-semibold">Professor, Categoria e Polo</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="label">Professor *</label>
                 <select name="teacher_id" value={form.teacher_id} onChange={handleChange} className="input-field">
@@ -584,6 +598,13 @@ export default function EditarCursoAdminPage() {
                 <select name="category_id" value={form.category_id} onChange={handleChange} className="input-field">
                   <option value="">Selecione</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">Polo (Cidade)</label>
+                <select name="polo_id" value={form.polo_id} onChange={handleChange} className="input-field">
+                  <option value="">Selecione o polo</option>
+                  {polos.map(p => <option key={p.id} value={p.id}>{p.name} - {p.city}/{p.state}</option>)}
                 </select>
               </div>
             </div>

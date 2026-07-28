@@ -31,7 +31,7 @@ export default function DashboardLayout({ role, title, children }: DashboardLayo
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
+    <div className="flex h-screen bg-blue-50 dark:bg-gray-900 overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex">
         <Sidebar role={role} />
@@ -137,7 +137,7 @@ export default function DashboardLayout({ role, title, children }: DashboardLayo
         </header>
 
         {/* Content */}
-        <main className={`flex-1 overflow-y-auto p-4 lg:p-6 ${role === 'teacher' ? 'bg-secondary-50/30 dark:bg-gray-900' : ''}`}>{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-blue-50/50 dark:bg-gray-900">{children}</main>
       </div>
     </div>
   );
