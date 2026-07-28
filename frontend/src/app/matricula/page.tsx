@@ -96,11 +96,11 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
         <div className="flex items-center justify-center gap-2 mb-8">
           {steps.map((s, i) => (
             <div key={s} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i <= currentStep ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i <= currentStep ? 'bg-secondary-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                 {i < currentStep ? <FiCheck /> : i + 1}
               </div>
-              <span className={`text-sm font-medium ${i === currentStep ? 'text-primary-600' : 'text-gray-400'}`}>{s}</span>
-              {i < 2 && <div className={`w-12 h-0.5 ${i < currentStep ? 'bg-primary-500' : 'bg-gray-200'}`} />}
+              <span className={`text-sm font-medium ${i === currentStep ? 'text-secondary-600' : 'text-gray-400'}`}>{s}</span>
+              {i < 2 && <div className={`w-12 h-0.5 ${i < currentStep ? 'bg-secondary-400' : 'bg-gray-200'}`} />}
             </div>
           ))}
         </div>
@@ -116,10 +116,10 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {courses.map(c => (
                   <button key={c.id} onClick={() => handleSelectCourse(c)}
-                    className="text-left p-4 rounded-xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-all">
+                    className="text-left p-4 rounded-xl border border-gray-200 hover:border-secondary-500 hover:bg-secondary-50 transition-all">
                     <h4 className="font-semibold text-gray-900">{c.title}</h4>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-primary-600 font-bold">
+                      <span className="text-secondary-600 font-bold">
                         {c.price === 0 ? 'Grátis' : `R$ ${Number(c.price).toFixed(2)}`}
                       </span>
                       {c.workload > 0 && <span className="text-xs text-gray-400">{c.workload}h</span>}
@@ -130,11 +130,11 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
             </div>
           )}
           {selectedCourse && (
-            <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-100">
+            <div className="flex items-center justify-between p-4 bg-secondary-50 rounded-xl border border-secondary-200">
               <div>
                 <p className="text-xs text-gray-500">Curso selecionado</p>
                 <p className="font-semibold text-gray-900">{selectedCourse.title}</p>
-                <p className="text-primary-600 font-bold text-sm">R$ {Number(selectedCourse.price).toFixed(2)}</p>
+                <p className="text-secondary-600 font-bold text-sm">R$ {Number(selectedCourse.price).toFixed(2)}</p>
               </div>
               <button onClick={() => setSelectedCourse(null)} className="text-sm text-gray-500 hover:text-red-500">Trocar</button>
             </div>
@@ -145,32 +145,32 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
               <input type="text" name="name" value={form.name} onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
               <input type="email" name="email" value={form.email} onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
               <input type="text" name="phone" value={form.phone} onChange={e => setForm({...form, phone: formatPhone(e.target.value)})}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
               <input type="text" name="cpf" value={form.cpf} onChange={e => setForm({...form, cpf: formatCPF(e.target.value)})}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
               <input type="date" name="birth_date" value={form.birth_date} onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
             </div>
           </div>
 
           <button onClick={nextStep} disabled={!form.name || !selectedCourse}
-            className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 disabled:opacity-50 transition-all">
+            className="w-full py-3 bg-gradient-to-r from-secondary-500 to-primary-500 text-white rounded-xl font-semibold hover:from-secondary-600 hover:to-primary-600 disabled:opacity-50 transition-all">
             Continuar para Pagamento
           </button>
         </div>
@@ -222,9 +222,9 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
                   { value: 'credit_card', label: 'Cartão', icon: FiCreditCard },
                 ].map(opt => (
                   <button key={opt.value} onClick={() => setForm({...form, payment_method: opt.value})}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${form.payment_method === opt.value ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <opt.icon className={`text-2xl mx-auto mb-1 ${form.payment_method === opt.value ? 'text-primary-500' : 'text-gray-400'}`} />
-                    <span className={`text-sm font-medium ${form.payment_method === opt.value ? 'text-primary-600' : 'text-gray-600'}`}>{opt.label}</span>
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${form.payment_method === opt.value ? 'border-secondary-500 bg-secondary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <opt.icon className={`text-2xl mx-auto mb-1 ${form.payment_method === opt.value ? 'text-secondary-500' : 'text-gray-400'}`} />
+                    <span className={`text-sm font-medium ${form.payment_method === opt.value ? 'text-secondary-600' : 'text-gray-600'}`}>{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -236,7 +236,7 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
               Voltar
             </button>
             <button onClick={handleSubmit} disabled={loading}
-              className="flex-1 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 disabled:opacity-50 transition-all">
+              className="flex-1 py-3 bg-gradient-to-r from-secondary-500 to-primary-500 text-white rounded-xl font-semibold hover:from-secondary-600 hover:to-primary-600 disabled:opacity-50 transition-all">
               {loading ? 'Processando...' : 'Confirmar Matrícula'}
             </button>
           </div>
@@ -256,10 +256,10 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
               <div className="flex justify-between"><span className="text-gray-500">Pedido:</span><span className="font-semibold">#{paymentInfo.orderNumber}</span></div>
             )}
             <div className="flex justify-between"><span className="text-gray-500">Curso:</span><span className="font-semibold">{selectedCourse?.title}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Valor:</span><span className="font-semibold text-primary-600">R$ {Number(selectedCourse?.price).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Valor:</span><span className="font-semibold text-secondary-600">R$ {Number(selectedCourse?.price).toFixed(2)}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Pagamento:</span><span className="font-semibold">{form.payment_method === 'pix' ? 'PIX' : form.payment_method === 'boleto' ? 'Boleto' : 'Cartão'}</span></div>
           </div>
-          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600">
+          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-secondary-500 to-primary-500 text-white rounded-xl font-semibold hover:from-secondary-600 hover:to-primary-600">
             <FiArrowLeft /> Voltar ao início
           </Link>
         </div>
@@ -320,26 +320,26 @@ function LeadForm() {
     <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-5">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Seu nome</label>
-        <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500"
-          placeholder="Digite seu nome completo" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-        <input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: formatPhone(e.target.value)})}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500"
-          placeholder="(86) 99999-9999" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Curso de interesse</label>
-        <select value={form.course_interest} onChange={e => setForm({...form, course_interest: e.target.value})}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500">
+          <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400"
+            placeholder="Digite seu nome completo" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+          <input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: formatPhone(e.target.value)})}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400"
+            placeholder="(86) 99999-9999" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Curso de interesse</label>
+          <select value={form.course_interest} onChange={e => setForm({...form, course_interest: e.target.value})}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400">
           <option value="">Selecione um curso</option>
           {courses.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
         </select>
       </div>
-      <button type="submit" disabled={sending || !form.name.trim()}
-        className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+          <button type="submit" disabled={sending || !form.name.trim()}
+            className="w-full py-3 bg-gradient-to-r from-secondary-500 to-primary-500 text-white rounded-xl font-semibold hover:from-secondary-600 hover:to-primary-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
         {sending ? 'Enviando...' : <><FiSend /> Quero saber mais</>}
       </button>
       <p className="text-xs text-center text-gray-400">Seus dados estão protegidos. Não compartilhamos com terceiros.</p>
@@ -368,23 +368,27 @@ function MatriculaPage() {
   }, [searchParams, preselectedCourseId]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 relative">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm relative">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary-400 via-primary-500 to-secondary-400" />
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-secondary-500 to-primary-500 rounded-lg flex items-center justify-center">
               <FiBook className="text-white text-sm" />
             </div>
             <span className="font-bold text-gray-900">Faculdade Diferencial</span>
           </Link>
-          <Link href="/" className="text-sm text-gray-500 hover:text-primary-600 transition-colors">
+          <Link href="/" className="text-sm text-gray-500 hover:text-secondary-500 transition-colors">
             Voltar ao site
           </Link>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Orange decorative accent */}
+        <div className="absolute top-40 right-0 w-64 h-64 bg-secondary-200/30 rounded-full blur-3xl -z-10" />
+        <div className="absolute bottom-40 left-0 w-80 h-80 bg-primary-100/40 rounded-full blur-3xl -z-10" />
         {/* Hero */}
         <div className="text-center mb-10">
           {/* Student faces row */}
@@ -404,7 +408,7 @@ function MatriculaPage() {
           </div>
 
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-            Invista no seu <span className="text-primary-600">Futuro</span>
+            Invista no seu <span className="text-secondary-500">Futuro</span>
           </h1>
           <p className="text-gray-500 max-w-xl mx-auto mb-6">
             Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida pelo MEC.
@@ -412,20 +416,48 @@ function MatriculaPage() {
 
           {/* Trust badges */}
           <div className="flex items-center justify-center gap-6 text-xs text-gray-400">
-            <span className="flex items-center gap-1.5"><FaChalkboardTeacher className="text-primary-400" /> MEC Reconhecido</span>
-            <span className="flex items-center gap-1.5"><FiTrendingUp className="text-green-400" /> 95% empregabilidade</span>
+            <span className="flex items-center gap-1.5"><FaChalkboardTeacher className="text-secondary-400" /> MEC Reconhecido</span>
+            <span className="flex items-center gap-1.5"><FiTrendingUp className="text-secondary-400" /> 95% empregabilidade</span>
             <span className="flex items-center gap-1.5"><FaUserGraduate className="text-secondary-400" /> 15 anos de história</span>
+          </div>
+
+          {/* Hero Image - lado a lado com texto */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-center text-left">
+            <div>
+              <div className="inline-flex items-center gap-1.5 bg-secondary-100 text-secondary-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                <FiTrendingUp /> Nosso Diferencial
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Por que escolher a <span className="text-secondary-500">Faculdade Diferencial</span>?</h2>
+              <ul className="space-y-3">
+                {[
+                  'Cursos reconhecidos pelo MEC',
+                  'Corpo docente qualificado',
+                  'Horários flexíveis',
+                  'Preços acessíveis',
+                  'Suporte ao aluno 24h',
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-2 text-sm text-gray-600">
+                    <FiCheck className="text-secondary-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-lg bg-secondary-50 border border-secondary-200">
+              <img src="/images/students-hero.jpg" alt="Alunos Faculdade Diferencial"
+                className="w-full h-auto object-contain max-h-80" />
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm border border-gray-100 mb-8 max-w-md mx-auto">
           <button onClick={() => setActiveTab('enroll')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'enroll' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'enroll' ? 'bg-secondary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             <FiDollarSign /> Matrícula
           </button>
           <button onClick={() => setActiveTab('lead')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'lead' ? 'bg-secondary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'lead' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             <FiHeart /> Tenho Interesse
           </button>
         </div>
@@ -435,7 +467,7 @@ function MatriculaPage() {
           {/* Lead side - Testimonial */}
           {activeTab === 'lead' && (
             <div className="md:col-span-2 order-2 md:order-1">
-              <div className="bg-gradient-to-br from-secondary-50 to-secondary-100/50 rounded-2xl p-6 border border-secondary-100 h-full">
+              <div className="bg-gradient-to-br from-secondary-100 to-secondary-200/50 rounded-2xl p-6 border border-secondary-200 h-full">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex -space-x-2">
                     {['#f97316', '#1a56db', '#10b981'].map((color, i) => (
@@ -482,12 +514,16 @@ function MatriculaPage() {
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               {activeTab === 'enroll' ? (
                 <>
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Matrícula</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <FiBook className="text-secondary-500" /> Matrícula
+                  </h2>
                   <MatriculaEnrollment preselectedCourseId={preselectedCourseId} onBack={() => setActiveTab('lead')} />
                 </>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Quero Saber Mais</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <FiHeart className="text-secondary-500" /> Quero Saber Mais
+                  </h2>
                   <p className="text-sm text-gray-500 mb-6">Deixe seus dados e entraremos em contato!</p>
                   <LeadForm />
                 </>
