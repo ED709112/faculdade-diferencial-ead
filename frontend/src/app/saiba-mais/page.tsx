@@ -287,7 +287,7 @@ export default function SaibaMaisPage() {
             Não perca mais tempo!
           </h2>
           <p className="text-white/80 mb-6">
-            Matrículas abertas para 2025. Garanta sua vaga e comece a construir seu futuro hoje.
+            Matrículas abertas para 2026. Garanta sua vaga e comece a construir seu futuro hoje.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button onClick={scrollToForm}
