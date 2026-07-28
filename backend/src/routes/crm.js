@@ -22,4 +22,8 @@ router.get('/tags', authenticate, authorize('admin'), crm.listTags);
 router.post('/tags', authenticate, authorize('admin'), crm.createTag);
 router.delete('/tags/:id', authenticate, authorize('admin'), crm.deleteTag);
 
+// Public (no auth)
+router.post('/public-leads', crm.publicCreateLead);
+router.get('/qrcode', crm.generateQRCode);
+
 module.exports = router;

@@ -1,4 +1,49 @@
 const db = require('../config/database');
+const fs = require('fs');
+const path = require('path');
+const QRCode = require('qrcode');
+
+// =====================================================
+// PUBLIC - Lead Capture (no auth)
+// =====================================================
+
+exports.publicCreateLead = async (req, res) => {
+  try {
+    const { name, email, phone, whatsapp, course_interest, source } = req.body;
+    if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
+
+    const [result] = await db.query(
+      'INSERT INTO leads (name, email, phone, whatsapp, course_interest, source, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, email || null, phone || null, whatsapp || null, course_interest || null, source || 'landing', 'new']
+    );
+
+    res.status(201).json({ id: result.insertId, message: 'Lead registrado com sucesso!' });
+  } catch (error) {
+    console.error('publicCreateLead error:', error);
+    res.status(500).json({ error: 'Erro ao registrar lead' });
+  }
+};
+
+exports.generateQRCode = async (req, res) => {
+  try {
+    const { source = 'default' } = req.query;
+    const baseUrl = process.env.FRONTEND_URL || 'https://fadead.com.br';
+    const url = `${baseUrl}/matricula${source && source !== 'default' ? `?ref=${encodeURIComponent(source)}` : ''}`;
+
+    const qrBuffer = await QRCode.toBuffer(url, {
+      width: 400,
+      margin: 2,
+      color: { dark: '#1a56db', light: '#ffffff' },
+    });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `inline; filename="matricula-${source}.png"`);
+    res.send(qrBuffer);
+  } catch (error) {
+    console.error('generateQRCode error:', error);
+    res.status(500).json({ error: 'Erro ao gerar QR Code' });
+  }
+};
 
 // =====================================================
 // LEADS

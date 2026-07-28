@@ -4,15 +4,9 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  FiArrowLeft,
-  FiArrowRight,
-  FiUser,
-  FiMail,
-  FiPhone,
-  FiCreditCard,
-  FiCheck,
-  FiFileText,
-  FiCalendar,
+  FiArrowLeft, FiArrowRight, FiUser, FiMail, FiPhone,
+  FiCreditCard, FiCheck, FiFileText, FiCalendar,
+  FiHeart, FiSend, FiBook, FiDollarSign,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -30,542 +24,410 @@ interface Course {
 }
 
 interface MatriculaForm {
-  name: string;
-  email: string;
-  phone: string;
-  cpf: string;
-  birth_date: string;
-  gender: string;
-  course_id: string;
-  payment_method: string;
-  address: string;
-  city: string;
-  state: string;
-  zip_code: string;
+  name: string; email: string; phone: string; cpf: string;
+  birth_date: string; gender: string; course_id: string;
+  payment_method: string; address: string; city: string;
+  state: string; zip_code: string;
 }
 
 const steps = ['Dados Pessoais', 'Pagamento', 'Confirmação'];
+const states = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
-const states = [
-  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA',
-  'PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'
-];
-
-function MatriculaContent() {
+function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCourseId: string; onBack: () => void }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preselectedCourseId = searchParams.get('curso') || '';
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingCourse, setLoadingCourse] = useState(!!preselectedCourseId);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [paymentInfo, setPaymentInfo] = useState<any>(null);
 
   const [form, setForm] = useState<MatriculaForm>({
-    name: '',
-    email: '',
-    phone: '',
-    cpf: '',
-    birth_date: '',
-    gender: '',
-    course_id: preselectedCourseId,
-    payment_method: 'boleto',
-    address: '',
-    city: '',
-    state: '',
-    zip_code: '',
+    name: '', email: '', phone: '', cpf: '', birth_date: '',
+    gender: '', course_id: preselectedCourseId, payment_method: 'boleto',
+    address: '', city: '', state: '', zip_code: '',
   });
 
   useEffect(() => {
+    api.get('/courses').then(({ data }) => setCourses(Array.isArray(data) ? data : data.data || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!preselectedCourseId) return;
-    const fetchCourse = async () => {
-      try {
-        const { data } = await api.get(`/courses/${preselectedCourseId}`);
-        const c = data.data || data;
-        setSelectedCourse(c);
-        setForm(prev => ({ ...prev, course_id: String(c.id) }));
-      } catch {
-        toast.error('Curso não encontrado');
-      } finally {
-        setLoadingCourse(false);
-      }
-    };
-    fetchCourse();
+    api.get(`/courses/${preselectedCourseId}`).then(({ data }) => {
+      const c = data.data || data;
+      setSelectedCourse(c);
+      setForm(prev => ({ ...prev, course_id: String(c.id) }));
+    }).catch(() => toast.error('Curso não encontrado')).finally(() => setLoadingCourse(false));
   }, [preselectedCourseId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
+  const formatCPF = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  const formatPhone = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  const formatCEP = (v: string) => v.replace(/\D/g, '').substring(0, 8).replace(/(\d{5})(\d{3})/, '$1-$2');
+
+  const handleSelectCourse = (c: Course) => {
+    setSelectedCourse(c);
+    setForm(prev => ({ ...prev, course_id: String(c.id) }));
   };
 
-  const formatCPF = (value: string) => {
-    const numbers = value.replace(/\D/g, '').substring(0, 11);
-    return numbers
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
-  };
-
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, '').substring(0, 11);
-    if (numbers.length <= 10) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{4})(\d)/, '$1-$2')
-        .replace(/(-\d{4})\d+?$/, '$1');
-    }
-    return numbers
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1');
-  };
-
-  const formatCEP = (value: string) => {
-    const numbers = value.replace(/\D/g, '').substring(0, 8);
-    return numbers.replace(/(\d{5})(\d)/, '$1-$2');
-  };
-
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, cpf: formatCPF(e.target.value) });
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, phone: formatPhone(e.target.value) });
-  };
-
-  const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, zip_code: formatCEP(e.target.value) });
-  };
-
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 0:
-        if (!form.name.trim()) { toast.error('Nome é obrigatório'); return false; }
-        if (!form.email.trim() || !form.email.includes('@')) { toast.error('E-mail inválido'); return false; }
-        if (!form.phone.trim() || form.phone.replace(/\D/g, '').length < 10) { toast.error('Telefone inválido'); return false; }
-        if (!form.cpf.trim() || form.cpf.replace(/\D/g, '').length < 11) { toast.error('CPF inválido'); return false; }
-        return true;
-      case 1:
-        return true;
-      default:
-        return true;
-    }
-  };
-
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
-    }
-  };
-
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 0));
-  };
+  const nextStep = () => currentStep < 2 && setCurrentStep(currentStep + 1);
+  const prevStep = () => currentStep > 0 && setCurrentStep(currentStep - 1);
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const { data } = await api.post('/enrollments/enroll-public', {
-        ...form,
-        cpf: form.cpf.replace(/\D/g, ''),
-        phone: form.phone.replace(/\D/g, ''),
-        zip_code: form.zip_code.replace(/\D/g, ''),
-      });
-
-      toast.success('Matrícula realizada com sucesso!');
-      router.push(`/matricula/comprovante?code=${data.enrollment_code}&payment=${data.payment_code}`);
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao processar matrícula');
-    } finally {
-      setLoading(false);
-    }
+      const payload = { ...form, course_id: Number(form.course_id) };
+      const { data } = await api.post('/enrollments', payload);
+      setPaymentInfo(data);
+      setCurrentStep(2);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao realizar matrícula');
+    } finally { setLoading(false); }
   };
 
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="bg-primary-600">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
-            <FiArrowLeft /> Voltar ao site
-          </Link>
-          <h1 className="text-white font-bold text-lg">Faculdade Diferencial</h1>
-        </div>
-      </div>
+  if (loadingCourse) return <div className="text-center py-12 text-gray-500">Carregando...</div>;
 
-      {/* Steps indicator bar */}
-      <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-center">
-            {steps.map((step, index) => (
-              <React.Fragment key={step}>
-                <div className="flex items-center gap-2">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                    index < currentStep ? 'bg-secondary-500 text-white' :
-                    index === currentStep ? 'bg-white text-primary-600 shadow-lg' :
-                    'bg-white/20 text-white/70'
-                  }`}>
-                    {index < currentStep ? <FiCheck /> : index + 1}
-                  </div>
-                  <span className={`text-sm font-medium hidden sm:block ${
-                    index <= currentStep ? 'text-white' : 'text-white/50'
-                  }`}>{step}</span>
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 mx-2 ${
-                    index < currentStep ? 'bg-secondary-400' : 'bg-white/20'
-                  }`} />
-                )}
-              </React.Fragment>
-            ))}
+  return (
+    <div>
+      {/* Steps indicator */}
+      {currentStep < 2 && (
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {steps.map((s, i) => (
+            <div key={s} className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i <= currentStep ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                {i < currentStep ? <FiCheck /> : i + 1}
+              </div>
+              <span className={`text-sm font-medium ${i === currentStep ? 'text-primary-600' : 'text-gray-400'}`}>{s}</span>
+              {i < 2 && <div className={`w-12 h-0.5 ${i < currentStep ? 'bg-primary-500' : 'bg-gray-200'}`} />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Step 0 - Personal Data */}
+      {currentStep === 0 && (
+        <div className="space-y-6">
+          {/* Course Selection */}
+          {!selectedCourse && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Escolha seu Curso</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {courses.map(c => (
+                  <button key={c.id} onClick={() => handleSelectCourse(c)}
+                    className="text-left p-4 rounded-xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-all">
+                    <h4 className="font-semibold text-gray-900">{c.title}</h4>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-primary-600 font-bold">
+                        {c.price === 0 ? 'Grátis' : `R$ ${Number(c.price).toFixed(2)}`}
+                      </span>
+                      {c.workload > 0 && <span className="text-xs text-gray-400">{c.workload}h</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {selectedCourse && (
+            <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-100">
+              <div>
+                <p className="text-xs text-gray-500">Curso selecionado</p>
+                <p className="font-semibold text-gray-900">{selectedCourse.title}</p>
+                <p className="text-primary-600 font-bold text-sm">R$ {Number(selectedCourse.price).toFixed(2)}</p>
+              </div>
+              <button onClick={() => setSelectedCourse(null)} className="text-sm text-gray-500 hover:text-red-500">Trocar</button>
+            </div>
+          )}
+
+          {/* Personal Data Form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+              <input type="text" name="name" value={form.name} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+              <input type="email" name="email" value={form.email} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+              <input type="text" name="phone" value={form.phone} onChange={e => setForm({...form, phone: formatPhone(e.target.value)})}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+              <input type="text" name="cpf" value={form.cpf} onChange={e => setForm({...form, cpf: formatCPF(e.target.value)})}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+              <input type="date" name="birth_date" value={form.birth_date} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+          </div>
+
+          <button onClick={nextStep} disabled={!form.name || !selectedCourse}
+            className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 disabled:opacity-50 transition-all">
+            Continuar para Pagamento
+          </button>
+        </div>
+      )}
+
+      {/* Step 1 - Payment */}
+      {currentStep === 1 && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+              <input type="text" name="address" value={form.address} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+              <input type="text" name="city" value={form.city} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select name="state" value={form.state} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none">
+                <option value="">Selecione</option>
+                {states.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+              <input type="text" name="zip_code" value={form.zip_code} onChange={e => setForm({...form, zip_code: formatCEP(e.target.value)})}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+              <select name="gender" value={form.gender} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none">
+                <option value="">Selecione</option>
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+                <option value="O">Outro</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Forma de Pagamento</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'boleto', label: 'Boleto', icon: FiFileText },
+                  { value: 'pix', label: 'PIX', icon: FiCreditCard },
+                  { value: 'credit_card', label: 'Cartão', icon: FiCreditCard },
+                ].map(opt => (
+                  <button key={opt.value} onClick={() => setForm({...form, payment_method: opt.value})}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${form.payment_method === opt.value ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <opt.icon className={`text-2xl mx-auto mb-1 ${form.payment_method === opt.value ? 'text-primary-500' : 'text-gray-400'}`} />
+                    <span className={`text-sm font-medium ${form.payment_method === opt.value ? 'text-primary-600' : 'text-gray-600'}`}>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={prevStep} className="w-1/3 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all">
+              Voltar
+            </button>
+            <button onClick={handleSubmit} disabled={loading}
+              className="flex-1 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 disabled:opacity-50 transition-all">
+              {loading ? 'Processando...' : 'Confirmar Matrícula'}
+            </button>
           </div>
         </div>
+      )}
+
+      {/* Step 2 - Confirmation */}
+      {currentStep === 2 && paymentInfo && (
+        <div className="text-center py-8">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiCheck className="text-3xl text-green-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Matrícula Realizada!</h2>
+          <p className="text-gray-500 mb-6">Enviamos as instruções para seu e-mail.</p>
+          <div className="bg-gray-50 rounded-xl p-6 text-left space-y-2 mb-6">
+            {paymentInfo.orderNumber && (
+              <div className="flex justify-between"><span className="text-gray-500">Pedido:</span><span className="font-semibold">#{paymentInfo.orderNumber}</span></div>
+            )}
+            <div className="flex justify-between"><span className="text-gray-500">Curso:</span><span className="font-semibold">{selectedCourse?.title}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Valor:</span><span className="font-semibold text-primary-600">R$ {Number(selectedCourse?.price).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Pagamento:</span><span className="font-semibold">{form.payment_method === 'pix' ? 'PIX' : form.payment_method === 'boleto' ? 'Boleto' : 'Cartão'}</span></div>
+          </div>
+          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600">
+            <FiArrowLeft /> Voltar ao início
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LeadForm() {
+  const [form, setForm] = useState({ name: '', whatsapp: '', course_interest: '', source: '' });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const ref = searchParams.get('ref') || 'social';
+    setForm(prev => ({ ...prev, source: ref }));
+    api.get('/courses').then(({ data }) => setCourses(Array.isArray(data) ? data : data.data || [])).catch(() => {});
+  }, [searchParams]);
+
+  const formatPhone = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return toast.error('Digite seu nome');
+    setSending(true);
+    try {
+      await api.post('/crm/public-leads', {
+        name: form.name,
+        whatsapp: form.whatsapp.replace(/\D/g, ''),
+        phone: form.whatsapp.replace(/\D/g, ''),
+        course_interest: form.course_interest,
+        source: form.source || 'social',
+      });
+      setSent(true);
+      toast.success('Recebemos seu interesse! Entraremos em contato.');
+    } catch {
+      toast.error('Erro ao enviar. Tente novamente.');
+    } finally { setSending(false); }
+  };
+
+  if (sent) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <FiHeart className="text-4xl text-green-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Obrigado pelo Interesse!</h2>
+        <p className="text-gray-500 max-w-md mx-auto">
+          Recebemos seus dados. Nossa equipe entrará em contato em breve pelo WhatsApp.
+        </p>
       </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-5">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Seu nome</label>
+        <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500"
+          placeholder="Digite seu nome completo" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+        <input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: formatPhone(e.target.value)})}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500"
+          placeholder="(86) 99999-9999" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Curso de interesse</label>
+        <select value={form.course_interest} onChange={e => setForm({...form, course_interest: e.target.value})}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary-500">
+          <option value="">Selecione um curso</option>
+          {courses.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+        </select>
+      </div>
+      <button type="submit" disabled={sending || !form.name.trim()}
+        className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+        {sending ? 'Enviando...' : <><FiSend /> Quero saber mais</>}
+      </button>
+      <p className="text-xs text-center text-gray-400">Seus dados estão protegidos. Não compartilhamos com terceiros.</p>
+    </form>
+  );
+}
+
+function MatriculaPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const preselectedCourseId = searchParams.get('curso') || '';
+
+  const tabFromUrl = searchParams.get('tab') || '';
+  const isLeadTab = tabFromUrl === 'interesse' && !preselectedCourseId;
+
+  const [activeTab, setActiveTab] = useState<'enroll' | 'lead'>(isLeadTab ? 'lead' : 'enroll');
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref === 'instagram' || ref === 'facebook' || ref === 'social') {
+      setActiveTab('lead');
+    }
+    if (preselectedCourseId) {
+      setActiveTab('enroll');
+    }
+  }, [searchParams, preselectedCourseId]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+              <FiBook className="text-white text-sm" />
+            </div>
+            <span className="font-bold text-gray-900">Faculdade Diferencial</span>
+          </Link>
+          <Link href="/" className="text-sm text-gray-500 hover:text-primary-600 transition-colors">
+            Voltar ao site
+          </Link>
+        </div>
+      </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Loading course from URL */}
-        {loadingCourse && (
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 flex flex-col items-center justify-center">
-            <div className="spinner mb-4" />
-            <p className="text-gray-500">Carregando informações do curso...</p>
-          </div>
-        )}
-
-        {/* No course selected */}
-        {!loadingCourse && !selectedCourse && preselectedCourseId && (
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 text-center">
-            <p className="text-gray-600 mb-4">Curso não encontrado.</p>
-            <Link href="/cursos" className="text-primary-600 hover:underline font-medium">Ver todos os cursos</Link>
-          </div>
-        )}
-
-        {/* Form Card */}
-        {!loadingCourse && preselectedCourseId && !selectedCourse && (
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 text-center">
-            <p className="text-gray-600 mb-4">Curso não encontrado.</p>
-            <Link href="/cursos" className="text-primary-600 hover:underline font-medium">Escolher um curso</Link>
-          </div>
-        )}
-
-        {!loadingCourse && !preselectedCourseId && (
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-12 text-center">
-            <p className="text-gray-600 mb-4">Nenhum curso selecionado.</p>
-            <Link href="/cursos" className="text-primary-600 hover:underline font-medium">Escolher um curso</Link>
-          </div>
-        )}
-
-        {selectedCourse && (
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-          {/* Step 0: Dados Pessoais */}
-          {currentStep === 0 && (
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
-                  <FiUser className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Dados Pessoais</h2>
-                  <p className="text-gray-500 text-sm">Preencha seus dados para iniciar a matrícula</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="label">Nome Completo *</label>
-                  <div className="relative">
-                    <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      className="input-field pl-10"
-                      placeholder="Seu nome completo"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">E-mail *</label>
-                    <div className="relative">
-                      <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="email"
-                        name="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        className="input-field pl-10"
-                        placeholder="seu@email.com"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Telefone *</label>
-                    <div className="relative">
-                      <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        name="phone"
-                        value={form.phone}
-                        onChange={handlePhoneChange}
-                        className="input-field pl-10"
-                        placeholder="(11) 99999-9999"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="label">CPF *</label>
-                    <input
-                      type="text"
-                      name="cpf"
-                      value={form.cpf}
-                      onChange={handleCPFChange}
-                      className="input-field"
-                      placeholder="000.000.000-00"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Data de Nascimento</label>
-                    <div className="relative">
-                      <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="date"
-                        name="birth_date"
-                        value={form.birth_date}
-                        onChange={handleChange}
-                        className="input-field pl-10"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Gênero</label>
-                    <select name="gender" value={form.gender} onChange={handleChange} className="input-field">
-                      <option value="">Selecione</option>
-                      <option value="M">Masculino</option>
-                      <option value="F">Feminino</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="label">Endereço</label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={form.address}
-                      onChange={handleChange}
-                      className="input-field"
-                      placeholder="Rua, número, bairro"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">CEP</label>
-                    <input
-                      type="text"
-                      name="zip_code"
-                      value={form.zip_code}
-                      onChange={handleCEPChange}
-                      className="input-field"
-                      placeholder="00000-000"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Cidade</label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={form.city}
-                      onChange={handleChange}
-                      className="input-field"
-                      placeholder="Sua cidade"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Estado</label>
-                    <select name="state" value={form.state} onChange={handleChange} className="input-field">
-                      <option value="">Selecione</option>
-                      {states.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 1: Pagamento */}
-          {currentStep === 1 && (
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
-                  <FiCreditCard className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Forma de Pagamento</h2>
-                  <p className="text-gray-500 text-sm">Escolha como deseja pagar</p>
-                </div>
-              </div>
-
-              {/* Resumo do curso */}
-              {selectedCourse && (
-                <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                  <h3 className="font-semibold text-gray-900">{selectedCourse.title}</h3>
-                  <p className="text-sm text-gray-500">{selectedCourse.teacher_name} • {selectedCourse.workload}h</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-2xl font-bold text-primary-600">
-                      R$ {Number(selectedCourse.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                    {selectedCourse.original_price && Number(selectedCourse.original_price) > Number(selectedCourse.price) && (
-                      <span className="text-sm text-gray-400 line-through">
-                        R$ {Number(selectedCourse.original_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {/* Boleto */}
-                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  form.payment_method === 'boleto' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-300'
-                }`}>
-                  <input type="radio" name="payment_method" value="boleto" checked={form.payment_method === 'boleto'} onChange={handleChange} className="w-4 h-4 text-primary-500" />
-                  <FiFileText className="text-xl text-gray-600" />
-                  <div>
-                    <p className="font-semibold text-gray-900">Boleto Bancário</p>
-                    <p className="text-xs text-gray-500">Vencimento em 3 dias úteis</p>
-                  </div>
-                </label>
-
-                {/* PIX */}
-                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  form.payment_method === 'pix' ? 'border-secondary-500 bg-secondary-50' : 'border-gray-200 hover:border-secondary-300'
-                }`}>
-                  <input type="radio" name="payment_method" value="pix" checked={form.payment_method === 'pix'} onChange={handleChange} className="w-4 h-4 text-secondary-500" />
-                  <div className="w-6 h-6 bg-secondary-500 rounded flex items-center justify-center text-white text-xs font-bold">R$</div>
-                  <div>
-                    <p className="font-semibold text-gray-900">PIX</p>
-                    <p className="text-xs text-gray-500">Aprovação instantânea</p>
-                  </div>
-                </label>
-
-                {/* Cartão */}
-                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  form.payment_method === 'credit_card' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-300'
-                }`}>
-                  <input type="radio" name="payment_method" value="credit_card" checked={form.payment_method === 'credit_card'} onChange={handleChange} className="w-4 h-4 text-primary-500" />
-                  <FiCreditCard className="text-xl text-gray-600" />
-                  <div>
-                    <p className="font-semibold text-gray-900">Cartão de Crédito</p>
-                    <p className="text-xs text-gray-500">Até 12x sem juros</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Confirmação */}
-          {currentStep === 2 && (
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
-                  <FiCheck className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Confirme sua Matrícula</h2>
-                  <p className="text-gray-500 text-sm">Revise os dados antes de finalizar</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Dados Pessoais</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-gray-500">Nome:</span> <span className="font-medium">{form.name}</span></div>
-                    <div><span className="text-gray-500">E-mail:</span> <span className="font-medium">{form.email}</span></div>
-                    <div><span className="text-gray-500">Telefone:</span> <span className="font-medium">{form.phone}</span></div>
-                    <div><span className="text-gray-500">CPF:</span> <span className="font-medium">{form.cpf}</span></div>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Curso</h3>
-                  {selectedCourse && (
-                    <div>
-                      <p className="font-medium">{selectedCourse.title}</p>
-                      <p className="text-sm text-gray-500">{selectedCourse.teacher_name} • {selectedCourse.workload}h</p>
-                      <p className="text-lg font-bold text-primary-600 mt-1">
-                        R$ {Number(selectedCourse.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
+        {/* Hero */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+            Invista no seu <span className="text-primary-600">Futuro</span>
+          </h1>
+          <p className="text-gray-500 max-w-xl mx-auto">
+            Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida pelo MEC.
+          </p>
         </div>
-        )}
-      </div>
 
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Pagamento</h3>
-                  <p className="text-sm capitalize">
-                    {form.payment_method === 'boleto' && 'Boleto Bancário'}
-                    {form.payment_method === 'pix' && 'PIX'}
-                    {form.payment_method === 'credit_card' && 'Cartão de Crédito'}
-                  </p>
-                </div>
-
-                <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
-                  <p className="text-sm text-primary-800">
-                    <strong>Importante:</strong> Após a confirmação, você receberá um e-mail com seus dados de acesso
-                    (e-mail e senha) e as instruções de pagamento. O acesso ao será liberado automaticamente
-                    após a confirmação do pagamento.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation */}
-          <div className="p-6 sm:p-8 border-t border-gray-100 flex justify-between bg-gray-50">
-            {currentStep > 0 ? (
-              <button onClick={prevStep} className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-white flex items-center gap-2 transition-colors">
-                <FiArrowLeft /> Voltar
-              </button>
-            ) : (
-              <Link href="/" className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-white flex items-center gap-2 transition-colors">
-                <FiArrowLeft /> Cancelar
-              </Link>
-            )}
-
-            {currentStep < steps.length - 1 ? (
-              <button onClick={nextStep} className="px-6 py-3 rounded-xl bg-secondary-500 text-white font-semibold hover:bg-secondary-600 flex items-center gap-2 transition-colors">
-                Próximo <FiArrowRight />
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-8 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 flex items-center gap-2 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'Processando...' : 'Finalizar Matrícula'}
-                {!loading && <FiCheck />}
-              </button>
-            )}
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm border border-gray-100 mb-8 max-w-md mx-auto">
+          <button onClick={() => setActiveTab('enroll')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'enroll' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            <FiDollarSign /> Matrícula
+          </button>
+          <button onClick={() => setActiveTab('lead')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'lead' ? 'bg-secondary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            <FiHeart /> Tenho Interesse
+          </button>
         </div>
-        )}
+
+        {/* Content */}
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+          {activeTab === 'enroll' ? (
+            <>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Matrícula</h2>
+              <MatriculaEnrollment preselectedCourseId={preselectedCourseId} onBack={() => setActiveTab('lead')} />
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Quero Saber Mais</h2>
+              <p className="text-sm text-gray-500 mb-6">Deixe seus dados e entraremos em contato!</p>
+              <LeadForm />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-export default function MatriculaPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="spinner" /></div>}>
-      <MatriculaContent />
-    </Suspense>
-  );
+export default function MatriculaPageWrapper() {
+  return <Suspense fallback={<div className="text-center py-12 text-gray-500">Carregando...</div>}>
+    <MatriculaPage />
+  </Suspense>;
 }

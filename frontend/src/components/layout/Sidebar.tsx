@@ -48,6 +48,7 @@ const adminMenu: MenuItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: FiGrid },
   { label: 'CRM', href: '/admin/crm', icon: FiTarget },
   { label: 'Chatbot', href: '/admin/chatbot', icon: FiMessageSquare },
+  { label: 'QR Matrícula', href: '/admin/matricula-qrcode', icon: FiDownload },
   { label: 'Cursos', href: '/admin/cursos', icon: FiBookOpen },
   { label: 'Categorias', href: '/admin/categorias', icon: FiTag },
   { label: 'Polos', href: '/admin/polos', icon: FiMapPin },
@@ -75,6 +76,7 @@ const adminMenu: MenuItem[] = [
 const adminPermissionMap: Record<string, string> = {
   '/admin/dashboard': 'dashboard',
   '/admin/crm': 'crm',
+  '/admin/matricula-qrcode': 'crm',
   '/admin/chatbot': 'chatbot',
   '/admin/cursos': 'courses',
   '/admin/categorias': 'categories',
