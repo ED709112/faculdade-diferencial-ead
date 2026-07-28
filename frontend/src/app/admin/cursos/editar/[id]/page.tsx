@@ -516,7 +516,7 @@ export default function EditarCursoAdminPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-secondary-500 text-white font-semibold hover:bg-secondary-600 flex items-center gap-2"
           >
             <FiSave /> {saving ? 'Salvando...' : 'Salvar'}
           </button>
