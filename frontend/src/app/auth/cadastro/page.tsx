@@ -56,7 +56,7 @@ export default function CadastroPage() {
           <Link href="/" className="inline-flex items-center gap-2">
             <FaGraduationCap className="text-white text-4xl" />
             <span className="text-2xl font-bold text-white">
-              Faculdade Diferencial <span className="text-secondary-300">EAD</span>
+              Faculdade Diferencial
             </span>
           </Link>
         </div>

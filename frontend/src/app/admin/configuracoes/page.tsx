@@ -186,7 +186,7 @@ export default function AdminConfiguracoesPage() {
                   value={settings.site_name}
                   onChange={(e) => handleChange('site_name', e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  placeholder="Faculdade Diferencial EAD"
+                  placeholder="Faculdade Diferencial"
                 />
               </div>
               <div>

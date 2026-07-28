@@ -165,7 +165,7 @@ const getSiteConfig = async (req, res) => {
     }
 
     res.json({
-      site_name: config.site_name || 'Faculdade Diferencial EAD',
+      site_name: config.site_name || 'Faculdade Diferencial',
       site_description: config.site_description || '',
       site_email: config.site_email || '',
       site_phone: config.site_phone || '',
@@ -217,13 +217,13 @@ const testEmail = async (req, res) => {
     await transporter.verify();
 
     await transporter.sendMail({
-      from: `"${smtp_from || 'Faculdade Diferencial EAD'}" <${smtp_user}>`,
+      from: `"${smtp_from || 'Faculdade Diferencial'}" <${smtp_user}>`,
       to: smtp_user,
-      subject: 'Teste de E-mail - Faculdade Diferencial EAD',
+      subject: 'Teste de E-mail - Faculdade Diferencial',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: #1a56db; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="margin: 0; font-size: 20px;">Faculdade Diferencial EAD</h1>
+            <h1 style="margin: 0; font-size: 20px;">Faculdade Diferencial</h1>
           </div>
           <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none;">
             <h2 style="color: #1e293b; margin-top: 0;">E-mail de teste enviado com sucesso!</h2>

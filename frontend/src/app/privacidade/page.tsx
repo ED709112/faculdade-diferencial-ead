@@ -29,7 +29,7 @@ export default function PrivacidadePage() {
               Introdução
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              A <strong>Faculdade Diferencial EAD</strong>, pessoa jurídica de direito privado, inscrita no
+              A <strong>Faculdade Diferencial</strong>, pessoa jurídica de direito privado, inscrita no
               CNPJ sob o nº <strong>[INSERIR CNPJ]</strong>, com sede na Rua João da Cruz Monteiro, 1728,
               Cristo Rei, Teresina – PI, CEP 64.014-210, é a responsável pelo tratamento dos dados pessoais
               coletados por meio de seu site e plataforma de ensino a distância.

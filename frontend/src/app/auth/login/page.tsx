@@ -29,7 +29,7 @@ export default function LoginPage() {
       <header className="bg-white shadow-sm relative z-10">
         <div className="container-custom py-4">
           <Link href="/" className="inline-flex items-center">
-            <img src="/images/logo.jpg" alt="Faculdade Diferencial EAD" className="h-10 lg:h-12 w-auto object-contain" />
+            <img src="/images/logo.jpg" alt="Faculdade Diferencial" className="h-10 lg:h-12 w-auto object-contain" />
           </Link>
         </div>
       </header>

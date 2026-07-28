@@ -31,11 +31,11 @@ const sendEmail = async ({ to, subject, html, attachments = [] }) => {
 
 const emailTemplates = {
   welcome: (name, verificationUrl) => ({
-    subject: 'Bem-vindo à Faculdade Diferencial EAD!',
+    subject: 'Bem-vindo à Faculdade Diferencial!',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #1a56db; padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Faculdade Diferencial EAD</h1>
+          <h1 style="color: white; margin: 0;">Faculdade Diferencial</h1>
         </div>
         <div style="padding: 30px; background: #f9f9f9;">
           <h2>Bem-vindo, ${name}!</h2>
@@ -56,11 +56,11 @@ const emailTemplates = {
   }),
 
   resetPassword: (name, resetUrl) => ({
-    subject: 'Recuperação de Senha - Faculdade Diferencial EAD',
+    subject: 'Recuperação de Senha - Faculdade Diferencial',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #1a56db; padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Faculdade Diferencial EAD</h1>
+          <h1 style="color: white; margin: 0;">Faculdade Diferencial</h1>
         </div>
         <div style="padding: 30px; background: #f9f9f9;">
           <h2>Olá, ${name}</h2>
@@ -81,11 +81,11 @@ const emailTemplates = {
   }),
 
   paymentConfirmation: (name, courseName, orderNumber) => ({
-    subject: 'Pagamento Confirmado - Faculdade Diferencial EAD',
+    subject: 'Pagamento Confirmado - Faculdade Diferencial',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #1a56db; padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Faculdade Diferencial EAD</h1>
+          <h1 style="color: white; margin: 0;">Faculdade Diferencial</h1>
         </div>
         <div style="padding: 30px; background: #f9f9f9;">
           <h2>Pagamento Confirmado! 🎉</h2>
@@ -111,11 +111,11 @@ const emailTemplates = {
   }),
 
   newMessage: (senderName, courseName, messagePreview) => ({
-    subject: `Nova mensagem de ${senderName} - Faculdade Diferencial EAD`,
+    subject: `Nova mensagem de ${senderName} - Faculdade Diferencial`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #1a56db; padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Faculdade Diferencial EAD</h1>
+          <h1 style="color: white; margin: 0;">Faculdade Diferencial</h1>
         </div>
         <div style="padding: 30px; background: #f9f9f9;">
           <h2>Nova Mensagem</h2>
@@ -139,11 +139,11 @@ const emailTemplates = {
   }),
 
   certificateReady: (name, courseName) => ({
-    subject: 'Certificado Disponível - Faculdade Diferencial EAD',
+    subject: 'Certificado Disponível - Faculdade Diferencial',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #1a56db; padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Faculdade Diferencial EAD</h1>
+          <h1 style="color: white; margin: 0;">Faculdade Diferencial</h1>
         </div>
         <div style="padding: 30px; background: #f9f9f9;">
           <h2>Parabéns! 🎓</h2>

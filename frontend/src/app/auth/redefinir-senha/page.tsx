@@ -61,7 +61,7 @@ function RedefinirSenhaContent() {
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
             <FaGraduationCap className="text-primary-500 text-4xl" />
             <span className="text-2xl font-bold text-gray-900">
-              Faculdade Diferencial <span className="text-primary-500">EAD</span>
+              Faculdade Diferencial
             </span>
           </Link>
           <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -86,7 +86,7 @@ function RedefinirSenhaContent() {
           <Link href="/" className="inline-flex items-center gap-2">
             <FaGraduationCap className="text-primary-500 text-4xl" />
             <span className="text-2xl font-bold text-gray-900">
-              Faculdade Diferencial <span className="text-primary-500">EAD</span>
+              Faculdade Diferencial
             </span>
           </Link>
         </div>

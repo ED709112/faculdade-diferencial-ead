@@ -85,7 +85,7 @@ export default function Header() {
           <Link href="/" className="flex items-center shrink-0">
             <img
               src="/images/logo.jpg"
-              alt="Faculdade Diferencial EAD"
+              alt="Faculdade Diferencial"
               className="h-10 lg:h-12 w-auto object-contain"
             />
           </Link>

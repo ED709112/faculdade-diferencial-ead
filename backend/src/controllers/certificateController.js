@@ -223,7 +223,7 @@ const download = async (req, res) => {
       size: 'A4',
       info: {
         Title: `Certificado - ${cert.course_title}`,
-        Author: 'Faculdade Diferencial EAD',
+        Author: 'Faculdade Diferencial',
         Subject: 'Certificado de Conclusão'
       }
     });
@@ -245,7 +245,7 @@ const download = async (req, res) => {
     const centerX = pageW / 2;
 
     doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a56db')
-      .text('FACULDADE DIFERENCIAL EAD', 180, 60, { width: pageW - 360, align: 'center' });
+      .text('FACULDADE DIFERENCIAL', 180, 60, { width: pageW - 360, align: 'center' });
 
     doc.fontSize(9).font('Helvetica').fillColor('#666')
       .text('Rua João da Cruz Monteiro, 1728 — Cristo Rei — Teresina/PI — CEP 64.014-210', 180, 85, { width: pageW - 360, align: 'center' });
@@ -309,7 +309,7 @@ const download = async (req, res) => {
     doc.fontSize(9).font('Helvetica-Bold').fillColor('#333')
       .text('Reitor(a)', pageW - 320, lineY + 16, { width: 200, align: 'center' });
     doc.fontSize(7).font('Helvetica').fillColor('#888')
-      .text('Faculdade Diferencial EAD', pageW - 320, lineY + 30, { width: 200, align: 'center' });
+      .text('Faculdade Diferencial', pageW - 320, lineY + 30, { width: 200, align: 'center' });
 
     const footerY = pageH - 85;
 

@@ -779,7 +779,7 @@ VALUES (
 
 -- Configurações padrão
 INSERT INTO settings (setting_key, setting_value, setting_type, setting_group, description) VALUES
-('site_name', 'Faculdade Diferencial EAD', 'text', 'general', 'Nome do site'),
+('site_name', 'Faculdade Diferencial', 'text', 'general', 'Nome do site'),
 ('site_description', 'Plataforma de Ensino a Distância da Faculdade Diferencial', 'textarea', 'general', 'Descrição do site'),
 ('site_email', 'contato@faculdadediferencial.edu.br', 'text', 'general', 'E-mail de contato'),
 ('site_phone', '(11) 99999-9999', 'text', 'general', 'Telefone de contato'),
@@ -805,7 +805,7 @@ INSERT INTO settings (setting_key, setting_value, setting_type, setting_group, d
 ('smtp_port', '587', 'text', 'email', 'Porta SMTP'),
 ('smtp_user', '', 'text', 'email', 'Usuário SMTP'),
 ('smtp_password', '', 'text', 'email', 'Senha SMTP'),
-('smtp_from_name', 'Faculdade Diferencial EAD', 'text', 'email', 'Nome do remetente'),
+('smtp_from_name', 'Faculdade Diferencial', 'text', 'email', 'Nome do remetente'),
 ('smtp_from_email', 'noreply@faculdadediferencial.edu.br', 'text', 'email', 'E-mail do remetente');
 
 -- Categorias padrão

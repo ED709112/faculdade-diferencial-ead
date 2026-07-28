@@ -825,7 +825,7 @@ const exportFinancialExcel = async (req, res) => {
   try {
     const data = await getFinancialData();
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Faculdade Diferencial EAD';
+    workbook.creator = 'Faculdade Diferencial';
     workbook.created = new Date();
 
     const summarySheet = workbook.addWorksheet('Resumo');
@@ -916,7 +916,7 @@ const exportFinancialPDF = async (req, res) => {
 
     doc.fontSize(20).fillColor('#1a56db').text('Relatório Financeiro', { align: 'center' });
     doc.moveDown(0.3);
-    doc.fontSize(10).fillColor('#666666').text(`Faculdade Diferencial EAD - ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
+    doc.fontSize(10).fillColor('#666666').text(`Faculdade Diferencial - ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
     doc.moveDown(1);
 
     doc.fontSize(14).fillColor('#1a56db').text('Resumo');
@@ -956,7 +956,7 @@ const exportFinancialPDF = async (req, res) => {
     });
 
     doc.moveDown(2);
-    doc.fontSize(8).fillColor('#999999').text('Documento gerado automaticamente pela Faculdade Diferencial EAD.', { align: 'center' });
+    doc.fontSize(8).fillColor('#999999').text('Documento gerado automaticamente pela Faculdade Diferencial.', { align: 'center' });
 
     doc.end();
   } catch (error) {

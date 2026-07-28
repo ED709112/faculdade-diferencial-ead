@@ -268,7 +268,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
   console.log(`
   ====================================
-  Faculdade Diferencial EAD - Backend
+  Faculdade Diferencial - Backend
   ====================================
   Servidor rodando em: http://${HOST}:${PORT}
   Ambiente: ${process.env.NODE_ENV}

@@ -8,7 +8,7 @@ const slides = [
   {
     image: '/images/hero-banner.jpg',
     title: 'Invista em você!',
-    subtitle: 'Cursos EAD com flexibilidade, qualidade e certificação para o mercado de trabalho.',
+    subtitle: 'Cursos com flexibilidade, qualidade e certificação para o mercado de trabalho.',
     cta: 'Ver Cursos',
     ctaHref: '/cursos',
   },

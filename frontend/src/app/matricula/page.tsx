@@ -188,7 +188,7 @@ function MatriculaContent() {
           <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
             <FiArrowLeft /> Voltar ao site
           </Link>
-          <h1 className="text-white font-bold text-lg">Faculdade Diferencial EAD</h1>
+          <h1 className="text-white font-bold text-lg">Faculdade Diferencial</h1>
         </div>
       </div>
 

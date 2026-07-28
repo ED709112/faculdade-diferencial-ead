@@ -6,7 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Faculdade Diferencial EAD',
+  title: 'Faculdade Diferencial',
   description:
     'Plataforma de ensino superior a distância da Faculdade Diferencial. Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida.',
   icons: {

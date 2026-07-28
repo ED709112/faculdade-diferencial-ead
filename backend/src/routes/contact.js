@@ -41,7 +41,7 @@ router.post('/', upload.single('attachment'), async (req, res) => {
           ${req.file ? `<p><strong>Anexo:</strong> ${req.file.originalname}</p>` : ''}
         </div>
         <div style="background: #f3f4f6; padding: 12px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 12px 12px;">
-          Faculdade Diferencial EAD - Mensagem enviada via formulário de contato
+          Faculdade Diferencial - Mensagem enviada via formulário de contato
         </div>
       </div>
     `;

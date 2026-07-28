@@ -1,7 +1,7 @@
 {
   "name": "faculdade-diferencial-ead-backend",
   "version": "1.0.0",
-  "description": "Backend API - Faculdade Diferencial EAD",
+  "description": "Backend API - Faculdade Diferencial",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
