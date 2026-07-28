@@ -6,8 +6,9 @@ import Link from 'next/link';
 import {
   FiArrowLeft, FiArrowRight, FiUser, FiMail, FiPhone,
   FiCreditCard, FiCheck, FiFileText, FiCalendar,
-  FiHeart, FiSend, FiBook, FiDollarSign,
+  FiHeart, FiSend, FiBook, FiDollarSign, FiTrendingUp,
 } from 'react-icons/fi';
+import { FaGraduationCap, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -386,12 +387,35 @@ function MatriculaPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Hero */}
         <div className="text-center mb-10">
+          {/* Student faces row */}
+          <div className="flex items-center justify-center gap-1 mb-5">
+            <div className="flex -space-x-3">
+              {['#f97316', '#1a56db', '#10b981', '#8b5cf6', '#ec4899'].map((color, i) => (
+                <div key={i} style={{ backgroundColor: color }}
+                  className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white shadow-sm">
+                  <FaGraduationCap className="text-sm" />
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 ml-3">
+              <span className="text-2xl font-bold text-gray-900">+500</span>
+              <span className="text-sm text-gray-500">alunos matriculados</span>
+            </div>
+          </div>
+
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
             Invista no seu <span className="text-primary-600">Futuro</span>
           </h1>
-          <p className="text-gray-500 max-w-xl mx-auto">
+          <p className="text-gray-500 max-w-xl mx-auto mb-6">
             Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida pelo MEC.
           </p>
+
+          {/* Trust badges */}
+          <div className="flex items-center justify-center gap-6 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5"><FaChalkboardTeacher className="text-primary-400" /> MEC Reconhecido</span>
+            <span className="flex items-center gap-1.5"><FiTrendingUp className="text-green-400" /> 95% empregabilidade</span>
+            <span className="flex items-center gap-1.5"><FaUserGraduate className="text-secondary-400" /> 15 anos de história</span>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -407,19 +431,69 @@ function MatriculaPage() {
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
-          {activeTab === 'enroll' ? (
-            <>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Matrícula</h2>
-              <MatriculaEnrollment preselectedCourseId={preselectedCourseId} onBack={() => setActiveTab('lead')} />
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Quero Saber Mais</h2>
-              <p className="text-sm text-gray-500 mb-6">Deixe seus dados e entraremos em contato!</p>
-              <LeadForm />
-            </>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {/* Lead side - Testimonial */}
+          {activeTab === 'lead' && (
+            <div className="md:col-span-2 order-2 md:order-1">
+              <div className="bg-gradient-to-br from-secondary-50 to-secondary-100/50 rounded-2xl p-6 border border-secondary-100 h-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex -space-x-2">
+                    {['#f97316', '#1a56db', '#10b981'].map((color, i) => (
+                      <div key={i} style={{ backgroundColor: color }}
+                        className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-white shadow-sm">
+                        <FaGraduationCap className="text-xs" />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">+500 alunos</p>
+                    <p className="text-xs text-gray-500">já transformaram suas vidas</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-white/80 rounded-xl p-4 border border-secondary-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-secondary-500 flex items-center justify-center text-white text-xs font-bold">MA</div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Maria A.</p>
+                        <p className="text-[10px] text-gray-400">Administração - 2025</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 italic">"Melhor decisão que tomei! Consegui meu emprego antes mesmo de formar."</p>
+                  </div>
+                  <div className="bg-white/80 rounded-xl p-4 border border-secondary-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold">JP</div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">João P.</p>
+                        <p className="text-[10px] text-gray-400">Pedagogia - 2024</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 italic">"Flexibilidade de horário fez toda diferença. Conciliei trabalho e faculdade."</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
+
+          {/* Main content */}
+          <div className={`${activeTab === 'lead' ? 'md:col-span-3 order-1 md:order-2' : 'md:col-span-5'}`}>
+            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+              {activeTab === 'enroll' ? (
+                <>
+                  <h2 className="text-xl font-bold text-gray-900 mb-6">Matrícula</h2>
+                  <MatriculaEnrollment preselectedCourseId={preselectedCourseId} onBack={() => setActiveTab('lead')} />
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Quero Saber Mais</h2>
+                  <p className="text-sm text-gray-500 mb-6">Deixe seus dados e entraremos em contato!</p>
+                  <LeadForm />
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
