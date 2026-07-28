@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 interface Course {
   id: number;
   title: string;
+  slug: string;
   price: number;
   workload: number;
   category_name: string;
