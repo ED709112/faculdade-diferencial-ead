@@ -310,7 +310,6 @@ export default function SaibaMaisPage() {
             <FiBook className="text-secondary-400" />
             <span className="text-white font-semibold">Faculdade Diferencial</span>
           </div>
-          <p>Ensino superior a distância com qualidade e certificação MEC.</p>
           <p className="text-xs mt-2">&copy; {new Date().getFullYear()} Faculdade Diferencial. Todos os direitos reservados.</p>
         </div>
       </footer>
