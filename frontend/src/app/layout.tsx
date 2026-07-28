@@ -8,7 +8,7 @@ import '@/styles/globals.css';
 export const metadata: Metadata = {
   title: 'Faculdade Diferencial',
   description:
-    'Plataforma de ensino superior a distância da Faculdade Diferencial. Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida.',
+    'Faculdade Diferencial. Cursos de graduação e pós-graduação com qualidade, flexibilidade e certificação reconhecida.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '48x48' },
