@@ -159,8 +159,9 @@ exports.webhook = async (req, res) => {
     const [takeoverKeyword] = await db.query("SELECT setting_value FROM chatbot_config WHERE setting_key = 'human_takeover_keyword'");
 
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
+    const brTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Fortaleza' }));
+    const currentHour = brTime.getHours();
+    const currentMin = brTime.getMinutes();
     const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
 
     const startTime = workingHoursStart[0]?.setting_value || '08:00';
