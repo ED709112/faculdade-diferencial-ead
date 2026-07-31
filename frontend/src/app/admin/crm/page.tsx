@@ -5,7 +5,7 @@ import {
   FiPlus, FiSearch, FiFilter, FiUser, FiPhone, FiMail, FiMessageSquare,
   FiArrowRight, FiArrowLeft, FiX, FiSave, FiEye, FiTrash2, FiClock,
   FiTag, FiExternalLink, FiChevronDown, FiChevronRight, FiUsers,
-  FiTrendingUp, FiCalendar, FiHash,
+  FiTrendingUp, FiCalendar, FiHash, FiDownload, FiZap, FiBell,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
@@ -107,6 +107,15 @@ export default function AdminCRMPage() {
   const [newSubject, setNewSubject] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
 
+  const [team, setTeam] = useState<{ id: number; name: string; email: string }[]>([]);
+  const [quickResponses, setQuickResponses] = useState<{ id: number; title: string; content: string; category: string }[]>([]);
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
+  const [quickSearch, setQuickSearch] = useState('');
+
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [showReminders, setShowReminders] = useState(false);
+  const [reminderForm, setReminderForm] = useState({ title: '', notes: '', remind_at: '' });
+
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   useEffect(() => { fetchData(); }, []);
@@ -123,15 +132,19 @@ export default function AdminCRMPage() {
       if (filterStatus) params.status = filterStatus;
       if (filterSource) params.source = filterSource;
 
-      const [leadsRes, statsRes, tagsRes] = await Promise.allSettled([
+      const [leadsRes, statsRes, tagsRes, teamRes, quickRes] = await Promise.allSettled([
         api.get('/crm/leads', { params }),
         api.get('/crm/stats'),
         api.get('/crm/tags'),
+        api.get('/crm/team'),
+        api.get('/crm/quick-responses'),
       ]);
 
       if (leadsRes.status === 'fulfilled') setLeads(leadsRes.value.data.leads || []);
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
       if (tagsRes.status === 'fulfilled') setTags(tagsRes.value.data || []);
+      if (teamRes.status === 'fulfilled') setTeam(teamRes.value.data || []);
+      if (quickRes.status === 'fulfilled') setQuickResponses(quickRes.value.data?.filter((q: any) => q.is_active) || []);
     } catch {
       toast.error('Erro ao carregar dados do CRM');
     } finally {
@@ -214,11 +227,73 @@ export default function AdminCRMPage() {
     finally { setSendingMsg(false); }
   };
 
+  const handleExport = async () => {
+    try {
+      const params: any = {};
+      if (filterStatus) params.status = filterStatus;
+      if (filterSource) params.source = filterSource;
+      if (search) params.search = search;
+
+      const res = await api.get('/crm/export', { params, responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Exportação concluída!');
+    } catch { toast.error('Erro ao exportar'); }
+  };
+
+  const handleAssign = async (leadId: number, userId: string) => {
+    try {
+      await api.put(`/crm/leads/${leadId}`, { assigned_to: userId ? parseInt(userId) : null });
+      toast.success('Atendente atualizado!');
+      const { data } = await api.get(`/crm/leads/${leadId}`);
+      if (selectedLead) setSelectedLead(data);
+      fetchData();
+    } catch { toast.error('Erro ao atribuir'); }
+  };
+
+  const loadReminders = async () => {
+    try {
+      const { data } = await api.get('/crm/reminders', { params: { pending: 'true' } });
+      setReminders(data || []);
+    } catch { /* silencioso */ }
+  };
+
+  const addReminder = async () => {
+    if (!selectedLead || !reminderForm.title.trim() || !reminderForm.remind_at) {
+      toast.error('Título e data são obrigatórios'); return;
+    }
+    try {
+      await api.post('/crm/reminders', {
+        lead_id: selectedLead.id,
+        title: reminderForm.title,
+        notes: reminderForm.notes || null,
+        remind_at: new Date(reminderForm.remind_at).toISOString(),
+      });
+      toast.success('Lembrete criado!');
+      setReminderForm({ title: '', notes: '', remind_at: '' });
+      loadReminders();
+    } catch { toast.error('Erro ao criar lembrete'); }
+  };
+
+  const toggleReminder = async (id: number, isDone: boolean) => {
+    try {
+      await api.put(`/crm/reminders/${id}`, { is_done: isDone });
+      loadReminders();
+    } catch { toast.error('Erro ao atualizar lembrete'); }
+  };
+
   const openLeadDetail = async (lead: Lead) => {
     try {
       const { data } = await api.get(`/crm/leads/${lead.id}`);
       setSelectedLead(data);
       setShowDetail(true);
+      loadReminders();
     } catch { toast.error('Erro ao carregar detalhes'); }
   };
 
@@ -238,10 +313,62 @@ export default function AdminCRMPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">CRM</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Gerencie seus leads e conversões</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors">
-          <FiPlus className="text-lg" /> Novo Lead
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExport}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+            <FiDownload /> Exportar Excel
+          </button>
+          <button onClick={() => { setShowReminders(!showReminders); if (!showReminders) loadReminders(); }}
+            className="relative inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+            <FiBell /> Lembretes
+            {reminders.filter(r => !r.is_done).length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {reminders.filter(r => !r.is_done).length}
+              </span>
+            )}
+          </button>
+          <button onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors">
+            <FiPlus className="text-lg" /> Novo Lead
+          </button>
+        </div>
       </div>
+
+      {/* Lembretes Panel */}
+      {showReminders && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <FiBell className="text-primary-500" /> Lembretes pendentes
+            </h2>
+            <button onClick={() => setShowReminders(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+              <FiX className="text-gray-500" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {reminders.filter(r => !r.is_done).map(r => (
+              <div key={r.id} className="flex items-center justify-between border border-gray-100 dark:border-gray-700 rounded-xl p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{r.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    <FiClock className="inline mr-1" />
+                    {new Date(r.remind_at).toLocaleString('pt-BR')}
+                    {r.lead_name && ` • ${r.lead_name}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => toggleReminder(r.id, true)}
+                    className="px-3 py-1.5 text-xs font-semibold bg-emerald-500 text-white rounded-lg hover:bg-emerald-600">
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            ))}
+            {reminders.filter(r => !r.is_done).length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-4">Nenhum lembrete pendente</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       {stats && (
@@ -466,6 +593,24 @@ export default function AdminCRMPage() {
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedLead.notes}</p>
                 </div>
               )}
+              {/* Atendente responsável */}
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                <label className="block text-xs font-medium text-gray-500 mb-2">Atendente responsável</label>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedLead.assigned_to?.toString() || ''}
+                    onChange={e => handleAssign(selectedLead.id, e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 outline-none">
+                    <option value="">Não atribuído</option>
+                    {team.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </div>
+                {selectedLead.assigned_name && (
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                    <FiUser className="text-primary-500" /> {selectedLead.assigned_name}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Status Actions */}
@@ -509,13 +654,83 @@ export default function AdminCRMPage() {
                     className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs outline-none" />
                 </div>
                 <div className="flex gap-2">
-                  <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} rows={2}
-                    placeholder="Digite a mensagem ou nota..."
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm outline-none resize-none" />
+                  <div className="flex-1 relative">
+                    <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} rows={2}
+                      placeholder="Digite a mensagem ou nota..."
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm outline-none resize-none" />
+                    {/* Botão respostas rápidas */}
+                    <button
+                      onClick={() => { setShowQuickMenu(!showQuickMenu); setQuickSearch(''); }}
+                      className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-primary-50 text-primary-500 hover:bg-primary-100"
+                      title="Respostas rápidas">
+                      <FiZap className="text-sm" />
+                    </button>
+                    {showQuickMenu && (
+                      <div className="absolute bottom-10 right-0 w-72 max-h-64 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-20">
+                        <input type="text" value={quickSearch} onChange={e => setQuickSearch(e.target.value)}
+                          placeholder="Buscar resposta..."
+                          className="sticky top-0 w-full px-3 py-2 text-xs border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none"
+                          autoFocus />
+                        {quickResponses.filter(q =>
+                          q.title.toLowerCase().includes(quickSearch.toLowerCase()) ||
+                          q.content.toLowerCase().includes(quickSearch.toLowerCase())
+                        ).map(q => (
+                          <button key={q.id}
+                            onClick={() => { setNewMessage(q.content); setShowQuickMenu(false); }}
+                            className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">{q.title}</p>
+                            <p className="text-[11px] text-gray-500 truncate">{q.content}</p>
+                          </button>
+                        ))}
+                        {quickResponses.filter(q =>
+                          q.title.toLowerCase().includes(quickSearch.toLowerCase()) ||
+                          q.content.toLowerCase().includes(quickSearch.toLowerCase())
+                        ).length === 0 && (
+                          <p className="text-center text-xs text-gray-400 py-4">Nenhuma resposta encontrada</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <button onClick={handleAddInteraction} disabled={!newMessage.trim() || sendingMsg}
                     className="self-end px-4 py-2 bg-primary-500 text-white text-sm font-semibold rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors">
                     {sendingMsg ? '...' : 'Salvar'}
                   </button>
+                </div>
+              </div>
+
+              {/* Lembretes do lead */}
+              <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 mb-4 space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Lembretes</h4>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input type="text" value={reminderForm.title} onChange={e => setReminderForm({ ...reminderForm, title: e.target.value })}
+                    placeholder="Título do lembrete"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs outline-none" />
+                  <input type="datetime-local" value={reminderForm.remind_at} onChange={e => setReminderForm({ ...reminderForm, remind_at: e.target.value })}
+                    className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs outline-none" />
+                  <button onClick={addReminder}
+                    className="px-4 py-2 bg-primary-500 text-white text-xs font-semibold rounded-lg hover:bg-primary-600">
+                    Criar
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {reminders.filter(r => r.lead_id === selectedLead.id).map(r => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FiClock className="text-gray-400 shrink-0" />
+                        <span className={`truncate ${r.is_done ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>{r.title}</span>
+                        <span className="text-gray-400 shrink-0">{new Date(r.remind_at).toLocaleString('pt-BR')}</span>
+                      </div>
+                      {!r.is_done && (
+                        <button onClick={() => toggleReminder(r.id, true)}
+                          className="text-emerald-500 hover:text-emerald-600 font-semibold shrink-0">
+                          Concluir
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {reminders.filter(r => r.lead_id === selectedLead.id).length === 0 && (
+                    <p className="text-center text-gray-400 text-xs py-2">Sem lembretes para este lead</p>
+                  )}
                 </div>
               </div>
 

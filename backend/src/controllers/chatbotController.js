@@ -172,9 +172,29 @@ exports.webhook = async (req, res) => {
     let conv;
 
     if (convs.length === 0) {
+      // Criar lead no CRM e vincular à conversa
+      let leadId = null;
+      try {
+        const [existingLeads] = await db.query(
+          'SELECT id FROM leads WHERE whatsapp = ? OR phone = ? LIMIT 1',
+          [phone, phone]
+        );
+        if (existingLeads.length > 0) {
+          leadId = existingLeads[0].id;
+        } else {
+          const [leadResult] = await db.query(
+            'INSERT INTO leads (name, phone, whatsapp, source, status) VALUES (?, ?, ?, ?, ?)',
+            [contactName, phone, phone, 'whatsapp', 'new']
+          );
+          leadId = leadResult.insertId;
+        }
+      } catch (leadError) {
+        console.error('Erro ao criar lead no CRM:', leadError.message);
+      }
+
       const [result] = await db.query(
-        'INSERT INTO chatbot_conversations (phone, contact_name, status) VALUES (?, ?, ?)',
-        [phone, contactName, 'active']
+        'INSERT INTO chatbot_conversations (phone, contact_name, status, lead_id) VALUES (?, ?, ?, ?)',
+        [phone, contactName, 'active', leadId]
       );
       conv = { id: result.insertId, phone, contact_name: contactName, status: 'active' };
 

@@ -265,6 +265,10 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Iniciar automações do CRM (follow ups, backups, lembretes)
+const crmAutomation = require('./services/crmAutomation');
+crmAutomation.start();
+
 server.listen(PORT, HOST, () => {
   console.log(`
   ====================================
