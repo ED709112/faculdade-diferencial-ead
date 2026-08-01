@@ -60,6 +60,7 @@ const alumniRoutes = require('./routes/alumni');
 const poloRoutes = require('./routes/polos');
 const crmRoutes = require('./routes/crm');
 const chatbotRoutes = require('./routes/chatbot');
+const billingRoutes = require('./routes/billing');
 
 const app = express();
 const server = http.createServer(app);
@@ -177,6 +178,7 @@ app.use('/api/alumni', alumniRoutes);
 app.use('/api/polos', poloRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/admin/billing', billingRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

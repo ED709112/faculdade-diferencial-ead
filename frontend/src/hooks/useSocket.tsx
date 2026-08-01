@@ -4,7 +4,10 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './useAuth';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+const SOCKET_URL =
+  typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL?.startsWith('http')
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
 
 export function useSocket() {
   const { user } = useAuth();

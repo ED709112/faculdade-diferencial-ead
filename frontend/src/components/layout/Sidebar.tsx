@@ -31,6 +31,7 @@ import {
   FiFile,
   FiMapPin,
   FiTarget,
+  FiCreditCard,
 } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 
@@ -62,6 +63,7 @@ const adminMenu: MenuItem[] = [
   { label: 'Cupons', href: '/admin/cupons', icon: FiDollarSign },
   { label: 'Produtos', href: '/admin/produtos', icon: FiShoppingBag },
   { label: 'Financeiro', href: '/admin/financeiro', icon: FiBarChart2 },
+  { label: 'Régua de Cobrança', href: '/admin/cobranca', icon: FiCreditCard },
   { label: 'Badges', href: '/admin/badges', icon: FiStar },
   { label: 'Configurações', href: '/admin/configuracoes', icon: FiSettings },
   { label: 'Usuários', href: '/admin/usuarios', icon: FiShield },
@@ -91,6 +93,7 @@ const adminPermissionMap: Record<string, string> = {
   '/admin/cupons': 'coupons',
   '/admin/produtos': 'products',
   '/admin/financeiro': 'financial',
+  '/admin/cobranca': 'financial',
   '/admin/badges': 'badges',
   '/admin/configuracoes': 'settings',
   '/admin/usuarios': 'users',

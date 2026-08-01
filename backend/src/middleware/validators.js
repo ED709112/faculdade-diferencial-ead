@@ -1,5 +1,7 @@
 const { body, param, query, validationResult } = require('express-validator');
 
+const validPhone = (value) => /^\d{10,11}$/.test(String(value || '').replace(/\D/g, ''));
+
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -21,7 +23,7 @@ const authValidators = {
     body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
     body('password').isLength({ min: 8 }).withMessage('Senha deve ter pelo menos 8 caracteres.')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Senha deve conter ao menos: 1 letra maiúscula, 1 minúscula e 1 número.'),
-    body('phone').optional().matches(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/).withMessage('Formato de telefone inválido.'),
+    body('phone').optional().custom(validPhone).withMessage('Formato de telefone inválido.'),
     body('lgpd_consent').equals('true').withMessage('É necessário aceitar a LGPD.'),
     handleValidation
   ],
@@ -66,7 +68,7 @@ const courseValidators = {
 const userValidators = {
   updateProfile: [
     body('name').optional().trim().isLength({ min: 2, max: 255 }).withMessage('Nome deve ter entre 2 e 255 caracteres.'),
-    body('phone').optional().matches(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/).withMessage('Formato de telefone inválido.'),
+    body('phone').optional().custom(validPhone).withMessage('Formato de telefone inválido.'),
     body('cpf').optional().matches(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/).withMessage('Formato de CPF inválido.'),
     body('birth_date').optional().isDate().withMessage('Data de nascimento inválida.'),
     handleValidation

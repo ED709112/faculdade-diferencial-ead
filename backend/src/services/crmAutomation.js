@@ -2,6 +2,7 @@ const db = require('../config/database');
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const billingService = require('./billingService');
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '..', '..', 'backups');
 const MAX_BACKUPS = parseInt(process.env.MAX_BACKUPS) || 14;
@@ -123,6 +124,7 @@ async function checkOverdueReminders() {
 let followUpTimer = null;
 let backupTimer = null;
 let reminderTimer = null;
+let billingTimer = null;
 
 function start() {
   if (followUpTimer) return;
@@ -135,6 +137,10 @@ function start() {
 
   // Lembretes: a cada minuto
   reminderTimer = setInterval(checkOverdueReminders, 60 * 1000);
+
+  // Régua de cobrança: a cada 5 minutos (envio automático via WhatsApp)
+  billingTimer = setInterval(billingService.processBillingDunning, 5 * 60 * 1000);
+  billingService.processBillingDunning();
 
   // Backup: diário às 03:00 (checagem a cada hora)
   backupTimer = setInterval(() => {
@@ -154,7 +160,8 @@ function stop() {
   if (followUpTimer) clearInterval(followUpTimer);
   if (backupTimer) clearInterval(backupTimer);
   if (reminderTimer) clearInterval(reminderTimer);
-  followUpTimer = backupTimer = reminderTimer = null;
+  if (billingTimer) clearInterval(billingTimer);
+  followUpTimer = backupTimer = reminderTimer = billingTimer = null;
 }
 
 module.exports = { start, stop, processFollowUps, runDatabaseBackup, checkOverdueReminders };
