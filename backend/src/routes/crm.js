@@ -1,7 +1,13 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const crm = require('../controllers/crmController');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 // Stats
 router.get('/stats', authenticate, authorize('admin'), crm.getStats);
@@ -24,6 +30,9 @@ router.delete('/tags/:id', authenticate, authorize('admin'), crm.deleteTag);
 
 // Exportação
 router.get('/export', authenticate, authorize('admin'), crm.exportLeads);
+
+// Importação em lote
+router.post('/import', authenticate, authorize('admin'), upload.single('file'), crm.importLeads);
 
 // Respostas rápidas
 router.get('/quick-responses', authenticate, authorize('admin'), crm.listQuickResponses);

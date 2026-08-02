@@ -732,3 +732,233 @@ exports.runBackupNow = async (req, res) => {
     res.status(500).json({ error: 'Erro ao realizar backup: ' + error.message });
   }
 };
+
+// =====================================================
+// IMPORT EM LOTE DE LEADS (Excel)
+// =====================================================
+
+function leadNormHeader(h) {
+  return String(h ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function leadCleanStr(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object' && 'richText' in v) v = v.richText.map((r) => r.text).join('');
+  if (typeof v === 'object' && 'text' in v) v = v.text;
+  if (typeof v === 'object' && 'result' in v) v = v.result;
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  return String(v).replace(/\s+/g, ' ').trim();
+}
+
+function leadDigits(s) {
+  return String(s || '').replace(/\D/g, '');
+}
+
+function leadPhoneE164(raw) {
+  let d = leadDigits(raw);
+  if (!d) return null;
+  if (d.length === 10 || d.length === 11) d = '55' + d;
+  if (!(d.startsWith('55') && (d.length === 12 || d.length === 13))) return null;
+  return d;
+}
+
+function leadDate(v) {
+  const s = leadCleanStr(v);
+  if (!s) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+  if (m) {
+    const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+    return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt.toISOString().slice(0, 10);
+}
+
+const LEAD_COL_MAP = {
+  nome: 'name',
+  cpf: 'cpf',
+  rg: 'rg',
+  ra: 'ra',
+  datanascimento: 'data_nascimento',
+  sexo: 'sexo',
+  endereco: 'endereco',
+  numero: 'numero',
+  n: 'numero',
+  complemento: 'complemento',
+  bairro: 'bairro',
+  cidade: 'cidade',
+  estado: 'estado',
+  cep: 'cep',
+  telefone: 'phone',
+  celular: 'phone_fallback',
+  whatsapp: 'whatsapp',
+  email: 'email',
+  naturalidade: 'naturalidade',
+  situacao: 'situacao',
+  datacadastro: 'data_cadastro',
+  responsavel: 'responsavel',
+  whatsappresponsavel: 'responsavel_whatsapp',
+  telefoneresponsavel: 'responsavel_telefone',
+  escola: 'escola',
+  seriegrau: 'serie_grau',
+  localdetrabalho: 'local_trabalho',
+  titulodeeleitor: 'titulo_eleitor',
+  observacoes: 'observacoes',
+};
+
+exports.importLeads = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Envie um arquivo Excel (.xlsx)' });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const ws = workbook.worksheets[0];
+
+    const rows = [];
+    ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      const values = {};
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        values[colNumber] = leadCleanStr(cell.value);
+      });
+      rows.push({ rowNumber, values });
+    });
+    if (rows.length < 2) return res.status(400).json({ error: 'Arquivo sem dados' });
+
+    // Detecta a linha de cabeçalho (nome + cpf ou whatsapp)
+    let headerRowNumber = -1;
+    let colMap = {};
+    for (const r of rows) {
+      const found = {};
+      for (const [i, v] of Object.entries(r.values)) {
+        const nh = leadNormHeader(v);
+        if (nh && LEAD_COL_MAP[nh]) found[LEAD_COL_MAP[nh]] = parseInt(i, 10);
+      }
+      if (found.name && (found.cpf || found.whatsapp)) {
+        headerRowNumber = r.rowNumber;
+        colMap = found;
+        break;
+      }
+    }
+    if (headerRowNumber === -1) {
+      return res.status(400).json({ error: 'Cabeçalho não encontrado. Necessário colunas com Nome e CPF ou WhatsApp.' });
+    }
+
+    // CPFs e WhatsApps já cadastrados (dedup)
+    const [existing] = await db.query('SELECT cpf, whatsapp, phone FROM leads');
+    const cpfSet = new Set();
+    const waSet = new Set();
+    for (const l of existing) {
+      const c = leadDigits(l.cpf);
+      if (c) cpfSet.add(c);
+      const w = leadDigits(l.whatsapp || l.phone);
+      if (w) waSet.add(w);
+    }
+
+    const get = (row, key) => (colMap[key] ? row.values[colMap[key]] : '');
+    const insertCols = [
+      'name', 'email', 'phone', 'whatsapp', 'cpf', 'source', 'source_detail', 'status',
+      'rg', 'ra', 'data_nascimento', 'sexo', 'endereco', 'numero', 'complemento', 'bairro',
+      'cidade', 'estado', 'cep', 'naturalidade', 'situacao', 'data_cadastro',
+      'responsavel', 'responsavel_whatsapp', 'responsavel_telefone',
+      'escola', 'serie_grau', 'local_trabalho', 'titulo_eleitor', 'observacoes',
+    ];
+
+    const imported = [];
+    const skipped = [];
+    let dupCpf = 0;
+    let dupWhats = 0;
+    let semTelefone = 0;
+    const fileName = req.file.originalname || 'importação';
+
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      const sql = `INSERT INTO leads (${insertCols.join(', ')}) VALUES (${insertCols.map(() => '?').join(', ')})`;
+      for (const r of rows) {
+        if (r.rowNumber <= headerRowNumber) continue;
+
+        const name = leadCleanStr(get(r, 'name'));
+        if (!name || /^\d+$/.test(name)) {
+          skipped.push({ row: r.rowNumber, reason: name ? 'linha de totais/rodapé' : 'sem nome' });
+          continue;
+        }
+        const cpf = leadDigits(get(r, 'cpf'));
+        if (cpf && cpfSet.has(cpf)) {
+          dupCpf++;
+          skipped.push({ row: r.rowNumber, reason: 'CPF duplicado' });
+          continue;
+        }
+        const whatsapp = leadPhoneE164(get(r, 'whatsapp')) || leadPhoneE164(get(r, 'phone_fallback')) || leadPhoneE164(get(r, 'phone'));
+        if (!cpf && whatsapp && waSet.has(whatsapp)) {
+          dupWhats++;
+          skipped.push({ row: r.rowNumber, reason: 'WhatsApp duplicado' });
+          continue;
+        }
+        if (!whatsapp) semTelefone++;
+
+        const vals = {
+          name,
+          email: leadCleanStr(get(r, 'email')) || null,
+          phone: leadCleanStr(get(r, 'phone')) || null,
+          whatsapp,
+          cpf: cpf || null,
+          source: 'importação',
+          source_detail: fileName,
+          status: 'new',
+          rg: leadCleanStr(get(r, 'rg')) || null,
+          ra: leadCleanStr(get(r, 'ra')) || null,
+          data_nascimento: leadDate(get(r, 'data_nascimento')),
+          sexo: leadCleanStr(get(r, 'sexo')) || null,
+          endereco: leadCleanStr(get(r, 'endereco')) || null,
+          numero: leadCleanStr(get(r, 'numero')) || null,
+          complemento: leadCleanStr(get(r, 'complemento')) || null,
+          bairro: leadCleanStr(get(r, 'bairro')) || null,
+          cidade: leadCleanStr(get(r, 'cidade')) || null,
+          estado: leadCleanStr(get(r, 'estado')) || null,
+          cep: leadCleanStr(get(r, 'cep')) || null,
+          naturalidade: leadCleanStr(get(r, 'naturalidade')) || null,
+          situacao: leadCleanStr(get(r, 'situacao')) || 'Ativo',
+          data_cadastro: leadDate(get(r, 'data_cadastro')),
+          responsavel: leadCleanStr(get(r, 'responsavel')) || null,
+          responsavel_whatsapp: leadPhoneE164(get(r, 'responsavel_whatsapp')),
+          responsavel_telefone: leadCleanStr(get(r, 'responsavel_telefone')) || null,
+          escola: leadCleanStr(get(r, 'escola')) || null,
+          serie_grau: leadCleanStr(get(r, 'serie_grau')) || null,
+          local_trabalho: leadCleanStr(get(r, 'local_trabalho')) || null,
+          titulo_eleitor: leadCleanStr(get(r, 'titulo_eleitor')) || null,
+          observacoes: leadCleanStr(get(r, 'observacoes')) || null,
+        };
+
+        await connection.query(sql, insertCols.map((c) => vals[c]));
+        imported.push(r.rowNumber);
+        if (cpf) cpfSet.add(cpf);
+        if (whatsapp) waSet.add(whatsapp);
+      }
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+
+    res.json({
+      message: `Importação concluída: ${imported.length} cadastro(s) importado(s)`,
+      imported: imported.length,
+      skipped: skipped.length,
+      duplicatesCpf: dupCpf,
+      duplicatesWhatsapp: dupWhats,
+      semTelefone,
+      skippedDetails: skipped.slice(0, 50),
+    });
+  } catch (error) {
+    console.error('[Leads] Erro ao importar:', error.message);
+    res.status(500).json({ error: 'Erro ao importar: ' + error.message });
+  }
+};

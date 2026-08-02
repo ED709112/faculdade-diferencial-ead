@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FiPlus, FiSearch, FiFilter, FiUser, FiPhone, FiMail, FiMessageSquare,
   FiArrowRight, FiArrowLeft, FiX, FiSave, FiEye, FiTrash2, FiClock,
   FiTag, FiExternalLink, FiChevronDown, FiChevronRight, FiUsers,
-  FiTrendingUp, FiCalendar, FiHash, FiDownload, FiZap, FiBell,
+  FiTrendingUp, FiCalendar, FiHash, FiDownload, FiZap, FiBell, FiUpload,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
@@ -117,6 +117,8 @@ export default function AdminCRMPage() {
   const [reminderForm, setReminderForm] = useState({ title: '', notes: '', remind_at: '' });
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -247,6 +249,25 @@ export default function AdminCRMPage() {
     } catch { toast.error('Erro ao exportar'); }
   };
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+      toast.error('Envie um arquivo Excel (.xlsx)'); return;
+    }
+    setImporting(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await api.post('/crm/import', form);
+      toast.success(data.message || 'Importação concluída!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Erro ao importar');
+    } finally { setImporting(false); }
+  };
+
   const handleAssign = async (leadId: number, userId: string) => {
     try {
       await api.put(`/crm/leads/${leadId}`, { assigned_to: userId ? parseInt(userId) : null });
@@ -314,6 +335,11 @@ export default function AdminCRMPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Gerencie seus leads e conversões</p>
         </div>
         <div className="flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+          <button onClick={() => fileInputRef.current?.click()} disabled={importing}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-60">
+            <FiUpload /> {importing ? 'Importando...' : 'Importar Excel'}
+          </button>
           <button onClick={handleExport}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
             <FiDownload /> Exportar Excel
