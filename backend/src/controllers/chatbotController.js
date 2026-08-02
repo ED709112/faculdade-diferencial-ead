@@ -166,6 +166,11 @@ exports.webhook = async (req, res) => {
       return res.status(200).json({ ok: true });
     }
 
+    // Ignora mensagens de grupos (JIDs @g.us não são números válidos para o chatbot)
+    if (body.data?.key?.remoteJid?.endsWith('@g.us')) {
+      return res.status(200).json({ ok: true });
+    }
+
     const phone = body.data?.key?.remoteJid?.replace('@s.whatsapp.net', '')?.replace('@lid', '') || body.phone;
     const messageContent = body.data?.message?.conversation || body.data?.message?.extendedTextMessage?.text || body.content;
     const contactName = body.data?.pushName || body.contactName || 'Desconhecido';
