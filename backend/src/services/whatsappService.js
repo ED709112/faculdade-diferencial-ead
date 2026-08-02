@@ -52,9 +52,10 @@ class WhatsAppService {
       const cleanPhone = phone.replace(/\D/g, '');
       const number = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
 
-      const response = await client.post(`/message/sendImage/${this.instance}`, {
+      const response = await client.post(`/message/sendMedia/${this.instance}`, {
         number,
-        imageUrl,
+        mediatype: 'image',
+        media: imageUrl,
         caption,
       });
 
