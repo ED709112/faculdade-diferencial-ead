@@ -258,7 +258,7 @@ const create = async (req, res) => {
   try {
     const {
       title, subtitle, description, content_program, price, original_price,
-      discount_price, workload, workload_certificate, category_id, is_free,
+      discount_price, workload,       workload_certificate, category_id, polo_id, is_free,
       has_certificate, status, requirements, target_audience, what_you_learn,
       meta_title, meta_description, max_students, start_date, end_date, max_installments, tags
     } = req.body;
