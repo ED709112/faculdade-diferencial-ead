@@ -3,9 +3,10 @@ const promoService = require('../services/promoService');
 
 exports.create = async (req, res) => {
   try {
-    const { name, message, poster_url, course_id, course_name, enrollment_link } = req.body;
+    const { name, message, message_reminder, message_urgency, reminder_days, urgency_days, poster_url, course_id, course_name, enrollment_link } = req.body;
     const id = await promoService.createCampaign({
-      name, message, poster_url, course_id, course_name, enrollment_link, createdBy: req.user?.id,
+      name, message, message_reminder, message_urgency, reminder_days, urgency_days,
+      poster_url, course_id, course_name, enrollment_link, createdBy: req.user?.id,
     });
     return res.status(201).json({ message: 'Campanha criada', id });
   } catch (error) {

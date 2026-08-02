@@ -80,12 +80,12 @@ function fillMessage(tpl, record, campaign, link) {
 // CAMPANHAS
 // =====================================================
 
-async function createCampaign({ name, message, poster_url, course_id, course_name, enrollment_link, createdBy }) {
+async function createCampaign({ name, message, message_reminder, message_urgency, reminder_days, urgency_days, poster_url, course_id, course_name, enrollment_link, createdBy }) {
   if (!name || !message) throw new Error('Nome e mensagem são obrigatórios');
   const [res] = await db.query(
-    `INSERT INTO promo_campaigns (name, message, poster_url, course_id, course_name, enrollment_link, status, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)`,
-    [name, message, poster_url || null, course_id || null, course_name || null, enrollment_link || null, createdBy || null]
+    `INSERT INTO promo_campaigns (name, message, message_reminder, message_urgency, reminder_days, urgency_days, poster_url, course_id, course_name, enrollment_link, status, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`,
+    [name, message, message_reminder || null, message_urgency || null, parseInt(reminder_days, 10) || 3, parseInt(urgency_days, 10) || 6, poster_url || null, course_id || null, course_name || null, enrollment_link || null, createdBy || null]
   );
   return res.insertId;
 }
@@ -113,13 +113,16 @@ async function getCampaign(id) {
 }
 
 async function updateCampaign(id, fields) {
-  const allowed = ['name', 'message', 'poster_url', 'course_id', 'course_name', 'enrollment_link', 'status'];
+  const allowed = ['name', 'message', 'message_reminder', 'message_urgency', 'reminder_days', 'urgency_days', 'poster_url', 'course_id', 'course_name', 'enrollment_link', 'status'];
   const sets = [];
   const params = [];
   for (const key of allowed) {
     if (fields[key] !== undefined) {
+      let v = fields[key];
+      if (v === '') v = null;
+      if ((key === 'reminder_days' || key === 'urgency_days') && (v === null || v === undefined)) v = key === 'reminder_days' ? 3 : 6;
       sets.push(`${key} = ?`);
-      params.push(fields[key] === '' ? null : fields[key]);
+      params.push(v);
     }
   }
   if (sets.length === 0) throw new Error('Nenhum campo para atualizar');
@@ -210,62 +213,123 @@ async function processPromoSending() {
     if (throttle.count >= cfg.maxPerHour) return;
 
     const [camps] = await db.query(
-      `SELECT * FROM promo_campaigns WHERE status = 'active' AND total_records > sent_count ORDER BY created_at ASC`
+      `SELECT * FROM promo_campaigns WHERE status = 'active' AND total_records > 0 ORDER BY created_at ASC`
     );
     if (camps.length === 0) return;
 
-    const [pending] = await db.query(
-      `SELECT r.* FROM promo_campaign_records r
-       JOIN promo_campaigns c ON c.id = r.campaign_id
-       WHERE r.status IN ('pending','error') AND c.status = 'active'
-       ORDER BY r.id ASC
-       LIMIT ?`,
-      [Math.max(cfg.maxPerHour - throttle.count, 1)]
-    );
-    if (pending.length === 0) return;
+    const targets = [];
+    const cap = cfg.maxPerHour;
 
-    console.log(`[Promo] ${pending.length} mensagens na fila (limite: ${cfg.maxPerHour}/h, intervalo: ${cfg.intervalSeconds}s)`);
+    for (const c of camps) {
+      // 1ª mensagem (pendentes/erro)
+      const [first] = await db.query(
+        `SELECT * FROM promo_campaign_records WHERE campaign_id = ? AND status IN ('pending','error') ORDER BY id ASC LIMIT ?`,
+        [c.id, cap]
+      );
+      first.forEach((r) => targets.push({ record: r, stage: 'first', field: 'sent_at' }));
+
+      // Lembrete (dias após o 1º envio, se não respondeu)
+      if (c.message_reminder) {
+        const [rem] = await db.query(
+          `SELECT * FROM promo_campaign_records
+           WHERE campaign_id = ? AND status = 'sent' AND replied_at IS NULL
+             AND msg_reminder_sent_at IS NULL
+             AND DATEDIFF(CURDATE(), DATE(sent_at)) >= ?
+           ORDER BY id ASC LIMIT ?`,
+          [c.id, c.reminder_days || 3, cap]
+        );
+        rem.forEach((r) => targets.push({ record: r, stage: 'reminder', field: 'msg_reminder_sent_at' }));
+      }
+
+      // Urgência (dias após o 1º envio, se não respondeu)
+      if (c.message_urgency) {
+        const [urg] = await db.query(
+          `SELECT * FROM promo_campaign_records
+           WHERE campaign_id = ? AND status = 'sent' AND replied_at IS NULL
+             AND msg_urgency_sent_at IS NULL
+             AND DATEDIFF(CURDATE(), DATE(sent_at)) >= ?
+           ORDER BY id ASC LIMIT ?`,
+          [c.id, c.urgency_days || 6, cap]
+        );
+        urg.forEach((r) => targets.push({ record: r, stage: 'urgency', field: 'msg_urgency_sent_at' }));
+      }
+    }
+
+    if (targets.length === 0) return;
+
+    console.log(`[Promo] ${targets.length} mensagens na fila (limite: ${cfg.maxPerHour}/h, intervalo: ${cfg.intervalSeconds}s)`);
 
     const campaignMap = new Map(camps.map((c) => [c.id, c]));
 
-    for (const rec of pending) {
+    for (const { record, stage, field } of targets) {
       if (throttle.count >= cfg.maxPerHour) {
         console.log(`[Promo] Limite de ${cfg.maxPerHour} msg/h atingido. Envios continuam depois.`);
-        return;
+        break;
       }
-      const camp = campaignMap.get(rec.campaign_id);
+      const camp = campaignMap.get(record.campaign_id);
       if (!camp) continue;
+      const tpl = stage === 'first' ? camp.message : stage === 'reminder' ? camp.message_reminder : camp.message_urgency;
+      if (!tpl) continue;
       try {
         const link = buildLink(cfg, camp);
-        const text = fillMessage(camp.message, rec, camp, link);
+        const text = fillMessage(tpl, record, camp, link);
         if (camp.poster_url) {
           const img = camp.poster_url.startsWith('http') ? camp.poster_url : `${cfg.siteUrl}${camp.poster_url}`;
-          await whatsappService.sendImage(rec.whatsapp, img, text);
+          await whatsappService.sendImage(record.whatsapp, img, text);
         } else {
-          await whatsappService.sendMessage(rec.whatsapp, text);
+          await whatsappService.sendMessage(record.whatsapp, text);
         }
-        await db.query(
-          `UPDATE promo_campaign_records SET status = 'sent', sent_at = NOW(), last_error = NULL WHERE id = ?`,
-          [rec.id]
-        );
-        await db.query('UPDATE promo_campaigns SET sent_count = sent_count + 1 WHERE id = ?', [camp.id]);
-        await db.query('INSERT INTO promo_send_log (record_id, phone) VALUES (?, ?)', [rec.id, rec.whatsapp]);
+        if (stage === 'first') {
+          await db.query(
+            `UPDATE promo_campaign_records SET status = 'sent', sent_at = NOW(), last_error = NULL WHERE id = ?`,
+            [record.id]
+          );
+        } else {
+          await db.query(
+            `UPDATE promo_campaign_records SET ${field} = NOW(), last_error = NULL WHERE id = ?`,
+            [record.id]
+          );
+        }
+        await db.query('INSERT INTO promo_send_log (record_id, phone) VALUES (?, ?)', [record.id, record.whatsapp]);
         throttle.count += 1;
-        console.log(`[Promo] Enviado para ${rec.name} (${rec.whatsapp}) [${throttle.count}/${cfg.maxPerHour}]`);
+        console.log(`[Promo] ${stage} enviado p/ ${record.name} (${record.whatsapp}) [${throttle.count}/${cfg.maxPerHour}]`);
       } catch (error) {
-        await db.query(
-          `UPDATE promo_campaign_records SET status = 'error', last_error = ? WHERE id = ?`,
-          [String(error.message || error).slice(0, 500), rec.id]
-        );
-        console.error(`[Promo] Erro para ${rec.whatsapp}:`, error.message);
+        if (stage === 'first') {
+          await db.query(
+            `UPDATE promo_campaign_records SET status = 'error', last_error = ? WHERE id = ?`,
+            [String(error.message || error).slice(0, 500), record.id]
+          );
+        } else {
+          await db.query(
+            `UPDATE promo_campaign_records SET last_error = ? WHERE id = ?`,
+            [String(error.message || error).slice(0, 500), record.id]
+          );
+        }
+        console.error(`[Promo] ${stage} erro p/ ${record.whatsapp}:`, error.message);
       }
       if (throttle.count < cfg.maxPerHour) {
         await sleep(randomDelay(cfg.intervalSeconds));
       }
     }
 
+    // Atualiza progresso e status das campanhas
     for (const c of camps) {
-      if (c.total_records > 0 && c.sent_count >= c.total_records) {
+      const [[{ done }]] = await db.query(
+        `SELECT SUM(
+           r.replied_at IS NOT NULL
+           OR r.msg_urgency_sent_at IS NOT NULL
+           OR (COALESCE(?, '') = '' AND r.msg_reminder_sent_at IS NOT NULL)
+           OR (COALESCE(?, '') = '' AND COALESCE(?, '') = '' AND r.status = 'sent')
+         ) AS done
+         FROM promo_campaign_records r WHERE r.campaign_id = ?`,
+        [c.message_urgency, c.message_urgency, c.message_reminder, c.id]
+      );
+      const [[{ remaining }]] = await db.query(
+        `SELECT COUNT(*) AS remaining FROM promo_campaign_records WHERE campaign_id = ? AND status IN ('pending','error')`,
+        [c.id]
+      );
+      await db.query('UPDATE promo_campaigns SET sent_count = ? WHERE id = ?', [Number(done || 0), c.id]);
+      if (Number(remaining || 0) === 0 && Number(done || 0) >= Number(c.total_records || 0)) {
         await db.query("UPDATE promo_campaigns SET status = 'completed' WHERE id = ?", [c.id]);
       }
     }

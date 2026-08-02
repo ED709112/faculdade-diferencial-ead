@@ -196,7 +196,7 @@ exports.webhook = async (req, res) => {
         'INSERT INTO chatbot_conversations (phone, contact_name, status, lead_id) VALUES (?, ?, ?, ?)',
         [phone, contactName, 'active', leadId]
       );
-      conv = { id: result.insertId, phone, contact_name: contactName, status: 'active' };
+      conv = { id: result.insertId, phone, contact_name: contactName, status: 'active', lead_id: leadId };
 
       const [welcomeMsg] = await db.query("SELECT setting_value FROM chatbot_config WHERE setting_key = 'bot_welcome_message'");
       const welcome = welcomeMsg[0]?.setting_value || 'Olá! Como posso ajudar?';
@@ -215,6 +215,43 @@ exports.webhook = async (req, res) => {
       [conv.id, 'inbound', 'text', messageContent, 0]
     );
     await db.query('UPDATE chatbot_conversations SET last_message_at = NOW(), contact_name = COALESCE(?, contact_name) WHERE id = ?', [contactName, conv.id]);
+
+    // Funil: registra interação no lead e atualiza o status
+    if (conv.lead_id) {
+      try {
+        await db.query(
+          'INSERT INTO lead_interactions (lead_id, type, direction, subject, message) VALUES (?, ?, ?, ?, ?)',
+          [conv.lead_id, 'whatsapp', 'inbound', null, String(messageContent).slice(0, 1000)]
+        );
+        const [leadRows] = await db.query('SELECT status FROM leads WHERE id = ?', [conv.lead_id]);
+        const lower = messageContent.toLowerCase();
+        const interestKeywords = ['quero', 'matrícula', 'matricula', 'matricular', 'valor', 'quanto', 'curso', 'inscri', 'gostaria', 'me interessa', 'começar', 'comecar'];
+        const interested = interestKeywords.some((k) => lower.includes(k));
+        if (leadRows[0]) {
+          const current = leadRows[0].status;
+          const next = interested && current !== 'interested' && current !== 'enrolled' && current !== 'lost'
+            ? 'interested'
+            : (current === 'new' ? 'contacted' : current);
+          if (next !== current) {
+            await db.query('UPDATE leads SET status = ? WHERE id = ?', [next, conv.lead_id]);
+            await db.query(
+              'INSERT INTO lead_interactions (lead_id, type, direction, subject, message) VALUES (?, ?, ?, ?, ?)',
+              [conv.lead_id, 'system', 'inbound', 'status', `Status atualizado para ${next}`]
+            );
+          }
+        }
+        // Para campanhas de divulgação: marca o registro como respondido (interrompe a sequência)
+        await db.query(
+          `UPDATE promo_campaign_records r
+           JOIN promo_campaigns c ON c.id = r.campaign_id
+           SET r.replied_at = NOW()
+           WHERE r.whatsapp = ? AND r.replied_at IS NULL AND c.status IN ('active','paused')`,
+          [phone]
+        );
+      } catch (funnelError) {
+        console.error('Erro no funil do lead:', funnelError.message);
+      }
+    }
 
     if (takeoverKeyword[0]?.setting_value && messageContent.toLowerCase().includes(takeoverKeyword[0].setting_value.toLowerCase())) {
       await db.query("UPDATE chatbot_conversations SET status = 'human' WHERE id = ?", [conv.id]);

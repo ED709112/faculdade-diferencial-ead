@@ -24,7 +24,9 @@ const REC_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 const EMPTY_FORM = {
-  id: 0, name: '', message: '', poster_url: '', course_id: '', course_name: '', enrollment_link: '',
+  id: 0, name: '', message: '', message_reminder: '', message_urgency: '',
+  reminder_days: '3', urgency_days: '6',
+  poster_url: '', course_id: '', course_name: '', enrollment_link: '',
 };
 
 export default function AdminCampanhasPage() {
@@ -98,7 +100,10 @@ export default function AdminCampanhasPage() {
   const openNew = () => { setForm(EMPTY_FORM); setShowModal(true); };
   const openEdit = (c: any) => {
     setForm({
-      id: c.id, name: c.name, message: c.message || '', poster_url: c.poster_url || '',
+      id: c.id, name: c.name, message: c.message || '', message_reminder: c.message_reminder || '',
+      message_urgency: c.message_urgency || '', reminder_days: String(c.reminder_days ?? 3),
+      urgency_days: String(c.urgency_days ?? 6),
+      poster_url: c.poster_url || '',
       course_id: c.course_id ? String(c.course_id) : '', course_name: c.course_name || '',
       enrollment_link: c.enrollment_link || '',
     });
@@ -147,6 +152,10 @@ export default function AdminCampanhasPage() {
     try {
       const payload: any = {
         name: form.name, message: form.message,
+        message_reminder: form.message_reminder || null,
+        message_urgency: form.message_urgency || null,
+        reminder_days: form.reminder_days,
+        urgency_days: form.urgency_days,
         poster_url: form.poster_url || null,
         course_id: form.course_id ? parseInt(form.course_id) : null,
         course_name: form.course_name || null,
@@ -268,7 +277,9 @@ export default function AdminCampanhasPage() {
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_META[c.status]?.cls}`}>{STATUS_META[c.status]?.label}</span>
                     </div>
                     <p className="text-sm text-gray-500 mt-1 truncate">
-                      {c.course_name ? `Curso: ${c.course_name}` : 'Sem curso específico'} · {c.sent_count}/{c.total_records} enviados
+                      {c.course_name ? `Curso: ${c.course_name}` : 'Sem curso específico'} · {c.sent_count}/{c.total_records} concluídos
+                      {c.message_reminder && c.message_urgency && ' · Sequência 3 msgs'}
+                      {c.message_reminder && !c.message_urgency && ' · Sequência 2 msgs'}
                     </p>
                     {c.poster_url && <p className="text-xs text-gray-400 mt-0.5 truncate">Cartaz: {c.poster_url}</p>}
                   </div>
@@ -432,6 +443,25 @@ export default function AdminCampanhasPage() {
                 <span className="text-gray-600 dark:text-gray-400 block">Mensagem *</span>
                 <span className="text-xs text-gray-400">Use {'{nome}'} {'{curso}'} e {'{link}'}</span>
                 <textarea rows={6} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder={'Olá {nome}! A Faculdade Diferencial abriu as matrículas para o curso de {curso}.\nMatricule-se agora: {link}'} className={inputCls + ' mt-1 font-mono'} />
+              </label>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-300">
+                Sequência automática (opcional): a campanha envia o lembrete e a urgência somente se o contato <b>não responder</b>. Quando a pessoa responde, a sequência para e o lead vira contato/interessado no CRM.
+              </div>
+              <label className="text-sm">
+                <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <span>Lembrete (opcional)</span>
+                  <input type="number" min={1} max={60} value={form.reminder_days} onChange={(e) => setForm({ ...form, reminder_days: e.target.value })} className={inputCls + ' !w-20 text-center'} />
+                  <span className="text-xs">dias após o 1º envio</span>
+                </span>
+                <textarea rows={3} value={form.message_reminder} onChange={(e) => setForm({ ...form, message_reminder: e.target.value })} placeholder={'Olá {nome}! Vimos que você ainda não confirmou. As vagas do curso de {curso} estão se encerrando. Garanta a sua: {link}'} className={inputCls + ' mt-1 font-mono'} />
+              </label>
+              <label className="text-sm">
+                <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <span>Urgência (opcional)</span>
+                  <input type="number" min={1} max={60} value={form.urgency_days} onChange={(e) => setForm({ ...form, urgency_days: e.target.value })} className={inputCls + ' !w-20 text-center'} />
+                  <span className="text-xs">dias após o 1º envio</span>
+                </span>
+                <textarea rows={3} value={form.message_urgency} onChange={(e) => setForm({ ...form, message_urgency: e.target.value })} placeholder={'Última chamada {nome}! Últimas vagas do curso de {curso}. Matricule-se hoje: {link}'} className={inputCls + ' mt-1 font-mono'} />
               </label>
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-sm">
                 <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><FiMessageSquare /> Pré-visualização</p>
