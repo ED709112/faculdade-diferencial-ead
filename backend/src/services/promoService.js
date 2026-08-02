@@ -359,6 +359,11 @@ async function sendNow(recordId) {
   } else {
     await whatsappService.sendMessage(rows[0].whatsapp, text);
   }
+  await db.query(
+    `UPDATE promo_campaign_records SET status = 'sent', sent_at = NOW(), last_error = NULL WHERE id = ?`,
+    [recordId]
+  );
+  await db.query('INSERT INTO promo_send_log (record_id, phone) VALUES (?, ?)', [recordId, rows[0].whatsapp]);
   return rows[0].whatsapp;
 }
 
