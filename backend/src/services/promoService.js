@@ -22,7 +22,7 @@ async function getConfig() {
   try {
     const [rows] = await db.query(
       `SELECT setting_key, setting_value FROM settings
-       WHERE setting_key IN ('promo_active', 'promo_send_start', 'promo_send_end', 'promo_max_per_hour', 'promo_interval_seconds', 'site_url')`
+       WHERE setting_key IN ('promo_active', 'promo_send_start', 'promo_send_end', 'promo_max_per_hour', 'promo_interval_seconds', 'promo_instance', 'site_url')`
     );
     const cfg = {};
     rows.forEach((r) => { cfg[r.setting_key] = r.setting_value; });
@@ -32,10 +32,11 @@ async function getConfig() {
       end: parseInt(cfg.promo_send_end, 10) || 20,
       maxPerHour: parseInt(cfg.promo_max_per_hour, 10) || 20,
       intervalSeconds: parseFloat(cfg.promo_interval_seconds) || 25,
+      promoInstance: String(cfg.promo_instance || 'faculdade'),
       siteUrl: String(cfg.site_url || 'https://fadead.com.br').replace(/\/+$/, ''),
     };
   } catch {
-    return { active: true, start: 8, end: 20, maxPerHour: 20, intervalSeconds: 25, siteUrl: 'https://fadead.com.br' };
+    return { active: true, start: 8, end: 20, maxPerHour: 20, intervalSeconds: 25, promoInstance: 'faculdade', siteUrl: 'https://fadead.com.br' };
   }
 }
 
@@ -275,9 +276,9 @@ async function processPromoSending() {
         const text = fillMessage(tpl, record, camp, link);
         if (camp.poster_url) {
           const img = camp.poster_url.startsWith('http') ? camp.poster_url : `${cfg.siteUrl}${camp.poster_url}`;
-          await whatsappService.sendImage(record.whatsapp, img, text);
+          await whatsappService.sendImage(record.whatsapp, img, text, cfg.promoInstance);
         } else {
-          await whatsappService.sendMessage(record.whatsapp, text);
+          await whatsappService.sendMessage(record.whatsapp, text, cfg.promoInstance);
         }
         if (stage === 'first') {
           await db.query(
@@ -355,9 +356,9 @@ async function sendNow(recordId) {
 
   if (rows[0].poster_url) {
     const img = rows[0].poster_url.startsWith('http') ? rows[0].poster_url : `${cfg.siteUrl}${rows[0].poster_url}`;
-    await whatsappService.sendImage(rows[0].whatsapp, img, text);
+    await whatsappService.sendImage(rows[0].whatsapp, img, text, cfg.promoInstance);
   } else {
-    await whatsappService.sendMessage(rows[0].whatsapp, text);
+    await whatsappService.sendMessage(rows[0].whatsapp, text, cfg.promoInstance);
   }
   await db.query(
     `UPDATE promo_campaign_records SET status = 'sent', sent_at = NOW(), last_error = NULL WHERE id = ?`,

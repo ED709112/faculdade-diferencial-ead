@@ -6,7 +6,7 @@ class WhatsAppService {
     this.api = null;
   }
 
-  async getClient() {
+  async getClient(instance) {
     const [rows] = await db.query(`SELECT setting_key, setting_value FROM chatbot_config WHERE setting_key IN ('whatsapp_api_url', 'whatsapp_api_key', 'whatsapp_instance')`);
     const config = {};
     rows.forEach(r => { config[r.setting_key] = r.setting_value; });
@@ -24,13 +24,13 @@ class WhatsAppService {
       timeout: 30000,
     });
 
-    this.instance = config.whatsapp_instance || 'faculdade';
+    this.instance = instance || config.whatsapp_instance || 'faculdade';
     return this.api;
   }
 
-  async sendMessage(phone, message) {
+  async sendMessage(phone, message, instance) {
     try {
-      const client = await this.getClient();
+      const client = await this.getClient(instance);
       const cleanPhone = phone.replace(/\D/g, '');
       const number = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
 
@@ -46,9 +46,9 @@ class WhatsAppService {
     }
   }
 
-  async sendImage(phone, imageUrl, caption = '') {
+  async sendImage(phone, imageUrl, caption = '', instance) {
     try {
-      const client = await this.getClient();
+      const client = await this.getClient(instance);
       const cleanPhone = phone.replace(/\D/g, '');
       const number = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
 
