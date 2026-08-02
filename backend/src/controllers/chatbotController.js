@@ -2,6 +2,24 @@ const db = require('../config/database');
 const chatgptService = require('../services/chatgptService');
 const whatsappService = require('../services/whatsappService');
 
+async function ensureLead(phone, contactName) {
+  try {
+    const [existingLeads] = await db.query(
+      'SELECT id FROM leads WHERE whatsapp = ? OR phone = ? LIMIT 1',
+      [phone, phone]
+    );
+    if (existingLeads.length > 0) return existingLeads[0].id;
+    const [leadResult] = await db.query(
+      'INSERT INTO leads (name, phone, whatsapp, source, status) VALUES (?, ?, ?, ?, ?)',
+      [contactName, phone, phone, 'whatsapp', 'new']
+    );
+    return leadResult.insertId;
+  } catch (leadError) {
+    console.error('Erro ao criar lead no CRM:', leadError.message);
+    return null;
+  }
+}
+
 // =====================================================
 // CONFIG
 // =====================================================
@@ -143,6 +161,11 @@ exports.webhook = async (req, res) => {
   try {
     const body = req.body;
 
+    // Ignora mensagens enviadas pela própria instância (outbound) e eventos sem texto
+    if (body.data?.key?.fromMe === true) {
+      return res.status(200).json({ ok: true });
+    }
+
     const phone = body.data?.key?.remoteJid?.replace('@s.whatsapp.net', '')?.replace('@lid', '') || body.phone;
     const messageContent = body.data?.message?.conversation || body.data?.message?.extendedTextMessage?.text || body.content;
     const contactName = body.data?.pushName || body.contactName || 'Desconhecido';
@@ -173,24 +196,7 @@ exports.webhook = async (req, res) => {
 
     if (convs.length === 0) {
       // Criar lead no CRM e vincular à conversa
-      let leadId = null;
-      try {
-        const [existingLeads] = await db.query(
-          'SELECT id FROM leads WHERE whatsapp = ? OR phone = ? LIMIT 1',
-          [phone, phone]
-        );
-        if (existingLeads.length > 0) {
-          leadId = existingLeads[0].id;
-        } else {
-          const [leadResult] = await db.query(
-            'INSERT INTO leads (name, phone, whatsapp, source, status) VALUES (?, ?, ?, ?, ?)',
-            [contactName, phone, phone, 'whatsapp', 'new']
-          );
-          leadId = leadResult.insertId;
-        }
-      } catch (leadError) {
-        console.error('Erro ao criar lead no CRM:', leadError.message);
-      }
+      const leadId = await ensureLead(phone, contactName);
 
       const [result] = await db.query(
         'INSERT INTO chatbot_conversations (phone, contact_name, status, lead_id) VALUES (?, ?, ?, ?)',
@@ -208,6 +214,14 @@ exports.webhook = async (req, res) => {
       try { await whatsappService.sendMessage(phone, welcome); } catch {}
     } else {
       conv = convs[0];
+      // Conversas legadas (criadas antes do vínculo com lead): faz o back-fill do lead
+      if (!conv.lead_id) {
+        const leadId = await ensureLead(phone, contactName);
+        if (leadId) {
+          await db.query('UPDATE chatbot_conversations SET lead_id = ? WHERE id = ?', [leadId, conv.id]);
+          conv.lead_id = leadId;
+        }
+      }
     }
 
     await db.query(
@@ -255,7 +269,7 @@ exports.webhook = async (req, res) => {
 
     if (takeoverKeyword[0]?.setting_value && messageContent.toLowerCase().includes(takeoverKeyword[0].setting_value.toLowerCase())) {
       await db.query("UPDATE chatbot_conversations SET status = 'human' WHERE id = ?", [conv.id]);
-      const msg = 'Um atendente humano será redirecionado para esta conversa. Aguarde um momento.';
+      const msg = 'Um atendente humano será redirecionado para esta conversa. Para falar com um atendente, chame no WhatsApp (86) 99493-4404. Aguarde um momento.';
       await db.query('INSERT INTO chatbot_messages (conversation_id, direction, content, is_bot) VALUES (?, ?, ?, ?)', [conv.id, 'outbound', msg, 1]);
       try { await whatsappService.sendMessage(phone, msg); } catch {}
       return res.status(200).json({ ok: true });
