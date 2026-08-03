@@ -15,6 +15,7 @@ import {
   FiPhone,
   FiSave,
   FiUsers,
+  FiLock,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
@@ -44,6 +45,11 @@ export default function AdminProfessoresPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '' });
   const [saving, setSaving] = useState(false);
+
+  const [resetUser, setResetUser] = useState<Teacher | null>(null);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const fetchTeachers = useCallback(async () => {
     setLoading(true);
@@ -119,6 +125,27 @@ export default function AdminProfessoresPage() {
       fetchTeachers();
     } catch {
       toast.error('Erro ao atualizar status');
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetUser) return;
+    if (newPassword.length < 8) {
+      toast.error('A nova senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
+    setResetting(true);
+    try {
+      await api.patch(`/admin/users/${resetUser.id}`, { password: newPassword });
+      toast.success(`Senha de ${resetUser.name} redefinida com sucesso!`);
+      setShowResetModal(false);
+      setResetUser(null);
+      setNewPassword('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao redefinir senha.');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -223,6 +250,13 @@ export default function AdminProfessoresPage() {
                           <FiEdit2 className="text-sm" />
                         </button>
                         <button
+                          onClick={() => { setResetUser(teacher); setNewPassword(''); setShowResetModal(true); }}
+                          className="p-1.5 rounded-lg hover:bg-amber-50 transition-colors text-gray-500 hover:text-amber-600"
+                          title="Redefinir senha"
+                        >
+                          <FiLock className="text-sm" />
+                        </button>
+                        <button
                           onClick={() => handleToggleStatus(teacher.id, teacher.status)}
                           className={`p-1.5 rounded-lg transition-colors ${
                             teacher.status === 'active'
@@ -315,6 +349,68 @@ export default function AdminProfessoresPage() {
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50"
                 >
                   <FiSave /> {saving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetModal && resetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => !resetting && setShowResetModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Redefinir Senha</h2>
+                <p className="text-sm text-gray-500">{resetUser.name}</p>
+              </div>
+              <button onClick={() => setShowResetModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100" disabled={resetting}>
+                <FiX className="text-lg text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPassword} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nova senha *</label>
+                <div className="relative">
+                  <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 8 caracteres"
+                    required
+                    minLength={8}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">O professor usará esta nova senha no próximo login.</p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  disabled={resetting}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetting}
+                  className="flex-1 px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50"
+                >
+                  {resetting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="spinner !w-4 !h-4 !border-2" />
+                      Salvando...
+                    </span>
+                  ) : (
+                    'Redefinir Senha'
+                  )}
                 </button>
               </div>
             </form>

@@ -12,6 +12,11 @@ export default function LpLeadForm({ courseTitle }: { courseTitle: string }) {
 
   const formatPhone = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
 
+  const getSource = () => {
+    if (typeof window === 'undefined') return 'lp-curso';
+    return new URLSearchParams(window.location.search).get('src') || 'lp-curso';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return toast.error('Digite seu nome');
@@ -22,7 +27,7 @@ export default function LpLeadForm({ courseTitle }: { courseTitle: string }) {
         whatsapp: form.whatsapp.replace(/\D/g, ''),
         phone: form.whatsapp.replace(/\D/g, ''),
         course_interest: courseTitle,
-        source: 'lp-curso',
+        source: getSource(),
       });
       setSent(true);
       toast.success('Recebemos seu interesse! Entraremos em contato.');
