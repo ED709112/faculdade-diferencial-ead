@@ -505,11 +505,11 @@ const getUserById = async (req, res) => {
     }
 
     const [enrollments] = await db.query(
-      `SELECT e.id, e.status, e.enrolled_at, c.title as course_title
+      `SELECT e.id, e.status, e.created_at as enrolled_at, c.title as course_title
        FROM enrollments e
        JOIN courses c ON e.course_id = c.id
        WHERE e.user_id = ?
-       ORDER BY e.enrolled_at DESC`,
+       ORDER BY e.created_at DESC`,
       [id]
     );
 
