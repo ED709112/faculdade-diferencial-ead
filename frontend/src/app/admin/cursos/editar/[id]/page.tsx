@@ -119,10 +119,12 @@ export default function EditarCursoAdminPage() {
   const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
   const [editModuleForm, setEditModuleForm] = useState({ title: '', period: '' as number | '', workload: '', teacher_id: '' });
   const [showNewLesson, setShowNewLesson] = useState<number | null>(null);
-  const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '' });
+  const [newLesson, setNewLesson] = useState({ title: '', content_type: 'video', video_url: '', text_content: '' });
   const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
+  const [lessonFile, setLessonFile] = useState<File | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const lessonVideoInputRef = useRef<HTMLInputElement>(null);
+  const lessonFileInputRef = useRef<HTMLInputElement>(null);
 
   // Quiz state
   interface QuizQuestionOption { label: string; text: string; is_correct: boolean; }
@@ -341,8 +343,32 @@ export default function EditarCursoAdminPage() {
     }
   };
 
+  const handleAssignTeacher = async (moduleId: number, teacherId: string) => {
+    try {
+      const { data } = await api.put(`/modules/${moduleId}`, {
+        teacher_id: teacherId ? parseInt(teacherId) : null,
+      });
+      const teacherName = teacherId
+        ? teachers.find(t => t.id === parseInt(teacherId))?.name || ''
+        : '';
+      setModules(modules.map(m =>
+        m.id === moduleId
+          ? { ...m, teacher_id: teacherId ? parseInt(teacherId) : null, teacher_name: teacherName }
+          : m
+      ));
+      if (data.course_workload !== undefined) setCourseWorkload(data.course_workload);
+      toast.success(teacherId ? 'Professor lotado na disciplina!' : 'Lotação removida.');
+    } catch {
+      toast.error('Erro ao lotar professor');
+    }
+  };
+
   const handleAddLesson = async (moduleId: number) => {
-    if (!newLesson.title.trim()) return;
+    if (!newLesson.title.trim()) { toast.error('Título da aula é obrigatório.'); return; }
+    if ((newLesson.content_type === 'pdf' || newLesson.content_type === 'quiz') && !lessonFile) {
+      toast.error(newLesson.content_type === 'pdf' ? 'Anexe o arquivo PDF da aula.' : 'Anexe o arquivo da prova.');
+      return;
+    }
     try {
       setUploadingVideo(true);
       const mod = modules.find(m => m.id === moduleId);
@@ -351,6 +377,7 @@ export default function EditarCursoAdminPage() {
         title: newLesson.title,
         content_type: lessonVideoFile ? 'video' : newLesson.content_type,
         video_url: newLesson.video_url || null,
+        text_content: newLesson.content_type === 'text' ? newLesson.text_content : null,
         sort_order: (mod?.lessons?.length || 0) + 1,
       });
 
@@ -364,13 +391,22 @@ export default function EditarCursoAdminPage() {
         });
       }
 
+      if (lessonFile && lessonId) {
+        const fd = new FormData();
+        fd.append('file', lessonFile);
+        await api.post(`/lessons/${lessonId}/file`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       setModules(modules.map(m =>
         m.id === moduleId
           ? { ...m, lessons: [...(m.lessons || []), data.lesson || data] }
           : m
       ));
-      setNewLesson({ title: '', content_type: 'video', video_url: '' });
+      setNewLesson({ title: '', content_type: 'video', video_url: '', text_content: '' });
       setLessonVideoFile(null);
+      setLessonFile(null);
       setShowNewLesson(null);
       toast.success('Aula criada!');
     } catch {
@@ -432,7 +468,7 @@ export default function EditarCursoAdminPage() {
     } catch { toast.error('Erro ao alterar status'); }
   };
 
-  const handleEditQuiz = (quiz: Quiz) => {
+  const handleEditQuiz = async (quiz: Quiz) => {
     setEditingQuiz(quiz.id);
     setQuizForm({
       title: quiz.title, description: quiz.description || '',
@@ -442,8 +478,28 @@ export default function EditarCursoAdminPage() {
       shuffle_questions: quiz.shuffle_questions || false,
       show_answers_after: quiz.show_answers_after || 'after_submit',
     });
-    setQuizQuestions(quiz.questions || []);
+    setQuizQuestions([]);
     setShowQuizModal(true);
+    try {
+      const { data } = await api.get(`/quizzes/${quiz.id}`);
+      setQuizQuestions(data.questions || []);
+    } catch {
+      // keep empty
+    }
+  };
+
+  const toggleExpandQuiz = async (quizId: number) => {
+    if (expandedQuiz === quizId) { setExpandedQuiz(null); return; }
+    setExpandedQuiz(quizId);
+    const existing = quizzes.find(q => q.id === quizId);
+    if (existing && !existing.questions) {
+      try {
+        const { data } = await api.get(`/quizzes/${quizId}`);
+        setQuizzes(prev => prev.map(q => q.id === quizId ? { ...q, questions: data.questions || [] } : q));
+      } catch {
+        // silently fail
+      }
+    }
   };
 
   const addQuizQuestion = () => {
@@ -704,30 +760,47 @@ export default function EditarCursoAdminPage() {
                     </p>
                   </div>
                 </button>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setShowNewLesson(showNewLesson === mod.id ? null : mod.id)}
-                    className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
-                    title="Adicionar aula"
-                  >
-                    <FiPlus />
-                  </button>
-                  <button
-                    onClick={() => openEditModule(mod)}
-                    className="p-2 rounded-lg hover:bg-yellow-50 text-yellow-600"
-                    title="Editar disciplina"
-                  >
-                    <FiEdit2 />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteModule(mod.id)}
-                    className="p-2 rounded-lg hover:bg-red-50 text-red-600"
-                    title="Excluir disciplina"
-                  >
-                    <FiTrash2 />
-                  </button>
+                <div className="flex items-center gap-2 pl-3">
+                    <select
+                      value={mod.teacher_id ? String(mod.teacher_id) : ''}
+                      onChange={(e) => handleAssignTeacher(mod.id, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`text-xs border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer ${mod.teacher_id ? 'border-primary-300 text-primary-700 font-medium' : 'border-gray-300 text-gray-500'}`}
+                      title="Lotar professor nesta disciplina"
+                    >
+                      <option value="">Lotar professor...</option>
+                      {teachers.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setExpandedModule(mod.id);
+                          setShowNewLesson(showNewLesson === mod.id ? null : mod.id);
+                        }}
+                        className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
+                        title="Adicionar aula"
+                      >
+                        <FiPlus />
+                      </button>
+                      <button
+                        onClick={() => openEditModule(mod)}
+                        className="p-2 rounded-lg hover:bg-yellow-50 text-yellow-600"
+                        title="Editar disciplina"
+                      >
+                        <FiEdit2 />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteModule(mod.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 text-red-600"
+                        title="Excluir disciplina"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
               {expandedModule === mod.id && (
                 <div className="p-4 space-y-2">
@@ -807,7 +880,12 @@ export default function EditarCursoAdminPage() {
                       <div className="flex gap-2">
                         <select
                           value={newLesson.content_type}
-                          onChange={e => setNewLesson({ ...newLesson, content_type: e.target.value })}
+                          onChange={e => {
+                            const ct = e.target.value;
+                            setLessonFile(null);
+                            setLessonVideoFile(null);
+                            setNewLesson({ ...newLesson, content_type: ct });
+                          }}
                           className="input-field text-sm flex-1"
                         >
                           <option value="video">Vídeo</option>
@@ -815,40 +893,107 @@ export default function EditarCursoAdminPage() {
                           <option value="pdf">PDF</option>
                           <option value="quiz">Prova</option>
                         </select>
-                        <input
-                          placeholder="URL do vídeo (opcional)"
-                          value={newLesson.video_url}
-                          onChange={e => setNewLesson({ ...newLesson, video_url: e.target.value })}
-                          className="input-field text-sm flex-1"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          ref={lessonVideoInputRef}
-                          type="file"
-                          accept="video/mp4,video/webm,video/ogg"
-                          className="hidden"
-                          onChange={e => setLessonVideoFile(e.target.files?.[0] || null)}
-                        />
-                        <button
-                          onClick={() => lessonVideoInputRef.current?.click()}
-                          type="button"
-                          className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <FiVideo className="text-red-500" />
-                          {lessonVideoFile ? lessonVideoFile.name : 'Enviar vídeo do computador'}
-                        </button>
-                        {lessonVideoFile && (
-                          <button
-                            onClick={() => setLessonVideoFile(null)}
-                            className="p-1 text-red-500 hover:text-red-600"
-                          >
-                            <FiX className="text-sm" />
-                          </button>
+                        {newLesson.content_type === 'video' && (
+                          <input
+                            placeholder="URL do vídeo (opcional)"
+                            value={newLesson.video_url}
+                            onChange={e => setNewLesson({ ...newLesson, video_url: e.target.value })}
+                            className="input-field text-sm flex-1"
+                          />
                         )}
                       </div>
+                      {newLesson.content_type === 'video' && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={lessonVideoInputRef}
+                            type="file"
+                            accept="video/mp4,video/webm,video/ogg"
+                            className="hidden"
+                            onChange={e => setLessonVideoFile(e.target.files?.[0] || null)}
+                          />
+                          <button
+                            onClick={() => lessonVideoInputRef.current?.click()}
+                            type="button"
+                            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FiVideo className="text-red-500" />
+                            {lessonVideoFile ? lessonVideoFile.name : 'Enviar vídeo do computador'}
+                          </button>
+                          {lessonVideoFile && (
+                            <button
+                              onClick={() => setLessonVideoFile(null)}
+                              className="p-1 text-red-500 hover:text-red-600"
+                            >
+                              <FiX className="text-sm" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {newLesson.content_type === 'pdf' && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={lessonFileInputRef}
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            onChange={e => setLessonFile(e.target.files?.[0] || null)}
+                          />
+                          <button
+                            onClick={() => lessonFileInputRef.current?.click()}
+                            type="button"
+                            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FiFile className="text-red-500" />
+                            {lessonFile ? lessonFile.name : 'Anexar arquivo PDF'}
+                          </button>
+                          {lessonFile && (
+                            <button
+                              onClick={() => setLessonFile(null)}
+                              className="p-1 text-red-500 hover:text-red-600"
+                            >
+                              <FiX className="text-sm" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {newLesson.content_type === 'text' && (
+                        <textarea
+                          placeholder="Conteúdo do texto (pode usar HTML)"
+                          value={newLesson.text_content}
+                          onChange={e => setNewLesson({ ...newLesson, text_content: e.target.value })}
+                          rows={5}
+                          className="input-field text-sm w-full"
+                        />
+                      )}
+                      {newLesson.content_type === 'quiz' && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={lessonFileInputRef}
+                            type="file"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                            className="hidden"
+                            onChange={e => setLessonFile(e.target.files?.[0] || null)}
+                          />
+                          <button
+                            onClick={() => lessonFileInputRef.current?.click()}
+                            type="button"
+                            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FiFile className="text-red-500" />
+                            {lessonFile ? lessonFile.name : 'Anexar arquivo da prova'}
+                          </button>
+                          {lessonFile && (
+                            <button
+                              onClick={() => setLessonFile(null)}
+                              className="p-1 text-red-500 hover:text-red-600"
+                            >
+                              <FiX className="text-sm" />
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => { setShowNewLesson(null); setLessonVideoFile(null); }} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                        <button onClick={() => { setShowNewLesson(null); setLessonVideoFile(null); setLessonFile(null); }} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                         <button
                           onClick={() => handleAddLesson(mod.id)}
                           disabled={uploadingVideo}
@@ -910,6 +1055,16 @@ export default function EditarCursoAdminPage() {
                 <option value="3">3º Período</option>
                 <option value="4">4º Período</option>
               </select>
+              <select
+                value={newModuleTeacher}
+                onChange={e => setNewModuleTeacher(e.target.value)}
+                className="input-field"
+              >
+                <option value="">Lotar professor nesta disciplina</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
               {newModuleDiscipline && catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline)) && (
                 <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
                   <p>Carga horária: <strong>{catalogDisciplines.find(d => d.id === parseInt(newModuleDiscipline))?.workload}h</strong></p>
@@ -938,7 +1093,7 @@ export default function EditarCursoAdminPage() {
           {quizzes.map(quiz => (
             <div key={quiz.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
               <div className="flex items-center justify-between p-4 bg-gray-50">
-                <button onClick={() => setExpandedQuiz(expandedQuiz === quiz.id ? null : quiz.id)} className="flex items-center gap-3 flex-1 text-left">
+                <button onClick={() => toggleExpandQuiz(quiz.id)} className="flex items-center gap-3 flex-1 text-left">
                   {expandedQuiz === quiz.id ? <FiChevronUp /> : <FiChevronDown />}
                   <div>
                     <p className="font-semibold text-gray-900">{quiz.title}</p>

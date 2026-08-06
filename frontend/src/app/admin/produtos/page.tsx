@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiEye, FiEyeOff, FiImage } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiEye, FiEyeOff, FiImage, FiUpload, FiFileText, FiLink } from 'react-icons/fi';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
@@ -16,10 +16,17 @@ interface Product {
   stock: number;
   image?: string;
   category?: string;
+  category_id?: number;
   product_type: string;
+  download_url?: string;
   is_active: number;
   sales_count: number;
   created_at: string;
+}
+
+interface CategoryOption {
+  id: number;
+  category: string;
 }
 
 function formatPrice(value: number): string {
@@ -28,18 +35,22 @@ function formatPrice(value: number): string {
 
 export default function AdminProdutosPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterActive, setFilterActive] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form, setForm] = useState({
-    name: '', description: '', short_description: '', price: '', original_price: '',
-    stock: '', category: '', product_type: 'outro', weight: '', dimensions: '', is_active: true
+    name: '', description: '', price: '', original_price: '',
+    stock: '', category_id: '', product_type: 'apostila', download_url: '', is_active: true
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [downloadFile, setDownloadFile] = useState<File | null>(null);
+  const [currentDownloadName, setCurrentDownloadName] = useState<string | null>(null);
+  const downloadFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProducts = () => {
     setLoading(true);
@@ -49,25 +60,32 @@ export default function AdminProdutosPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadProducts(); }, [search, filterActive]);
+  useEffect(() => {
+    loadProducts();
+    api.get('/products/categories/all').then(res => setCategories(res.data)).catch(() => {});
+  }, [search, filterActive]);
 
   const openNew = () => {
     setEditingProduct(null);
-    setForm({ name: '', description: '', short_description: '', price: '', original_price: '', stock: '', category: '', product_type: 'outro', weight: '', dimensions: '', is_active: true });
+    setForm({ name: '', description: '', price: '', original_price: '', stock: '', category_id: '', product_type: 'apostila', download_url: '', is_active: true });
     setImageFile(null);
     setImagePreview(null);
+    setDownloadFile(null);
+    setCurrentDownloadName(null);
     setShowModal(true);
   };
 
   const openEdit = (p: Product) => {
     setEditingProduct(p);
     setForm({
-      name: p.name, description: '', short_description: '', price: String(p.price),
+      name: p.name, description: '', price: String(p.price),
       original_price: p.original_price ? String(p.original_price) : '', stock: String(p.stock),
-      category: p.category || '', product_type: p.product_type, weight: '', dimensions: '', is_active: !!p.is_active
+      category_id: p.category_id ? String(p.category_id) : '', product_type: p.product_type, download_url: p.download_url || '', is_active: !!p.is_active
     });
     setImageFile(null);
     setImagePreview(p.image || null);
+    setDownloadFile(null);
+    setCurrentDownloadName(p.download_url ? p.download_url.split('/').pop() || p.download_url : null);
     setShowModal(true);
   };
 
@@ -99,6 +117,14 @@ export default function AdminProdutosPage() {
         const formData = new FormData();
         formData.append('image', imageFile);
         await api.post(`/products/${productId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
+      if (downloadFile) {
+        const formData = new FormData();
+        formData.append('file', downloadFile);
+        await api.post(`/products/${productId}/download-file`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -312,34 +338,100 @@ export default function AdminProdutosPage() {
                 <div>
                   <label className="label">Tipo</label>
                   <select value={form.product_type} onChange={e => setForm({ ...form, product_type: e.target.value })} className="input">
-                    <option value="livro">Livro</option>
                     <option value="apostila">Apostila</option>
+                    <option value="livro">Livro</option>
                     <option value="material">Material</option>
                     <option value="outro">Outro</option>
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="label">Categoria</label>
-                <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input" placeholder="Ex: Direito, Enfermagem..." />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Categoria</label>
+                  <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="input">
+                    <option value="">Sem categoria</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.category}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Ativo</label>
+                  <select value={form.is_active ? '1' : '0'} onChange={e => setForm({ ...form, is_active: e.target.value === '1' })} className="input">
+                    <option value="1">Sim</option>
+                    <option value="0">Não</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="label">Descrição</label>
                 <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input" rows={3} placeholder="Descrição do produto..." />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Peso</label>
-                  <input value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} className="input" placeholder="Ex: 500g" />
+              <div>
+                <label className="label">Arquivo da Apostila / Material Digital</label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-secondary-400 transition-colors"
+                  onClick={() => downloadFileInputRef.current?.click()}
+                >
+                  {downloadFile ? (
+                    <div className="relative">
+                      <div className="flex items-center justify-center gap-2 py-6 text-secondary-600">
+                        <FiFileText size={28} />
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-gray-800 break-all">{downloadFile.name}</p>
+                          <p className="text-xs text-gray-500">{(downloadFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setDownloadFile(null); }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  ) : currentDownloadName ? (
+                    <div className="relative">
+                      <div className="flex items-center justify-center gap-2 py-6 text-green-600">
+                        <FiFileText size={28} />
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-gray-800 break-all">{currentDownloadName}</p>
+                          <p className="text-xs text-gray-500">Arquivo já anexado. Clique para trocar.</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setDownloadFile(null); setCurrentDownloadName(null); }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="py-6">
+                      <FiUpload className="mx-auto text-gray-400 mb-2" size={28} />
+                      <p className="text-sm text-gray-500">Clique para anexar o arquivo (PDF, DOC, PPT, XLS ou ZIP)</p>
+                      <p className="text-xs text-gray-400 mt-1">Máx. 50MB — liberado ao comprador após o pagamento</p>
+                    </div>
+                  )}
+                  <input
+                    ref={downloadFileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setDownloadFile(file);
+                        setCurrentDownloadName(null);
+                      }
+                    }}
+                  />
                 </div>
-                <div>
-                  <label className="label">Dimensões</label>
-                  <input value={form.dimensions} onChange={e => setForm({ ...form, dimensions: e.target.value })} className="input" placeholder="Ex: 20x25cm" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="rounded" />
-                <label htmlFor="is_active" className="text-sm text-gray-700">Produto ativo (visível na loja)</label>
+                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <FiLink size={12} /> Ou informe uma URL externa no campo abaixo:
+                </p>
+                <input value={form.download_url} onChange={e => setForm({ ...form, download_url: e.target.value })} className="input mt-1" placeholder="https://... (opcional se anexou o arquivo)" />
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">

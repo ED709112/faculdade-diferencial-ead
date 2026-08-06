@@ -48,17 +48,74 @@ const getByCourse = async (req, res) => {
   }
 };
 
+const getMine = async (req, res) => {
+  try {
+    const [modules] = await db.query(
+      `SELECT m.*, c.title as course_title, c.slug as course_slug,
+              u.name as teacher_name,
+              (SELECT COUNT(*) FROM lessons WHERE module_id = m.id) as lessons_count
+       FROM modules m
+       JOIN courses c ON m.course_id = c.id
+       LEFT JOIN users u ON m.teacher_id = u.id
+       WHERE m.teacher_id = ? OR (m.teacher_id IS NULL AND c.teacher_id = ?)
+       ORDER BY c.title ASC, m.sort_order ASC`,
+      [req.user.id, req.user.id]
+    );
+    res.json(modules);
+  } catch (error) {
+    console.error('Erro ao listar minhas disciplinas:', error);
+    res.status(500).json({ error: 'Erro ao listar minhas disciplinas.' });
+  }
+};
+
+const getById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [modules] = await db.query(
+      `SELECT m.*, c.title as course_title, c.slug as course_slug,
+              c.teacher_id as course_teacher_id, u.name as teacher_name
+       FROM modules m
+       JOIN courses c ON m.course_id = c.id
+       LEFT JOIN users u ON m.teacher_id = u.id
+       WHERE m.id = ?`,
+      [id]
+    );
+
+    if (modules.length === 0) {
+      return res.status(404).json({ error: 'Disciplina não encontrada.' });
+    }
+
+    const mod = modules[0];
+
+    if (req.user.role !== 'admin' && mod.teacher_id !== req.user.id && mod.course_teacher_id !== req.user.id) {
+      return res.status(403).json({ error: 'Sem permissão para acessar esta disciplina.' });
+    }
+
+    const [lessons] = await db.query(
+      'SELECT * FROM lessons WHERE module_id = ? ORDER BY sort_order ASC',
+      [id]
+    );
+    mod.lessons = lessons;
+
+    res.json(mod);
+  } catch (error) {
+    console.error('Erro ao buscar disciplina:', error);
+    res.status(500).json({ error: 'Erro ao buscar disciplina.' });
+  }
+};
+
 const create = async (req, res) => {
   try {
     const { course_id, title, description, period, workload, teacher_id, discipline_id, is_free } = req.body;
 
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Somente administradores podem criar disciplinas.' });
+    }
+
     const [courses] = await db.query('SELECT id, teacher_id FROM courses WHERE id = ?', [course_id]);
     if (courses.length === 0) {
       return res.status(404).json({ error: 'Curso não encontrado.' });
-    }
-
-    if (req.user.role !== 'admin' && courses[0].teacher_id !== req.user.id) {
-      return res.status(403).json({ error: 'Sem permissão para adicionar disciplinas neste curso.' });
     }
 
     const [maxOrder] = await db.query(
@@ -99,8 +156,8 @@ const update = async (req, res) => {
       return res.status(404).json({ error: 'Disciplina não encontrada.' });
     }
 
-    if (req.user.role !== 'admin' && modules[0].course_teacher_id !== req.user.id) {
-      return res.status(403).json({ error: 'Sem permissão para editar esta disciplina.' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Somente administradores podem editar disciplinas.' });
     }
 
     const fields = [];
@@ -144,8 +201,8 @@ const delete_module = async (req, res) => {
       return res.status(404).json({ error: 'Disciplina não encontrada.' });
     }
 
-    if (req.user.role !== 'admin' && modules[0].teacher_id !== req.user.id) {
-      return res.status(403).json({ error: 'Sem permissão para remover esta disciplina.' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Somente administradores podem remover disciplinas.' });
     }
 
     const courseId = modules[0].course_id;
@@ -176,8 +233,8 @@ const reorder = async (req, res) => {
       return res.status(404).json({ error: 'Curso não encontrado.' });
     }
 
-    if (req.user.role !== 'admin' && courses[0].teacher_id !== req.user.id) {
-      return res.status(403).json({ error: 'Sem permissão para reordenar disciplinas.' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Somente administradores podem reordenar disciplinas.' });
     }
 
     for (let i = 0; i < orderedModules.length; i++) {
@@ -196,6 +253,8 @@ const reorder = async (req, res) => {
 
 module.exports = {
   getByCourse,
+  getMine,
+  getById,
   create,
   update,
   delete: delete_module,

@@ -1,14 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FiArrowLeft, FiArrowRight, FiCreditCard, FiFileText, FiSmartphone, FiCheck, FiLock, FiShield, FiPackage, FiUser, FiAlertCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiArrowRight, FiCreditCard, FiFileText, FiSmartphone, FiCheck, FiLock, FiShield, FiPackage, FiUser, FiAlertCircle, FiCopy, FiExternalLink, FiClock } from 'react-icons/fi';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
 function formatPrice(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export default function CheckoutPage() {
@@ -29,6 +39,21 @@ export default function CheckoutPage() {
   });
 
   const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '', name: '' });
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && step === 'register' && !emailChecked) {
+      setForm(prev => ({
+        ...prev,
+        name: prev.name || user.name || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+      }));
+      setEmailChecked(true);
+      setStep('payment');
+    }
+  }, [user, step, emailChecked]);
 
   if (items.length === 0 && step !== 'done') {
     return (
@@ -107,6 +132,13 @@ export default function CheckoutPage() {
       clearCart();
       setStep('done');
       toast.success('Pedido realizado com sucesso!');
+      if (data.payment) {
+        if (data.payment.type === 'pix') {
+          toast('QR Code PIX gerado!');
+        } else if (data.payment.type === 'boleto') {
+          toast('Boleto gerado!');
+        }
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao processar pedido.');
     } finally {
@@ -115,8 +147,9 @@ export default function CheckoutPage() {
   };
 
   if (step === 'done') {
+    const payment = orderResult?.payment;
     return (
-      <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center py-8">
         <div className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-lg">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -125,6 +158,83 @@ export default function CheckoutPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Parabéns pela sua compra!</h2>
             <p className="text-gray-500">Pedido <strong>{orderResult?.order_number}</strong> realizado com sucesso.</p>
           </div>
+
+          {payment?.type === 'pix' && (
+            <div className="bg-green-50 rounded-xl p-5 mb-6">
+              <div className="text-center mb-4">
+                <div className="w-56 h-56 mx-auto bg-white rounded-xl p-3 shadow-sm">
+                  {payment.qr_code ? (
+                    <img
+                      src={`data:image/png;base64,${payment.qr_code}`}
+                      alt="QR Code PIX"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">QR indisponível</div>
+                  )}
+                </div>
+                <p className="text-sm text-green-800 font-medium mt-3">
+                  Escaneie o QR Code no app do seu banco para pagar
+                </p>
+                <p className="text-sm text-green-700 mt-1">
+                  Valor: <strong>{formatPrice(Number(payment.amount))}</strong>
+                </p>
+                <p className="text-xs text-green-600 mt-1 flex items-center justify-center gap-1">
+                  <FiClock size={12} /> Válido por {Math.round((payment.expires_in || 3600) / 60)} minutos
+                </p>
+              </div>
+              {payment.copy_paste && (
+                <div className="bg-white rounded-lg p-3 flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={payment.copy_paste}
+                    className="flex-1 text-xs text-gray-600 bg-transparent outline-none"
+                  />
+                  <button
+                    onClick={async () => {
+                      const ok = await copyToClipboard(payment.copy_paste);
+                      toast.success(ok ? 'Código PIX copiado!' : 'Não foi possível copiar.');
+                    }}
+                    className="flex items-center gap-1 px-3 py-2 bg-[#ff7849] text-white text-xs font-semibold rounded-lg hover:bg-[#e56a3d] transition-colors whitespace-nowrap"
+                  >
+                    <FiCopy size={12} /> Copiar PIX
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {payment?.type === 'boleto' && (
+            <div className="bg-yellow-50 rounded-xl p-5 mb-6">
+              <h3 className="text-sm font-bold text-yellow-800 mb-3">Seu boleto foi gerado</h3>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-500">Valor</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatPrice(Number(payment.amount))}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-500">Vencimento</span>
+                  <span className="text-sm font-medium text-gray-900">{payment.due_date}</span>
+                </div>
+                {payment.barcode && (
+                  <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2">
+                    <span className="text-xs text-gray-500">Código de barras</span>
+                    <span className="font-mono text-[11px] text-gray-700 break-all text-right max-w-[200px]">{payment.barcode}</span>
+                  </div>
+                )}
+              </div>
+              {payment.boleto_url && (
+                <a
+                  href={payment.boleto_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-[#ff7849] text-white text-sm font-bold rounded-lg hover:bg-[#e56a3d] transition-colors"
+                >
+                  <FiExternalLink size={16} /> Abrir Boleto
+                </a>
+              )}
+            </div>
+          )}
 
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
             <p className="text-sm text-gray-600 mb-2">
@@ -229,7 +339,7 @@ export default function CheckoutPage() {
                           </p>
                           <div className="flex gap-2 mt-3">
                             <Link
-                              href="/auth/login"
+                              href="/auth/login?redirect=/carrinho/checkout"
                               className="px-4 py-2 bg-[#ff7849] text-white text-sm font-semibold rounded-lg hover:bg-[#e56a3d] transition-colors"
                             >
                               Fazer Login

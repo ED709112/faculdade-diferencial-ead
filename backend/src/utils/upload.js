@@ -63,6 +63,17 @@ const uploadProductImage = createUpload('products', [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif'
 ], 5 * 1024 * 1024);
 
+const uploadProductDownload = createUpload('products-downloads', [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/zip'
+], 50 * 1024 * 1024);
+
 const uploadCertificate = createUpload('certificates', [
   'application/pdf', 'image/png', 'image/jpeg'
 ], 10 * 1024 * 1024);
@@ -73,6 +84,7 @@ module.exports = {
   uploadDocument,
   uploadAvatar,
   uploadProductImage,
+  uploadProductDownload,
   uploadCertificate,
   createUpload
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   FiArrowLeft,
@@ -22,10 +22,12 @@ import {
   FiMenu,
   FiChevronDown,
   FiChevronRight,
+  FiChevronUp,
   FiClock,
   FiMail,
   FiUser,
   FiAward,
+  FiMessageSquare,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -87,11 +89,141 @@ interface EnrolledStudent {
   enrolled_at: string;
 }
 
-type TabType = 'dados' | 'modulos' | 'avaliacoes' | 'alunos';
+interface QuizQuestionOption { label: string; text: string; is_correct: boolean; }
+interface QuizQuestion { id?: number; question_text: string; question_type: 'multiple_choice' | 'true_false'; options: QuizQuestionOption[]; points: number; explanation: string; sort_order: number; }
+interface Quiz { id: number; title: string; description: string; time_limit_minutes: number; passing_grade: number; max_attempts: number; shuffle_questions: boolean; show_answers_after: string; is_active: boolean; questions?: QuizQuestion[]; questions_count?: number; }
+
+interface LessonComment {
+  id: number;
+  lesson_id?: number;
+  comment: string;
+  parent_id: number | null;
+  created_at: string;
+  user_id: number;
+  user_name: string;
+  user_role?: string;
+  user_avatar?: string;
+  replies?: LessonComment[];
+}
+
+interface CourseCommentsLesson {
+  id: number;
+  title: string;
+  module_id: number;
+  module_title: string;
+  comments: LessonComment[];
+}
+
+type TabType = 'dados' | 'modulos' | 'avaliacoes' | 'alunos' | 'comentarios';
+
+function CommentBlock({
+  lessonId,
+  comment,
+  depth,
+  replyingTo,
+  replyText,
+  replySending,
+  formatDate,
+  onReplyClick,
+  onReplyChange,
+  onReplySend,
+  onCancelReply,
+}: {
+  lessonId: number;
+  comment: LessonComment;
+  depth: number;
+  replyingTo: number | null;
+  replyText: string;
+  replySending: boolean;
+  formatDate: (date: string) => string;
+  onReplyClick: (commentId: number) => void;
+  onReplyChange: (value: string) => void;
+  onReplySend: (lessonId: number, commentId: number) => void;
+  onCancelReply: () => void;
+}) {
+  const roleLabels: Record<string, string> = { admin: 'Admin', teacher: 'Professor', student: 'Aluno' };
+  const roleColors: Record<string, string> = { admin: 'bg-red-100 text-red-600', teacher: 'bg-blue-100 text-blue-600', student: 'bg-gray-100 text-gray-600' };
+
+  return (
+    <div className={depth === 0 ? 'p-4' : 'p-4 ml-5 border-l-2 border-gray-100'}>
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+          {comment.user_avatar ? (
+            <img src={comment.user_avatar} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <FiUser className="text-gray-500 text-sm" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-sm font-medium text-gray-900">{comment.user_name}</span>
+            {comment.user_role && (
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${roleColors[comment.user_role] || roleColors.student}`}>
+                {roleLabels[comment.user_role] || comment.user_role}
+              </span>
+            )}
+            <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+          </div>
+          <p className="text-sm text-gray-700 whitespace-pre-line">{comment.comment}</p>
+
+          <div className="mt-2">
+            <button onClick={() => onReplyClick(comment.id)} className="text-xs text-primary-500 hover:text-primary-600 font-medium">
+              Responder
+            </button>
+          </div>
+
+          {replyingTo === comment.id && (
+            <div className="mt-2">
+              <textarea
+                value={replyText}
+                onChange={(e) => onReplyChange(e.target.value)}
+                placeholder="Escreva sua resposta..."
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              />
+              <div className="flex justify-end gap-2 mt-1">
+                <button onClick={onCancelReply} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">Cancelar</button>
+                <button
+                  onClick={() => onReplySend(lessonId, comment.id)}
+                  disabled={!replyText.trim() || replySending}
+                  className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white rounded-lg font-medium"
+                >
+                  <FiSend className="text-xs" /> {replySending ? 'Enviando...' : 'Responder'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {(comment.replies || []).length > 0 && (
+        <div className="mt-3">
+          {(comment.replies || []).map((reply) => (
+            <CommentBlock
+              key={reply.id}
+              lessonId={lessonId}
+              comment={reply}
+              depth={depth + 1}
+              replyingTo={replyingTo}
+              replyText={replyText}
+              replySending={replySending}
+              formatDate={formatDate}
+              onReplyClick={onReplyClick}
+              onReplyChange={onReplyChange}
+              onReplySend={onReplySend}
+              onCancelReply={onCancelReply}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function EditCoursePage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const courseId = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,9 +257,24 @@ export default function EditCoursePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
+  // Quiz state
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState<number | null>(null);
+  const [quizForm, setQuizForm] = useState({ title: '', description: '', time_limit_minutes: 120, passing_grade: 60, max_attempts: 3, shuffle_questions: false, show_answers_after: 'after_submit' });
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [expandedQuiz, setExpandedQuiz] = useState<number | null>(null);
+
   // Students state
   const [students, setStudents] = useState<EnrolledStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
+
+  // Comments state
+  const [commentsData, setCommentsData] = useState<CourseCommentsLesson[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replySending, setReplySending] = useState(false);
 
   const [form, setForm] = useState<CourseFormData>({
     title: '', subtitle: '', description: '', category_id: '',
@@ -193,6 +340,15 @@ export default function EditCoursePage() {
     }
   }, [courseId]);
 
+  const fetchQuizzes = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/quizzes/course/${courseId}`);
+      setQuizzes(data);
+    } catch {
+      // silently fail
+    }
+  }, [courseId]);
+
   const fetchStudents = useCallback(async () => {
     try {
       setStudentsLoading(true);
@@ -205,6 +361,44 @@ export default function EditCoursePage() {
     }
   }, [courseId]);
 
+  const fetchComments = useCallback(async () => {
+    try {
+      setCommentsLoading(true);
+      const { data } = await api.get(`/lessons/course/${courseId}/comments`);
+      setCommentsData(data || []);
+    } catch {
+      // silently fail
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [courseId]);
+
+  const sendReply = async (lessonId: number, commentId: number) => {
+    if (!replyText.trim()) return;
+    try {
+      setReplySending(true);
+      await api.post(`/lessons/${lessonId}/comments`, {
+        comment: replyText.trim(),
+        parent_id: commentId,
+      });
+      setReplyText('');
+      setReplyingTo(null);
+      toast.success('Resposta enviada!');
+      await fetchComments();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao enviar resposta.');
+    } finally {
+      setReplySending(false);
+    }
+  };
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && ['dados', 'modulos', 'avaliacoes', 'alunos', 'comentarios'].includes(t)) {
+      setActiveTab(t as TabType);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     fetchCourse();
     api.get('/categories').then(({ data }) => {
@@ -214,9 +408,10 @@ export default function EditCoursePage() {
 
   useEffect(() => {
     if (activeTab === 'modulos') fetchModules();
-    if (activeTab === 'avaliacoes') fetchReviews();
+    if (activeTab === 'avaliacoes') { fetchQuizzes(); fetchReviews(); }
     if (activeTab === 'alunos') fetchStudents();
-  }, [activeTab, fetchModules, fetchReviews, fetchStudents]);
+    if (activeTab === 'comentarios') fetchComments();
+  }, [activeTab, fetchModules, fetchReviews, fetchStudents, fetchQuizzes, fetchComments]);
 
   // === Course form handlers ===
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -381,6 +576,127 @@ export default function EditCoursePage() {
     }
   };
 
+  // === Quiz handlers ===
+  const openNewQuiz = () => {
+    setEditingQuiz(null);
+    setQuizForm({ title: '', description: '', time_limit_minutes: 120, passing_grade: 60, max_attempts: 3, shuffle_questions: false, show_answers_after: 'after_submit' });
+    setQuizQuestions([]);
+    setShowQuizModal(true);
+  };
+
+  const handleSaveQuiz = async () => {
+    if (!quizForm.title.trim()) { toast.error('Título é obrigatório'); return; }
+    try {
+      const payload = { ...quizForm, course_id: Number(courseId), questions: quizQuestions };
+      if (editingQuiz) {
+        await api.put(`/quizzes/${editingQuiz}`, payload);
+        toast.success('Avaliação atualizada!');
+      } else {
+        await api.post('/quizzes', payload);
+        toast.success('Avaliação criada!');
+      }
+      setShowQuizModal(false);
+      setEditingQuiz(null);
+      fetchQuizzes();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao salvar avaliação.');
+    }
+  };
+
+  const handleDeleteQuiz = async (id: number) => {
+    if (!confirm('Excluir esta avaliação e todas as suas perguntas?')) return;
+    try {
+      await api.delete(`/quizzes/${id}`);
+      setQuizzes(quizzes.filter(q => q.id !== id));
+      toast.success('Avaliação excluída!');
+    } catch {
+      toast.error('Erro ao excluir avaliação.');
+    }
+  };
+
+  const handleToggleQuiz = async (id: number, isActive: boolean) => {
+    try {
+      await api.put(`/quizzes/${id}`, { is_active: !isActive });
+      setQuizzes(quizzes.map(q => q.id === id ? { ...q, is_active: !isActive } : q));
+      toast.success(isActive ? 'Avaliação desativada' : 'Avaliação ativada');
+    } catch {
+      toast.error('Erro ao alterar status.');
+    }
+  };
+
+  const handleEditQuiz = async (quiz: Quiz) => {
+    setEditingQuiz(quiz.id);
+    setQuizForm({
+      title: quiz.title, description: quiz.description || '',
+      time_limit_minutes: quiz.time_limit_minutes || 120,
+      passing_grade: quiz.passing_grade || 60,
+      max_attempts: quiz.max_attempts || 3,
+      shuffle_questions: quiz.shuffle_questions || false,
+      show_answers_after: quiz.show_answers_after || 'after_submit',
+    });
+    setQuizQuestions([]);
+    setShowQuizModal(true);
+    try {
+      const { data } = await api.get(`/quizzes/${quiz.id}`);
+      setQuizQuestions(data.questions || []);
+    } catch {
+      // keep empty
+    }
+  };
+
+  const toggleExpandQuiz = async (quizId: number) => {
+    if (expandedQuiz === quizId) { setExpandedQuiz(null); return; }
+    setExpandedQuiz(quizId);
+    const existing = quizzes.find(q => q.id === quizId);
+    if (existing && !existing.questions) {
+      try {
+        const { data } = await api.get(`/quizzes/${quizId}`);
+        setQuizzes(prev => prev.map(q => q.id === quizId ? { ...q, questions: data.questions || [] } : q));
+      } catch {
+        // silently fail
+      }
+    }
+  };
+
+  const addQuizQuestion = () => {
+    setQuizQuestions([...quizQuestions, {
+      question_text: '', question_type: 'multiple_choice',
+      options: [{ label: 'A', text: '', is_correct: true }, { label: 'B', text: '', is_correct: false }],
+      points: 1, explanation: '', sort_order: quizQuestions.length + 1,
+    }]);
+  };
+
+  const updateQuizQuestion = (idx: number, field: string, value: any) => {
+    const updated = [...quizQuestions];
+    (updated[idx] as any)[field] = value;
+    setQuizQuestions(updated);
+  };
+
+  const updateQuizOption = (qIdx: number, oIdx: number, field: string, value: any) => {
+    const updated = [...quizQuestions];
+    (updated[qIdx].options[oIdx] as any)[field] = value;
+    setQuizQuestions(updated);
+  };
+
+  const removeQuizOption = (qIdx: number, oIdx: number) => {
+    const updated = [...quizQuestions];
+    updated[qIdx].options = updated[qIdx].options.filter((_, i) => i !== oIdx);
+    setQuizQuestions(updated);
+  };
+
+  const addQuizOption = (qIdx: number) => {
+    const updated = [...quizQuestions];
+    const labels = 'ABCDEF';
+    updated[qIdx].options.push({ label: labels[updated[qIdx].options.length] || `${updated[qIdx].options.length + 1}`, text: '', is_correct: false });
+    setQuizQuestions(updated);
+  };
+
+  const setCorrectOption = (qIdx: number, oIdx: number) => {
+    const updated = [...quizQuestions];
+    updated[qIdx].options = updated[qIdx].options.map((o, i) => ({ ...o, is_correct: i === oIdx }));
+    setQuizQuestions(updated);
+  };
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -401,6 +717,7 @@ export default function EditCoursePage() {
     { label: 'Módulos & Aulas', value: 'modulos', icon: FiBook },
     { label: 'Avaliações', value: 'avaliacoes', icon: FiStar },
     { label: 'Alunos', value: 'alunos', icon: FiUsers },
+    { label: 'Comentários', value: 'comentarios', icon: FiMessageSquare },
   ];
 
   return (
@@ -568,9 +885,7 @@ export default function EditCoursePage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">Módulos do Curso</h3>
-                <button onClick={() => openModuleForm()} className="btn-primary flex items-center gap-2 text-sm">
-                  <FiPlus /> Novo Módulo
-                </button>
+                <span className="text-xs text-gray-400">As disciplinas são gerenciadas pelo administrador</span>
               </div>
 
               {modulesLoading ? (
@@ -578,9 +893,8 @@ export default function EditCoursePage() {
               ) : modules.length === 0 ? (
                 <EmptyState
                   icon={<FiAward />}
-                  title="Nenhum módulo criado"
-                  description="Adicione módulos para organizar as aulas do seu curso."
-                  action={{ label: 'Criar Primeiro Módulo', href: '#' }}
+                  title="Nenhuma disciplina criada"
+                  description="O administrador cria as disciplinas e lota o professor responsável."
                 />
               ) : (
                 <div className="space-y-3">
@@ -600,12 +914,6 @@ export default function EditCoursePage() {
                         <div className="flex items-center gap-1">
                           <button onClick={() => openLessonForm(mod.id)} className="p-1.5 rounded-lg hover:bg-primary-50 text-primary-500 transition-colors" title="Adicionar aula">
                             <FiPlus />
-                          </button>
-                          <button onClick={() => openModuleForm(mod)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Editar módulo">
-                            <FiEdit2 />
-                          </button>
-                          <button onClick={() => handleDeleteModule(mod.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="Excluir módulo">
-                            <FiTrash2 />
                           </button>
                         </div>
                       </div>
@@ -652,40 +960,99 @@ export default function EditCoursePage() {
 
           {/* === TAB: AVALIAÇÕES === */}
           {activeTab === 'avaliacoes' && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900">Avaliações dos Alunos</h3>
+            <div className="space-y-8">
+              {/* Quiz management */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Avaliações do Curso (Provas)</h3>
+                  <button onClick={openNewQuiz} className="btn-primary text-sm flex items-center gap-2">
+                    <FiPlus /> Criar Nova Avaliação
+                  </button>
+                </div>
 
-              {reviewsLoading ? (
-                <Loading fullScreen={false} text="Carregando avaliações..." />
-              ) : reviews.length === 0 ? (
-                <EmptyState icon={<FiCheckSquare />} title="Nenhuma avaliação ainda" description="As avaliações dos alunos aparecerão aqui." />
-              ) : (
-                <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <div key={review.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden shrink-0">
-                          {review.student.avatar ? (
-                            <img src={review.student.avatar} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <FiUser className="text-primary-500" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{review.student.name}</p>
+                {quizzes.length === 0 ? (
+                  <EmptyState
+                    icon={<FiCheckSquare />}
+                    title="Nenhuma avaliação criada"
+                    description="Crie uma prova com perguntas e respostas para os alunos do curso."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {quizzes.map(quiz => (
+                      <div key={quiz.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                        <div className="flex items-center justify-between p-4 bg-gray-50">
+                          <button onClick={() => toggleExpandQuiz(quiz.id)} className="flex items-center gap-3 flex-1 text-left">
+                            {expandedQuiz === quiz.id ? <FiChevronUp /> : <FiChevronDown />}
+                            <div>
+                              <p className="font-semibold text-gray-900">{quiz.title}</p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                                <span>{quiz.questions_count || quiz.questions?.length || 0} perguntas</span>
+                                <span>Nota mín: {quiz.passing_grade}%</span>
+                                {quiz.time_limit_minutes ? <span>{quiz.time_limit_minutes} min</span> : null}
+                                <span>{quiz.max_attempts} tentativas</span>
+                              </div>
+                            </div>
+                          </button>
                           <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <FiStar key={s} className={`text-sm ${s <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
-                            ))}
-                            <span className="text-xs text-gray-400 ml-2">{formatDate(review.created_at)}</span>
+                            <button onClick={() => handleToggleQuiz(quiz.id, quiz.is_active)} className={`px-3 py-1 rounded-lg text-xs font-medium ${quiz.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                              {quiz.is_active ? 'Ativo' : 'Inativo'}
+                            </button>
+                            <button onClick={() => handleEditQuiz(quiz)} className="p-2 rounded-lg hover:bg-blue-50 text-blue-600" title="Editar"><FiEdit2 /></button>
+                            <button onClick={() => handleDeleteQuiz(quiz.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-600" title="Excluir"><FiTrash2 /></button>
                           </div>
                         </div>
+                        {expandedQuiz === quiz.id && quiz.questions && quiz.questions.length > 0 && (
+                          <div className="p-4 space-y-2">
+                            {quiz.questions.map((q, i) => (
+                              <div key={q.id || i} className="p-3 rounded-lg bg-gray-50">
+                                <p className="text-sm font-medium text-gray-900">{i + 1}. {q.question_text || '(pergunta sem texto)'}</p>
+                                <p className="text-xs text-gray-500 mt-1">{q.question_type === 'true_false' ? 'Verdadeiro/Falso' : 'Múltipla escolha'} — {q.points} ponto(s)</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Student reviews */}
+              <div className="space-y-4 pt-2 border-t border-gray-100">
+                <h3 className="font-semibold text-gray-900">Avaliações dos Alunos</h3>
+
+                {reviewsLoading ? (
+                  <Loading fullScreen={false} text="Carregando avaliações..." />
+                ) : reviews.length === 0 ? (
+                  <EmptyState icon={<FiStar />} title="Nenhuma avaliação ainda" description="As avaliações dos alunos aparecerão aqui." />
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden shrink-0">
+                            {review.student.avatar ? (
+                              <img src={review.student.avatar} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <FiUser className="text-primary-500" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{review.student.name}</p>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <FiStar key={s} className={`text-sm ${s <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                              ))}
+                              <span className="text-xs text-gray-400 ml-2">{formatDate(review.created_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -745,34 +1112,64 @@ export default function EditCoursePage() {
               )}
             </div>
           )}
+
+          {activeTab === 'comentarios' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <FiMessageSquare className="text-primary-500" />
+                  Comentários dos Alunos
+                </h3>
+                <button onClick={fetchComments} className="text-sm text-primary-500 hover:text-primary-600">Atualizar</button>
+              </div>
+
+              {commentsLoading ? (
+                <Loading fullScreen={false} text="Carregando comentários..." />
+              ) : commentsData.every((l) => l.comments.length === 0) ? (
+                <EmptyState
+                  icon={<FiMessageSquare />}
+                  title="Nenhum comentário"
+                  description="Os comentários enviados pelos alunos nas aulas aparecerão aqui. Responda para manter o diálogo com a turma."
+                />
+              ) : (
+                <div className="space-y-6">
+                  {commentsData.filter((l) => l.comments.length > 0).map((lesson) => (
+                    <div key={lesson.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <p className="font-semibold text-gray-900 text-sm">{lesson.title}</p>
+                          <p className="text-xs text-gray-500">{lesson.module_title}</p>
+                        </div>
+                        <span className="text-xs bg-primary-50 text-primary-600 px-2 py-1 rounded-full font-medium">
+                          {lesson.comments.length} comentário{lesson.comments.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-gray-50">
+                        {lesson.comments.map((comment) => (
+                          <CommentBlock
+                            key={comment.id}
+                            lessonId={lesson.id}
+                            comment={comment}
+                            depth={0}
+                            replyingTo={replyingTo}
+                            replyText={replyText}
+                            replySending={replySending}
+                            formatDate={formatDate}
+                            onReplyClick={(id) => { setReplyText(''); setReplyingTo(id); }}
+                            onReplyChange={setReplyText}
+                            onReplySend={sendReply}
+                            onCancelReply={() => setReplyingTo(null)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Module Form Modal */}
-      {showModuleForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{editingModule ? 'Editar Módulo' : 'Novo Módulo'}</h3>
-            <div>
-              <label className="label">Título do Módulo</label>
-              <input
-                type="text"
-                value={moduleTitle}
-                onChange={(e) => setModuleTitle(e.target.value)}
-                className="input-field"
-                placeholder="Ex: Introdução ao Curso"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-3 justify-end mt-6">
-              <button onClick={() => setShowModuleForm(false)} className="btn-ghost text-sm">Cancelar</button>
-              <button onClick={handleSaveModule} disabled={moduleSaving} className="btn-primary text-sm">
-                {moduleSaving ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Lesson Form Modal */}
       {showLessonForm && (
@@ -842,6 +1239,123 @@ export default function EditCoursePage() {
               <button onClick={handleSaveLesson} disabled={lessonSaving} className="btn-primary text-sm">
                 {lessonSaving ? 'Salvando...' : 'Salvar'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Modal */}
+      {showQuizModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <h2 className="text-lg font-bold text-gray-900">{editingQuiz ? 'Editar Avaliação' : 'Nova Avaliação'}</h2>
+              <button onClick={() => setShowQuizModal(false)} className="p-2 rounded-lg hover:bg-gray-100"><FiX /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="label">Título *</label>
+                <input value={quizForm.title} onChange={e => setQuizForm({ ...quizForm, title: e.target.value })} className="input-field" placeholder="Ex: Prova Módulo 1" />
+              </div>
+              <div>
+                <label className="label">Descrição</label>
+                <textarea value={quizForm.description} onChange={e => setQuizForm({ ...quizForm, description: e.target.value })} className="input-field" rows={2} />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="label">Tempo (min)</label>
+                  <input type="number" value={quizForm.time_limit_minutes} onChange={e => setQuizForm({ ...quizForm, time_limit_minutes: Number(e.target.value) })} className="input-field" />
+                </div>
+                <div>
+                  <label className="label">Nota mínima (%)</label>
+                  <input type="number" value={quizForm.passing_grade} onChange={e => setQuizForm({ ...quizForm, passing_grade: Number(e.target.value) })} className="input-field" />
+                </div>
+                <div>
+                  <label className="label">Tentativas</label>
+                  <input type="number" value={quizForm.max_attempts} onChange={e => setQuizForm({ ...quizForm, max_attempts: Number(e.target.value) })} className="input-field" />
+                </div>
+                <div>
+                  <label className="label">Respostas após</label>
+                  <select value={quizForm.show_answers_after} onChange={e => setQuizForm({ ...quizForm, show_answers_after: e.target.value })} className="input-field">
+                    <option value="after_submit">Após enviar</option>
+                    <option value="never">Nunca</option>
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={quizForm.shuffle_questions} onChange={e => setQuizForm({ ...quizForm, shuffle_questions: e.target.checked })} className="w-4 h-4 text-primary-500 rounded" />
+                <span className="text-sm">Embaralhar perguntas</span>
+              </label>
+
+              <div className="border-t border-gray-100 pt-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">Perguntas ({quizQuestions.length})</h3>
+                  <button onClick={addQuizQuestion} className="text-sm text-primary-500 hover:text-primary-600 font-medium flex items-center gap-1"><FiPlus /> Adicionar</button>
+                </div>
+
+                {quizQuestions.map((q, qIdx) => (
+                  <div key={qIdx} className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-gray-500">Pergunta {qIdx + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <input type="number" value={q.points} onChange={e => updateQuizQuestion(qIdx, 'points', Number(e.target.value))} className="w-16 px-2 py-1 border rounded text-sm text-center" min="0" title="Pontos" />
+                        <button onClick={() => setQuizQuestions(quizQuestions.filter((_, i) => i !== qIdx))} className="text-red-500 hover:text-red-600"><FiTrash2 className="text-sm" /></button>
+                      </div>
+                    </div>
+                    <input value={q.question_text} onChange={e => updateQuizQuestion(qIdx, 'question_text', e.target.value)} className="input-field text-sm" placeholder="Texto da pergunta" />
+                    <select value={q.question_type} onChange={e => {
+                      const type = e.target.value;
+                      updateQuizQuestion(qIdx, 'question_type', type);
+                      if (type === 'true_false') {
+                        updateQuizQuestion(qIdx, 'options', [
+                          { label: 'V', text: 'Verdadeiro', is_correct: true },
+                          { label: 'F', text: 'Falso', is_correct: false },
+                        ]);
+                      } else if (q.options.length < 2) {
+                        updateQuizQuestion(qIdx, 'options', [
+                          { label: 'A', text: '', is_correct: true },
+                          { label: 'B', text: '', is_correct: false },
+                        ]);
+                      }
+                    }} className="input-field text-sm">
+                      <option value="multiple_choice">Múltipla escolha</option>
+                      <option value="true_false">Verdadeiro / Falso</option>
+                    </select>
+
+                    {q.question_type === 'multiple_choice' && (
+                      <div className="space-y-2">
+                        {q.options.map((opt, oIdx) => (
+                          <div key={oIdx} className="flex items-center gap-2">
+                            <button onClick={() => setCorrectOption(qIdx, oIdx)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${opt.is_correct ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-400 hover:border-green-400'}`}>
+                              {opt.is_correct ? '✓' : opt.label}
+                            </button>
+                            <input value={opt.text} onChange={e => updateQuizOption(qIdx, oIdx, 'text', e.target.value)} className="input-field text-sm flex-1" placeholder={`Alternativa ${opt.label}`} />
+                            {q.options.length > 2 && <button onClick={() => removeQuizOption(qIdx, oIdx)} className="text-red-400 hover:text-red-500"><FiX className="text-sm" /></button>}
+                          </div>
+                        ))}
+                        {q.options.length < 6 && (
+                          <button onClick={() => addQuizOption(qIdx)} className="text-xs text-primary-500 hover:text-primary-600 font-medium">+ Adicionar alternativa</button>
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Explicação (opcional)</label>
+                      <input value={q.explanation} onChange={e => updateQuizQuestion(qIdx, 'explanation', e.target.value)} className="input-field text-sm" placeholder="Explicação da resposta correta" />
+                    </div>
+                  </div>
+                ))}
+
+                {quizQuestions.length === 0 && (
+                  <p className="text-center text-gray-400 py-6 text-sm">Nenhuma pergunta adicionada. Clique em "Adicionar" para começar.</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button onClick={() => setShowQuizModal(false)} className="px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Cancelar</button>
+                <button onClick={handleSaveQuiz} className="px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors">
+                  {editingQuiz ? 'Salvar Alterações' : 'Criar Avaliação'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

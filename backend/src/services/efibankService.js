@@ -211,7 +211,7 @@ async function generatePixQrCode({ amount, description, txid }) {
     txid: charge.txid,
     charge_id: charge.loc?.id,
     status: charge.status,
-    pix_copia_cola: qrData.imagemQrcode || qrData.pixCopiaECola,
+    pix_copia_cola: qrData.qrcode || qrData.pixCopiaECola,
     pix_qr_code_base64: qrData.imagemQrcode,
     expiration: charge.calendario?.expiracao,
     valor: amount,
@@ -222,25 +222,79 @@ async function getPixChargeStatus(txid) {
   return await pixApiRequest('GET', `/v2/cob/${txid}`);
 }
 
-async function createBoleto({ amount, description, customerName, customerCpf, dueDate }) {
-  const body = {
-    calendario: {
-      dataDeVencimento: dueDate || getDefaultDueDate(),
-      dataLimiteNegativacao: getDefaultDueDate(),
+async function createBoleto({
+  amount,
+  description,
+  customerName,
+  customerCpf,
+  customerEmail,
+  customerPhone,
+  address,
+  dueDate,
+  customId,
+}) {
+  const totalCents = Math.round(parseFloat(amount) * 100);
+
+  const customer = {
+    name: customerName || '',
+    cpf: customerCpf ? customerCpf.replace(/\D/g, '') : '',
+    email: customerEmail || '',
+    phone_number: customerPhone ? customerPhone.replace(/\D/g, '').slice(0, 11) : '',
+    address: {
+      street: address?.street || '',
+      number: address?.number || 'S/N',
+      neighborhood: address?.neighborhood || '',
+      zipcode: address?.zipcode ? address.zipcode.replace(/\D/g, '') : '',
+      city: address?.city || '',
+      complement: address?.complement || '',
+      state: (address?.state || '').toUpperCase().slice(0, 2),
     },
-    valor: { original: amount.toFixed(2) },
-    devedor: {
-      cpf: customerCpf ? customerCpf.replace(/\D/g, '') : '',
-      nome: customerName || '',
-    },
-    chave: process.env.EFIBANK_PIX_KEY || '',
   };
 
-  return await billingsApiRequest('POST', '/v1/charge/create', body);
+  const body = {
+    items: [
+      {
+        name: description || 'Pedido Faculdade Diferencial EAD',
+        value: totalCents,
+        amount: 1,
+      },
+    ],
+    payment: {
+      banking_billet: {
+        customer,
+        expire_at: dueDate || getDefaultDueDate(),
+        configurations: {
+          days_to_write_off: 40,
+          fine: 200,
+          interest: 33,
+        },
+        message: 'Boleto com PIX - Faculdade Diferencial EAD',
+      },
+    },
+    metadata: {
+      custom_id: customId || '',
+      notification_url: process.env.EFIBANK_WEBHOOK_URL || '',
+    },
+  };
+
+  const result = await billingsApiRequest('POST', '/v1/charge/one-step', body);
+
+  if (result && result.data) {
+    return result.data;
+  }
+  return result;
 }
 
-async function generateBoletoPdf(chargeId) {
-  return await billingsApiRequest('POST', `/v1/charge/one-step/${chargeId}/billet`);
+async function cancelBoleto(chargeId) {
+  return await billingsApiRequest('PUT', `/v1/charge/${chargeId}/cancel`);
+}
+
+async function getBoletoDetails(chargeId) {
+  return await billingsApiRequest('GET', `/v1/charge/${chargeId}`);
+}
+
+async function getNotificationDetails(notificationId) {
+  return await billingsApiRequest('GET', `/v1/notification/${notificationId}`);
 }
 
 async function processCreditCard({ amount, description, customerName, customerCpf, installments = 1 }) {
@@ -298,7 +352,9 @@ module.exports = {
   generatePixQrCode,
   getPixChargeStatus,
   createBoleto,
-  generateBoletoPdf,
+  cancelBoleto,
+  getBoletoDetails,
+  getNotificationDetails,
   processCreditCard,
   getChargeDetails,
   getNotifications,

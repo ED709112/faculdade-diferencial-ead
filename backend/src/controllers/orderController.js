@@ -207,6 +207,61 @@ const getMyOrders = async (req, res) => {
   }
 };
 
+const getMyFinancial = async (req, res) => {
+  try {
+    const [orders] = await db.query(
+      `SELECT o.*, c.title as course_title, c.slug as course_slug, c.image as course_image
+       FROM orders o
+       JOIN courses c ON o.course_id = c.id
+       WHERE o.user_id = ?
+       ORDER BY o.created_at DESC`,
+      [req.user.id]
+    );
+
+    let payments = [];
+    if (orders.length > 0) {
+      const ids = orders.map(o => o.id);
+      const [rows] = await db.query(
+        'SELECT * FROM payments WHERE order_id IN (?) ORDER BY created_at DESC',
+        [ids]
+      );
+      payments = rows;
+    }
+
+    const paymentsByOrder = new Map();
+    for (const p of payments) {
+      if (!paymentsByOrder.has(p.order_id)) paymentsByOrder.set(p.order_id, []);
+      paymentsByOrder.get(p.order_id).push(p);
+    }
+
+    for (const o of orders) {
+      o.payments = paymentsByOrder.get(o.id) || [];
+    }
+
+    const round2 = (v) => Math.round(v * 100) / 100;
+    const openStatuses = ['pending', 'processing'];
+    const now = new Date();
+
+    const openOrders = orders.filter(o => openStatuses.includes(o.status));
+    const paidOrders = orders.filter(o => o.status === 'paid');
+
+    res.json({
+      summary: {
+        total_paid: round2(paidOrders.reduce((s, o) => s + Number(o.total_amount), 0)),
+        total_open: round2(openOrders.reduce((s, o) => s + Number(o.total_amount), 0)),
+        count_paid: paidOrders.length,
+        count_open: openOrders.length,
+        count_overdue: openOrders.filter(o => o.expires_at && new Date(o.expires_at) < now).length,
+        count_cancelled: orders.filter(o => o.status === 'cancelled').length,
+      },
+      orders,
+    });
+  } catch (error) {
+    console.error('Erro ao gerar situação financeira:', error);
+    res.status(500).json({ error: 'Erro ao gerar situação financeira.' });
+  }
+};
+
 const getByUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -287,6 +342,7 @@ module.exports = {
   getAll,
   getById,
   getMyOrders,
+  getMyFinancial,
   getByUser,
   updateStatus
 };

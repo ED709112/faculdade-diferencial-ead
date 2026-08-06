@@ -78,8 +78,8 @@ export function useSocket() {
   }, []);
 
   const onNotification = useCallback((callback: (data: any) => void) => {
-    socketRef.current?.on('notification', callback);
-    return () => { socketRef.current?.off('notification', callback); };
+    socketRef.current?.on('new_notification', callback);
+    return () => { socketRef.current?.off('new_notification', callback); };
   }, []);
 
   return {

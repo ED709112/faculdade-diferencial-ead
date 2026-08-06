@@ -448,7 +448,7 @@ const getEnrollmentById = async (req, res) => {
     }
 
     const [modules] = await db.query(
-      `SELECT m.id, m.title, m.sort_order,
+      `SELECT m.id, m.title, m.sort_order, m.teacher_id, m.course_id,
               (SELECT COUNT(*) FROM lessons WHERE module_id = m.id) as total_lessons,
               (SELECT COUNT(*) FROM lesson_progress lp
                JOIN lessons l ON lp.lesson_id = l.id
@@ -458,6 +458,34 @@ const getEnrollmentById = async (req, res) => {
        ORDER BY m.sort_order ASC`,
       [enrollments[0].id, enrollments[0].course_id]
     );
+
+    const [lessons] = await db.query(
+      `SELECT l.*,
+              (SELECT lp.status FROM lesson_progress lp
+               WHERE lp.enrollment_id = ? AND lp.lesson_id = l.id) as progress_status
+       FROM lessons l
+       JOIN modules m ON l.module_id = m.id
+       WHERE m.course_id = ?
+       ORDER BY m.sort_order ASC, l.sort_order ASC`,
+      [enrollments[0].id, enrollments[0].course_id]
+    );
+
+    const lessonsByModule = {};
+    for (const l of lessons) {
+      if (!lessonsByModule[l.module_id]) lessonsByModule[l.module_id] = [];
+      lessonsByModule[l.module_id].push({
+        ...l,
+        type: l.content_type || 'video',
+        order: l.sort_order,
+        duration: l.video_duration,
+        completed: l.progress_status === 'completed',
+        progress: l.progress_status ? { status: l.progress_status } : null,
+      });
+    }
+    for (const mod of modules) {
+      mod.order = mod.sort_order;
+      mod.lessons = lessonsByModule[mod.id] || [];
+    }
 
     enrollments[0].modules = modules;
 

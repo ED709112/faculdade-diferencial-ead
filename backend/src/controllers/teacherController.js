@@ -1,26 +1,38 @@
 const db = require('../config/database');
+const { courseScope } = require('../utils/teacherScope');
 
 const getDashboard = async (req, res) => {
   try {
+    const scope = courseScope(req.user.id, 'c');
+
     const [courseStats] = await db.query(
       `SELECT COUNT(*) as total_courses,
-              SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published_courses,
-              SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_courses,
-              SUM(enrollment_count) as total_enrollments,
-              COALESCE(AVG(rating_avg), 0) as avg_rating
-       FROM courses WHERE teacher_id = ?`,
-      [req.user.id]
+              SUM(CASE WHEN c.status = 'published' THEN 1 ELSE 0 END) as published_courses,
+              SUM(CASE WHEN c.status = 'draft' THEN 1 ELSE 0 END) as draft_courses,
+              SUM(c.enrollment_count) as total_enrollments,
+              COALESCE(AVG(c.rating_avg), 0) as avg_rating
+       FROM courses c WHERE ${scope.sql}`,
+      scope.params
+    );
+
+    const [studentStats] = await db.query(
+      `SELECT COUNT(DISTINCT e.user_id) as total_students
+       FROM enrollments e
+       JOIN courses c ON e.course_id = c.id
+       WHERE ${courseScope(req.user.id, 'c').sql} AND e.status IN ('active', 'completed')`,
+      courseScope(req.user.id, 'c').params
     );
 
     const [recentEnrollments] = await db.query(
-      `SELECT e.created_at, e.status, u.name as student_name,
+      `SELECT e.id, e.created_at, e.status, e.progress_percentage,
+              u.name as student_name, u.email as student_email, u.avatar as student_avatar,
               c.title as course_title
        FROM enrollments e
        JOIN users u ON e.user_id = u.id
        JOIN courses c ON e.course_id = c.id
-       WHERE c.teacher_id = ?
+       WHERE ${courseScope(req.user.id, 'c').sql}
        ORDER BY e.created_at DESC LIMIT 10`,
-      [req.user.id]
+      courseScope(req.user.id, 'c').params
     );
 
     const [recentStudents] = await db.query(
@@ -30,25 +42,25 @@ const getDashboard = async (req, res) => {
        FROM enrollments e
        JOIN users u ON e.user_id = u.id
        JOIN courses c ON e.course_id = c.id
-       WHERE c.teacher_id = ?
+       WHERE ${courseScope(req.user.id, 'c').sql}
        ORDER BY e.created_at DESC LIMIT 10`,
-      [req.user.id]
+      courseScope(req.user.id, 'c').params
     );
 
     const [revenue] = await db.query(
       `SELECT COALESCE(SUM(o.total_amount), 0) as total_revenue
        FROM orders o
        JOIN courses c ON o.course_id = c.id
-       WHERE c.teacher_id = ? AND o.status = 'paid'`,
-      [req.user.id]
+       WHERE ${courseScope(req.user.id, 'c').sql} AND o.status = 'paid'`,
+      courseScope(req.user.id, 'c').params
     );
 
     const [monthlyRevenue] = await db.query(
       `SELECT COALESCE(SUM(o.total_amount), 0) as total
        FROM orders o
        JOIN courses c ON o.course_id = c.id
-       WHERE c.teacher_id = ? AND o.status = 'paid' AND o.paid_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
-      [req.user.id]
+       WHERE ${courseScope(req.user.id, 'c').sql} AND o.status = 'paid' AND o.paid_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
+      courseScope(req.user.id, 'c').params
     );
 
     res.json({
@@ -57,11 +69,18 @@ const getDashboard = async (req, res) => {
         published_courses: courseStats[0].published_courses,
         draft_courses: courseStats[0].draft_courses,
         total_enrollments: courseStats[0].total_enrollments,
+        total_students: studentStats[0].total_students,
         avg_rating: parseFloat(courseStats[0].avg_rating).toFixed(2),
         total_revenue: parseFloat(revenue[0].total_revenue).toFixed(2),
         monthly_revenue: parseFloat(monthlyRevenue[0].total).toFixed(2)
       },
-      recent_enrollments: recentEnrollments,
+      recent_enrollments: recentEnrollments.map((e) => ({
+        id: e.id,
+        student: { name: e.student_name, email: e.student_email, avatar: e.student_avatar },
+        course: { title: e.course_title },
+        enrolled_at: e.created_at,
+        progress: e.progress_percentage || 0
+      })),
       recent_students: recentStudents
     });
   } catch (error) {
@@ -72,6 +91,7 @@ const getDashboard = async (req, res) => {
 
 const getMyCourses = async (req, res) => {
   try {
+    const scope = courseScope(req.user.id, 'c');
     const [courses] = await db.query(
       `SELECT c.*,
               cat.name as category_name,
@@ -83,9 +103,9 @@ const getMyCourses = async (req, res) => {
               (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id AND status = 'completed') as completed_students
        FROM courses c
        LEFT JOIN categories cat ON c.category_id = cat.id
-       WHERE c.teacher_id = ?
+       WHERE ${scope.sql}
        ORDER BY c.created_at DESC`,
-      [req.user.id]
+      scope.params
     );
 
     res.json(courses);
@@ -101,8 +121,9 @@ const getStudents = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const { course_id, search } = req.query;
 
-    let where = 'WHERE c.teacher_id = ?';
-    const params = [req.user.id];
+    const scope = courseScope(req.user.id, 'c');
+    let where = `WHERE ${scope.sql}`;
+    const params = [...scope.params];
 
     if (course_id) {
       where += ' AND e.course_id = ?';
@@ -140,8 +161,18 @@ const getStudents = async (req, res) => {
       [...params, limit, offset]
     );
 
+    const mapped = students.map((s) => ({
+      id: s.enrollment_id,
+      student: { id: s.id, name: s.name, email: s.email, avatar: s.avatar },
+      course: { id: s.course_id, title: s.course_title },
+      progress: parseFloat(s.progress_percentage) || 0,
+      last_accessed: s.last_accessed_at,
+      enrolled_at: s.started_at,
+      completed: s.enrollment_status === 'completed'
+    }));
+
     res.json({
-      data: students,
+      data: mapped,
       pagination: {
         total,
         page,
@@ -165,8 +196,8 @@ const getStudentProgress = async (req, res) => {
       `SELECT e.*, c.title as course_title, c.id as course_id
        FROM enrollments e
        JOIN courses c ON e.course_id = c.id
-       WHERE e.user_id = ? AND c.teacher_id = ?`,
-      [studentId, req.user.id]
+       WHERE e.user_id = ? AND ${courseScope(req.user.id, 'c').sql}`,
+      [studentId, ...courseScope(req.user.id, 'c').params]
     );
 
     if (enrollments.length === 0) {

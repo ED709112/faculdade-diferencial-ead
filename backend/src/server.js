@@ -62,9 +62,14 @@ const crmRoutes = require('./routes/crm');
 const chatbotRoutes = require('./routes/chatbot');
 const billingRoutes = require('./routes/billing');
 const promoRoutes = require('./routes/promo');
+const turmaRoutes = require('./routes/turmas');
+const historicoRoutes = require('./routes/historico');
 
 const app = express();
 const server = http.createServer(app);
+
+// Confiar no proxy reverso (nginx) para obter o IP real do cliente
+app.set('trust proxy', 1);
 
 // Socket.IO para chat em tempo real
 const io = new Server(server, {
@@ -113,8 +118,9 @@ if (process.env.NODE_ENV === 'development') {
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' }
+  max: 300,
+  message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
+  skip: (req) => req.originalUrl.startsWith('/api/chatbot/webhook'),
 });
 app.use('/api/', limiter);
 
@@ -181,6 +187,8 @@ app.use('/api/crm', crmRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin/billing', billingRoutes);
 app.use('/api/admin/promo', promoRoutes);
+app.use('/api/turmas', turmaRoutes);
+app.use('/api/historico', historicoRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

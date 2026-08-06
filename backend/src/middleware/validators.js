@@ -20,7 +20,7 @@ const authValidators = {
   register: [
     body('name').trim().notEmpty().withMessage('Nome é obrigatório.')
       .isLength({ min: 2, max: 255 }).withMessage('Nome deve ter entre 2 e 255 caracteres.'),
-    body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
+    body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail({ gmail_remove_dots: false }),
     body('password').isLength({ min: 8 }).withMessage('Senha deve ter pelo menos 8 caracteres.')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Senha deve conter ao menos: 1 letra maiúscula, 1 minúscula e 1 número.'),
     body('phone').optional().custom(validPhone).withMessage('Formato de telefone inválido.'),
@@ -29,13 +29,13 @@ const authValidators = {
   ],
 
   login: [
-    body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
+    body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail({ gmail_remove_dots: false }),
     body('password').notEmpty().withMessage('Senha é obrigatória.'),
     handleValidation
   ],
 
   forgotPassword: [
-    body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
+    body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail({ gmail_remove_dots: false }),
     handleValidation
   ],
 

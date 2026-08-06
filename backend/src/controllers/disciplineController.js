@@ -1,16 +1,18 @@
 const db = require('../config/database');
 const path = require('path');
 const fs = require('fs').promises;
+const { teacherScope } = require('../utils/teacherScope');
 
 const getMyDisciplines = async (req, res) => {
   try {
+    const scope = teacherScope(req.user.id, 'd');
     const [disciplines] = await db.query(
       `SELECT d.*, 
               (SELECT COUNT(*) FROM discipline_materials dm WHERE dm.discipline_id = d.id) as materials_count
        FROM disciplines d
-       WHERE d.teacher_id = ?
+       WHERE ${scope.sql}
        ORDER BY d.created_at DESC`,
-      [req.user.id]
+      scope.params
     );
     res.json(disciplines);
   } catch (error) {
@@ -22,9 +24,10 @@ const getMyDisciplines = async (req, res) => {
 const getDisciplineById = async (req, res) => {
   try {
     const { id } = req.params;
+    const scope = teacherScope(req.user.id, 'd');
     const [disciplines] = await db.query(
-      'SELECT * FROM disciplines WHERE id = ? AND teacher_id = ?',
-      [id, req.user.id]
+      `SELECT d.* FROM disciplines d WHERE d.id = ? AND ${scope.sql}`,
+      [id, ...scope.params]
     );
     if (disciplines.length === 0) {
       return res.status(404).json({ error: 'Disciplina não encontrada.' });

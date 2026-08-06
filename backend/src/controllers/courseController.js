@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const { paginate, paginateResult } = require('../utils/pagination');
 const { generateUniqueSlug } = require('../utils/slug');
+const { courseScope } = require('../utils/teacherScope');
 
 const getAll = async (req, res) => {
   try {
@@ -432,13 +433,13 @@ const getEnrolledStudents = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    const [courses] = await db.query('SELECT id, teacher_id FROM courses WHERE id = ?', [id]);
+    const scope = courseScope(req.user.id, 'c');
+    const [courses] = await db.query(
+      `SELECT c.id FROM courses c WHERE c.id = ? AND ${scope.sql}`,
+      [id, ...scope.params]
+    );
     if (courses.length === 0) {
       return res.status(404).json({ error: 'Curso não encontrado.' });
-    }
-
-    if (req.user.role !== 'admin' && courses[0].teacher_id !== req.user.id) {
-      return res.status(403).json({ error: 'Sem permissão para ver alunos deste curso.' });
     }
 
     const [countResult] = await db.query(

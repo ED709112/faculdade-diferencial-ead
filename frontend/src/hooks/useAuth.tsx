@@ -19,7 +19,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, redirectTo?: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, redirectTo?: string) => {
     try {
       const { data } = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', data.token);
@@ -73,7 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         teacher: '/professor/dashboard',
         student: '/aluno/cursos'
       };
-      router.push(roleRoutes[data.user.role] || '/');
+      const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+        ? redirectTo
+        : null;
+      router.push(safeRedirect || roleRoutes[data.user.role] || '/');
     } catch (error: any) {
       const message = error.response?.data?.error || 'Erro ao fazer login.';
       toast.error(message);

@@ -16,7 +16,8 @@ const nextConfig = {
   async rewrites() {
     const backendUrl = isProduction ? 'http://127.0.0.1:3001' : 'http://localhost:3001';
     return [
-      { source: '/uploads/:path*', destination: `${backendUrl}/uploads/:path*` }
+      { source: '/uploads/:path*', destination: `${backendUrl}/uploads/:path*` },
+      { source: '/api/:path*', destination: `${backendUrl}/api/:path*` }
     ];
   },
   env: {

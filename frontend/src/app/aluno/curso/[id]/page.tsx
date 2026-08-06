@@ -36,14 +36,25 @@ import QuizTab from '@/components/courses/QuizTab';
 interface Lesson {
   id: number;
   title: string;
-  type: 'video' | 'text' | 'pdf';
+  type: 'video' | 'text' | 'pdf' | 'quiz';
   content?: string;
+  text_content?: string;
+  description?: string;
   video_url?: string;
   pdf_url?: string;
+  attachment_url?: string;
+  attachment_name?: string;
   file_url?: string;
   duration?: number;
   order: number;
   completed: boolean;
+  ementa?: string | null;
+  objetivo?: string | null;
+  objetivo_especifico?: string | null;
+  conteudo_programatico?: string | null;
+  metodologia?: string | null;
+  avaliacao?: string | null;
+  bibliografia?: string | null;
 }
 
 interface Module {
@@ -62,10 +73,15 @@ interface Course {
 
 interface Comment {
   id: number;
-  user: { id: number; name: string; avatar?: string };
-  content: string;
+  user?: { id: number; name: string; avatar?: string };
+  content?: string;
   comment?: string;
+  parent_id?: number | null;
   created_at: string;
+  user_name?: string;
+  user_avatar?: string;
+  user_role?: string;
+  replies?: Comment[];
 }
 
 interface EnrollmentProgress {
@@ -121,6 +137,8 @@ export default function CoursePlayerPage() {
   const [enrollmentProgress, setEnrollmentProgress] = useState<EnrollmentProgress | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
   const [loading, setLoading] = useState(true);
   const [completingLesson, setCompletingLesson] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('aula');
@@ -339,6 +357,81 @@ export default function CoursePlayerPage() {
       setSendingComment(false);
     }
   };
+
+  const sendReply = async (comment: Comment) => {
+    if (!currentLesson || !replyText.trim()) return;
+    try {
+      setSendingComment(true);
+      await api.post(`/lessons/${currentLesson.id}/comments`, {
+        comment: replyText.trim(),
+        parent_id: comment.id,
+      });
+      setReplyText('');
+      setReplyingTo(null);
+      toast.success('Resposta enviada!');
+      await fetchComments(currentLesson.id);
+    } catch {
+      toast.error('Erro ao enviar resposta');
+    } finally {
+      setSendingComment(false);
+    }
+  };
+
+  const renderCommentItem = (comment: Comment, depth: number) => (
+    <div>
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center shrink-0 overflow-hidden">
+          {(comment.user_avatar || comment.user?.avatar) ? (
+            <img src={comment.user_avatar || comment.user?.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <FiUser className="text-primary-500 text-sm" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">{comment.user_name || comment.user?.name || 'Aluno'}</span>
+            {(comment.user_role === 'teacher' || comment.user_role === 'admin') && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary-100 dark:bg-secondary-900/40 text-secondary-600 dark:text-secondary-300">
+                Professor
+              </span>
+            )}
+            <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate(comment.created_at)}</span>
+          </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content || comment.comment}</p>
+          <button
+            onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+            className="text-xs text-primary-500 hover:text-primary-600 mt-1"
+          >
+            Responder
+          </button>
+          {replyingTo === comment.id && (
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendReply(comment)}
+                placeholder="Escreva sua resposta..."
+                className="flex-1 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <button
+                onClick={() => sendReply(comment)}
+                disabled={!replyText.trim() || sendingComment}
+                className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white rounded-lg text-sm flex items-center gap-1"
+              >
+                <FiSend className="text-sm" />
+              </button>
+            </div>
+          )}
+          {(comment.replies || []).length > 0 && (
+            <div className="mt-3 space-y-3">
+              {(comment.replies || []).map((reply) => renderCommentItem(reply, depth + 1))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   const handleVideoProgress = (state: { played: number; playedSeconds: number; loaded: number; loadedSeconds: number }) => {
     if (!currentLesson || !enrollmentId) return;
@@ -612,9 +705,23 @@ export default function CoursePlayerPage() {
                       title={currentLesson.title}
                     />
                   </div>
-                ) : currentLesson.type === 'text' && currentLesson.content ? (
+                ) : currentLesson.type === 'text' && currentLesson.text_content ? (
                   <div className="p-6">
-                    <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
+                    <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: currentLesson.text_content }} />
+                  </div>
+                ) : currentLesson.attachment_url ? (
+                  <div className="p-6">
+                    <a href={currentLesson.attachment_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <FiFileText className="text-3xl text-primary-500" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {currentLesson.attachment_name || 'Material da aula'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Clique para baixar ou abrir</p>
+                      </div>
+                      <FiDownload className="text-gray-400" />
+                    </a>
                   </div>
                 ) : (
                   <div className="p-8 text-center">
@@ -655,10 +762,12 @@ export default function CoursePlayerPage() {
                           ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
                           : currentLesson.type === 'pdf'
                           ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          : currentLesson.type === 'quiz'
+                          ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                           : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                       }`}>
                         {currentLesson.type === 'video' ? <FiPlay className="text-xs" /> : <FiFileText className="text-xs" />}
-                        {currentLesson.type === 'video' ? 'Vídeo' : currentLesson.type === 'pdf' ? 'PDF' : 'Texto'}
+                        {currentLesson.type === 'video' ? 'Vídeo' : currentLesson.type === 'pdf' ? 'PDF' : currentLesson.type === 'quiz' ? 'Prova' : 'Texto'}
                       </span>
                       {currentLesson.duration && (
                         <span className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -668,9 +777,9 @@ export default function CoursePlayerPage() {
                       )}
                     </div>
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">{currentLesson.title}</h2>
-                    {currentLesson.content && currentLesson.type !== 'text' && (
+                    {currentLesson.description && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
-                        {currentLesson.content}
+                        {currentLesson.description}
                       </p>
                     )}
                   </div>
@@ -693,6 +802,68 @@ export default function CoursePlayerPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Material da Aula */}
+              {currentLesson.attachment_url && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FiFolder className="text-primary-500" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Material da Aula</h3>
+                  </div>
+                  <a
+                    href={currentLesson.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <FiFileText className="text-3xl text-primary-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {currentLesson.attachment_name || 'Material da aula'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Clique para baixar ou abrir</p>
+                    </div>
+                    <FiDownload className="text-gray-400 shrink-0" />
+                  </a>
+                </div>
+              )}
+
+              {/* Plano de Ensino */}
+              {(() => {
+                const plan: { label: string; value: string; list?: boolean }[] = [];
+                if (currentLesson.ementa) plan.push({ label: 'Ementa', value: currentLesson.ementa });
+                if (currentLesson.objetivo) plan.push({ label: 'Objetivo', value: currentLesson.objetivo });
+                if (currentLesson.objetivo_especifico) plan.push({ label: 'Objetivo Específico', value: currentLesson.objetivo_especifico });
+                if (currentLesson.conteudo_programatico) plan.push({ label: 'Conteúdo Programático', value: currentLesson.conteudo_programatico, list: true });
+                if (currentLesson.metodologia) plan.push({ label: 'Metodologia', value: currentLesson.metodologia });
+                if (currentLesson.avaliacao) plan.push({ label: 'Avaliação', value: currentLesson.avaliacao });
+                if (currentLesson.bibliografia) plan.push({ label: 'Bibliografia', value: currentLesson.bibliografia });
+                if (plan.length === 0) return null;
+                return (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FiBook className="text-primary-500" />
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Plano de Ensino</h3>
+                    </div>
+                    <div className="space-y-4">
+                      {plan.map((item) => (
+                        <div key={item.label}>
+                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{item.label}</p>
+                          {item.list ? (
+                            <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                              {item.value.split('\n').filter((l) => l.trim()).map((line, i) => (
+                                <li key={i}>{line}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{item.value}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Comments */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
@@ -733,18 +904,7 @@ export default function CoursePlayerPage() {
                   ) : (
                     comments.map((comment) => (
                       <div key={comment.id} className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center shrink-0">
-                            <FiUser className="text-primary-500 text-sm" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">{comment.user?.name || 'Aluno'}</span>
-                              <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate(comment.created_at)}</span>
-                            </div>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content || comment.comment}</p>
-                          </div>
-                        </div>
+                        {renderCommentItem(comment, 0)}
                       </div>
                     ))
                   )}

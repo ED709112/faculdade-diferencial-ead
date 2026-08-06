@@ -84,6 +84,11 @@ export default function AdminAlunosPage() {
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
 
+  const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
+  const [editing, setEditing] = useState(false);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
@@ -229,6 +234,37 @@ export default function AdminAlunosPage() {
     }
   };
 
+  const openEdit = (student: Student) => {
+    setEditStudent(student);
+    setEditForm({ name: student.name, email: student.email, phone: student.phone || '' });
+    setShowEditModal(true);
+  };
+
+  const handleEditStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editStudent) return;
+    if (!editForm.name.trim() || !editForm.email.trim()) {
+      toast.error('Preencha nome e e-mail.');
+      return;
+    }
+    setEditing(true);
+    try {
+      await api.patch(`/admin/users/${editStudent.id}`, {
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim() || null,
+      });
+      toast.success('Aluno atualizado com sucesso!');
+      setShowEditModal(false);
+      setEditStudent(null);
+      fetchStudents();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao atualizar aluno.');
+    } finally {
+      setEditing(false);
+    }
+  };
+
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -340,6 +376,13 @@ export default function AdminAlunosPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(student)}
+                          className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors text-gray-500 hover:text-blue-600"
+                          title="Editar aluno"
+                        >
+                          <FiEdit2 className="text-sm" />
+                        </button>
                         <button
                           onClick={() => { setResetUser(student); setNewPassword(''); setShowResetModal(true); }}
                           className="p-1.5 rounded-lg hover:bg-amber-50 transition-colors text-gray-500 hover:text-amber-600"
@@ -631,6 +674,92 @@ export default function AdminAlunosPage() {
                     </span>
                   ) : (
                     'Redefinir Senha'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditModal && editStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => !editing && setShowEditModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Editar Aluno</h2>
+                <p className="text-sm text-gray-500">{editStudent.name}</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100" disabled={editing}>
+                <FiX className="text-lg text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditStudent} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="Nome do aluno"
+                  required
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                <div className="relative">
+                  <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="aluno@email.com"
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <div className="relative">
+                  <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={editing}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editing}
+                  className="flex-1 px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50"
+                >
+                  {editing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="spinner !w-4 !h-4 !border-2" />
+                      Salvando...
+                    </span>
+                  ) : (
+                    'Salvar'
                   )}
                 </button>
               </div>

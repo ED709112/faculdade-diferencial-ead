@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const path = require('path');
 const fs = require('fs').promises;
+const { teacherScope } = require('../utils/teacherScope');
 
 // =====================================================
 // ALUNO - Enviar atividade
@@ -109,14 +110,15 @@ const getTeacherSubmissions = async (req, res) => {
     const teacher_id = req.user.id;
     const { discipline_id, status } = req.query;
 
+    const scope = teacherScope(teacher_id, 'd');
     let query = `
       SELECT asb.*, d.name as discipline_name, u.name as student_name, u.email as student_email
       FROM activity_submissions asb
       JOIN disciplines d ON asb.discipline_id = d.id
       JOIN users u ON asb.student_id = u.id
-      WHERE d.teacher_id = ?
+      WHERE ${scope.sql}
     `;
-    const params = [teacher_id];
+    const params = [...scope.params];
 
     if (discipline_id) {
       query += ' AND asb.discipline_id = ?';
@@ -146,8 +148,8 @@ const gradeSubmission = async (req, res) => {
     const [existing] = await db.query(
       `SELECT asb.id FROM activity_submissions asb
        JOIN disciplines d ON asb.discipline_id = d.id
-       WHERE asb.id = ? AND d.teacher_id = ?`,
-      [id, graded_by]
+       WHERE asb.id = ? AND ${teacherScope(graded_by, 'd').sql}`,
+      [id, ...teacherScope(graded_by, 'd').params]
     );
     if (existing.length === 0) return res.status(404).json({ error: 'Submissão não encontrada.' });
 
@@ -179,9 +181,10 @@ const getGradebook = async (req, res) => {
     }
 
     // Verify teacher owns this discipline
+    const scope = teacherScope(teacher_id, 'd');
     const [discCheck] = await db.query(
-      'SELECT id FROM disciplines WHERE id = ? AND teacher_id = ?',
-      [discipline_id, teacher_id]
+      `SELECT d.id FROM disciplines d WHERE d.id = ? AND ${scope.sql}`,
+      [discipline_id, ...scope.params]
     );
     if (discCheck.length === 0) return res.status(403).json({ error: 'Disciplina não encontrada.' });
 
@@ -243,9 +246,10 @@ const updateGradebook = async (req, res) => {
     }
 
     // Verify teacher owns this discipline
+    const scope = teacherScope(teacher_id, 'd');
     const [discCheck] = await db.query(
-      'SELECT id FROM disciplines WHERE id = ? AND teacher_id = ?',
-      [discipline_id, teacher_id]
+      `SELECT d.id FROM disciplines d WHERE d.id = ? AND ${scope.sql}`,
+      [discipline_id, ...scope.params]
     );
     if (discCheck.length === 0) return res.status(403).json({ error: 'Disciplina não encontrada.' });
 
@@ -275,9 +279,10 @@ const updateGradebookBulk = async (req, res) => {
       return res.status(400).json({ error: 'discipline_id, bimester e entries são obrigatórios.' });
     }
 
+    const scope = teacherScope(teacher_id, 'd');
     const [discCheck] = await db.query(
-      'SELECT id FROM disciplines WHERE id = ? AND teacher_id = ?',
-      [discipline_id, teacher_id]
+      `SELECT d.id FROM disciplines d WHERE d.id = ? AND ${scope.sql}`,
+      [discipline_id, ...scope.params]
     );
     if (discCheck.length === 0) return res.status(403).json({ error: 'Disciplina não encontrada.' });
 

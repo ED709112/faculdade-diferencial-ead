@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
@@ -11,12 +11,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [redirect, setRedirect] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('redirect');
+    if (r && r.startsWith('/') && !r.startsWith('//')) setRedirect(r);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, redirect);
     } catch {
     } finally {
       setLoading(false);

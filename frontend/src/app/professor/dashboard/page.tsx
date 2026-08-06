@@ -46,11 +46,12 @@ export default function TeacherDashboardPage() {
     try {
       setLoading(true);
       const { data } = await api.get('/teacher/dashboard');
+      const s = data.stats ?? {};
       setStats({
-        totalCourses: data.totalCourses ?? data.total_courses ?? 0,
-        totalStudents: data.totalStudents ?? data.total_students ?? 0,
-        totalRevenue: data.totalRevenue ?? data.total_revenue ?? 0,
-        averageRating: data.averageRating ?? data.average_rating ?? 0,
+        totalCourses: s.total_courses ?? 0,
+        totalStudents: s.total_students ?? 0,
+        totalRevenue: parseFloat(s.total_revenue ?? 0),
+        averageRating: parseFloat(s.avg_rating ?? 0),
       });
       setEnrollments(data.recentEnrollments ?? data.recent_enrollments ?? []);
     } catch {

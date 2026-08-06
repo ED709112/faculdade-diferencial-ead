@@ -1,10 +1,13 @@
 'use client';
 
-import React, { ReactNode, useState, useRef, useEffect } from 'react';
+import React, { ReactNode, useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useSocket } from '@/hooks/useSocket';
 import { useTheme } from '@/contexts/ThemeContext';
 import Sidebar from './Sidebar';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
 import { FiSearch, FiBell, FiUser, FiLogOut, FiChevronDown, FiMenu, FiSun, FiMoon } from 'react-icons/fi';
 
 interface DashboardLayoutProps {
@@ -18,12 +21,77 @@ export default function DashboardLayout({ role, title, children }: DashboardLayo
   const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const { onNotification } = useSocket();
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const { data } = await api.get('/notifications', { params: { limit: 8 } });
+      setNotifications(data.data || []);
+    } catch {
+      // ignore
+    }
+    try {
+      const { data } = await api.get('/notifications/unread-count');
+      setUnreadCount(data.count ?? data.unread_count ?? 0);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    return onNotification((n: any) => {
+      setUnreadCount((c) => c + 1);
+      setNotifications((prev) => [n, ...prev].slice(0, 8));
+      if (n?.message) {
+        toast(n.message, { duration: 8000 });
+      }
+    });
+  }, [onNotification]);
+
+  const handleMarkRead = async (id: number) => {
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: 1 } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
+      setUnreadCount(0);
+    } catch {
+      // ignore
+    }
+  };
+
+  const formatNotifDate = (date: string) =>
+    new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -89,10 +157,54 @@ export default function DashboardLayout({ role, title, children }: DashboardLayo
             </button>
 
             {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <FiBell className="text-gray-600 dark:text-gray-300" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => { setNotifOpen(!notifOpen); if (!notifOpen) fetchNotifications(); }}
+                className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <FiBell className="text-gray-600 dark:text-gray-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notificações</p>
+                    {unreadCount > 0 && (
+                      <button onClick={handleMarkAllRead} className="text-xs text-primary-500 hover:text-primary-600">Marcar todas como lidas</button>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
+                    {notifications.length === 0 ? (
+                      <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma notificação.</p>
+                    ) : (
+                      notifications.map((n, i) => (
+                        <div key={n.id || `sock-${i}`} className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${n.is_read ? 'opacity-70' : ''}`}>
+                          <Link
+                            href={n.link || '#'}
+                            onClick={() => { if (n.id) handleMarkRead(n.id); setNotifOpen(false); }}
+                            className="block"
+                          >
+                            <div className="flex items-start gap-2">
+                              {!n.is_read && <span className="w-2 h-2 bg-primary-500 rounded-full mt-1.5 shrink-0" />}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{n.title}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{n.message}</p>
+                                {n.created_at && <p className="text-[10px] text-gray-400 mt-0.5">{formatNotifDate(n.created_at)}</p>}
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>

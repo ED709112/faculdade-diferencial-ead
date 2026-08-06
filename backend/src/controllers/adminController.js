@@ -254,22 +254,22 @@ const getAllUsers = async (req, res) => {
     const params = [];
 
     if (search) {
-      where += ' AND (name LIKE ? OR email LIKE ?)';
+      where += ' AND (u.name LIKE ? OR u.email LIKE ?)';
       params.push(`%${search}%`, `%${search}%`);
     }
 
     if (role) {
-      where += ' AND role = ?';
+      where += ' AND u.role = ?';
       params.push(role);
     }
 
     if (is_active !== undefined) {
-      where += ' AND is_active = ?';
+      where += ' AND u.is_active = ?';
       params.push(is_active === 'true' || is_active === '1' ? 1 : 0);
     }
 
     const [countResult] = await db.query(
-      `SELECT COUNT(*) as total FROM users ${where}`,
+      `SELECT COUNT(*) as total FROM users u ${where}`,
       params
     );
     const total = countResult[0].total;
@@ -277,8 +277,9 @@ const getAllUsers = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const [users] = await db.query(
-      `SELECT id, name, email, role, avatar, phone, is_active, email_verified_at, last_login, created_at
-       FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      `SELECT u.id, u.name, u.email, u.role, u.avatar, u.phone, u.is_active, u.email_verified_at, u.last_login, u.created_at,
+              (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status IN ('active','pending','completed')) AS enrollments_count
+       FROM users u ${where} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
 

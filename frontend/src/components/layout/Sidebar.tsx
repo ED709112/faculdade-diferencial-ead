@@ -33,6 +33,7 @@ import {
   FiTarget,
   FiCreditCard,
   FiSend,
+  FiLayers,
 } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 
@@ -58,6 +59,7 @@ const adminMenu: MenuItem[] = [
   { label: 'Professores', href: '/admin/professores', icon: FiUsers },
   { label: 'Alunos', href: '/admin/alunos', icon: FiUser },
   { label: 'Matrículas', href: '/admin/matriculas', icon: FiPercent },
+  { label: 'Turmas', href: '/admin/turmas', icon: FiLayers },
   { label: 'Disciplinas', href: '/admin/disciplinas', icon: FiBook },
   { label: 'Documentos', href: '/admin/documentos', icon: FiFile },
   { label: 'Duração dos Cursos', href: '/admin/duracao-cursos', icon: FiCalendar },
@@ -90,6 +92,7 @@ const adminPermissionMap: Record<string, string> = {
   '/admin/professores': 'teachers',
   '/admin/alunos': 'students',
   '/admin/matriculas': 'enrollments',
+  '/admin/turmas': 'courses',
   '/admin/disciplinas': 'courses',
   '/admin/duracao-cursos': 'durations',
   '/admin/cupons': 'coupons',
@@ -113,8 +116,10 @@ const adminPermissionMap: Record<string, string> = {
 const teacherMenu: MenuItem[] = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: FiGrid },
   { label: 'Disciplinas', href: '/professor/disciplinas', icon: FiBookOpen },
+  { label: 'Turmas', href: '/professor/turmas', icon: FiLayers },
   { label: 'Correções', href: '/professor/correcoes', icon: FiFileText },
   { label: 'Diário de Notas', href: '/professor/diario', icon: FiBarChart2 },
+  { label: 'Comentários', href: '/professor/comentarios', icon: FiMessageSquare },
   { label: 'Alunos', href: '/professor/alunos', icon: FiUsers },
   { label: 'Certificados', href: '/professor/certificados', icon: FiAward },
 ];
@@ -123,12 +128,16 @@ const studentMenu: MenuItem[] = [
   { label: 'Dashboard', href: '/aluno', icon: FiGrid },
   { label: 'Meus Cursos', href: '/aluno/cursos', icon: FiBookOpen },
   { label: 'Loja', href: '/aluno/loja', icon: FiShoppingBag },
+  { label: 'Meus Produtos', href: '/aluno/produtos', icon: FiDownload },
+  { label: 'Financeiro', href: '/aluno/financeiro', icon: FiCreditCard },
   { label: 'Calendário', href: '/aluno/calendario', icon: FiCalendar },
+  { label: 'Histórico Escolar', href: '/aluno/historico', icon: FiFileText },
   { label: 'Certificados', href: '/aluno/certificados', icon: FiAward },
   { label: 'Conquistas', href: '/aluno/conquistas', icon: FiStar },
   { label: 'Documentos', href: '/aluno/documentos', icon: FiFile },
   { label: 'Downloads', href: '/aluno/download', icon: FiDownload },
   { label: 'Favoritos', href: '/aluno/favoritos', icon: FiHeart },
+  { label: 'Comentários', href: '/aluno/comentarios', icon: FiMessageSquare },
   { label: 'Perfil', href: '/aluno/perfil', icon: FiUser },
   { label: 'Mensagens', href: '/aluno/mensagens', icon: FiMessageSquare },
 ];

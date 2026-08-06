@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { FiCheck, FiClock, FiUsers, FiArrowRight } from 'react-icons/fi';
 import { FaStar, FaWhatsapp } from 'react-icons/fa';
 import LpLeadForm from './LpLeadForm';
+import VestibularLp from './VestibularLp';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const SITE_URL = 'https://fadead.com.br';
@@ -79,6 +80,10 @@ export default async function LpPage({ params }: { params: { slug: string } }) {
         </div>
       </div>
     );
+  }
+
+  if (course.slug === 'pedagogia-vestibular-2026-2') {
+    return <VestibularLp course={course} />;
   }
 
   const benefits = [

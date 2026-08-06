@@ -4,10 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   FiBookOpen,
-  FiPlus,
   FiEdit2,
   FiUsers,
-  FiTrash2,
   FiMoreVertical,
   FiClock,
   FiDollarSign,
@@ -20,7 +18,6 @@ import api from '@/lib/api';
 import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import Loading from '@/components/ui/Loading';
-import toast from 'react-hot-toast';
 
 interface Course {
   id: number;
@@ -71,18 +68,6 @@ export default function MyCoursesPage() {
     setPage(1);
   }, [statusFilter]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este curso?')) return;
-    try {
-      await api.delete(`/courses/${id}`);
-      toast.success('Curso excluído com sucesso!');
-      fetchCourses();
-    } catch {
-      toast.error('Erro ao excluir curso.');
-    }
-    setMenuOpen(null);
-  };
-
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -112,14 +97,8 @@ export default function MyCoursesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Meus Cursos</h2>
-          <p className="text-gray-500 text-sm mt-1">Gerencie os cursos que você ministra</p>
+          <p className="text-gray-500 text-sm mt-1">Cursos em que você ministra aulas</p>
         </div>
-        <Link
-          href="/professor/curso/novo"
-          className="btn-primary flex items-center gap-2 w-fit text-sm"
-        >
-          <FiPlus /> Novo Curso
-        </Link>
       </div>
 
       {/* Toolbar */}
@@ -162,12 +141,7 @@ export default function MyCoursesPage() {
         <EmptyState
           icon={<FiBookOpen />}
           title="Nenhum curso encontrado"
-          description={
-            statusFilter === 'all'
-              ? 'Você ainda não criou nenhum curso.'
-              : 'Nenhum curso encontrado com este filtro.'
-          }
-          action={{ label: 'Criar Primeiro Curso', href: '/professor/curso/novo' }}
+          description="Os cursos são criados pelo administrador. As disciplinas em que você foi lotado ficam em Minhas Disciplinas."
         />
       )}
 
@@ -220,12 +194,6 @@ export default function MyCoursesPage() {
                           >
                             <FiEye className="text-gray-400" /> Ver Alunos
                           </Link>
-                          <button
-                            onClick={() => handleDelete(course.id)}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full"
-                          >
-                            <FiTrash2 /> Excluir
-                          </button>
                         </div>
                       </>
                     )}
@@ -318,12 +286,6 @@ export default function MyCoursesPage() {
                       >
                         <FiEdit2 />
                       </Link>
-                      <button
-                        onClick={() => handleDelete(course.id)}
-                        className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors"
-                      >
-                        <FiTrash2 />
-                      </button>
                     </div>
                   </td>
                 </tr>

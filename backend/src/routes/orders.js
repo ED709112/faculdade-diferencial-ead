@@ -8,6 +8,8 @@ router.post('/', authenticate, orderController.create);
 
 router.get('/my', authenticate, orderController.getMyOrders);
 
+router.get('/financial', authenticate, authorize('student'), orderController.getMyFinancial);
+
 router.get('/', authenticate, authorize('admin'), paginationValidator, orderController.getAll);
 
 router.get('/user/:userId', authenticate, authorize('admin'), orderController.getByUser);
