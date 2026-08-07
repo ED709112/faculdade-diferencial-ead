@@ -400,13 +400,20 @@ const getCourseComments = async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
 
+    const fullAccess = isAdmin || scopeRows[0].is_course_teacher;
     const [lessons] = await db.query(
       `SELECT l.id, l.title, m.id AS module_id, m.title AS module_title
        FROM lessons l
        JOIN modules m ON l.module_id = m.id
        WHERE m.course_id = ?
+         AND (? = 1 OR m.teacher_id = ?
+              OR EXISTS (
+                SELECT 1 FROM course_disciplines cd
+                JOIN disciplines d ON cd.discipline_id = d.id
+                WHERE cd.course_id = ? AND cd.module_id = m.id AND d.teacher_id = ?
+              ))
        ORDER BY m.sort_order ASC, l.sort_order ASC`,
-      [courseId]
+      [courseId, fullAccess ? 1 : 0, req.user.id, courseId, req.user.id]
     );
 
     if (lessons.length === 0) {

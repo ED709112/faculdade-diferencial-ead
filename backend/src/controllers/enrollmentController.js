@@ -16,8 +16,10 @@ const enrollPublic = async (req, res) => {
     await conn.beginTransaction();
 
     const {
-      name, email, phone, cpf, birth_date, gender,
-      course_id, payment_method, address, city, state, zip_code
+      name, email, phone, cpf, rg, birth_date, gender,
+      course_id, payment_method,
+      address, address_number, neighborhood, city, state, zip_code,
+      father_name, mother_name,
     } = req.body;
 
     if (!name || !email || !course_id) {
@@ -39,31 +41,42 @@ const enrollPublic = async (req, res) => {
 
     if (existingUser.length > 0) {
       userId = existingUser[0].id;
-      if (phone || cpf || birth_date || gender || address) {
+      if (phone || cpf || rg || birth_date || gender || address || address_number || neighborhood ||
+          city || state || zip_code || father_name || mother_name) {
         await conn.query(
           `UPDATE users SET
             phone = COALESCE(?, phone),
             cpf = COALESCE(?, cpf),
+            rg = COALESCE(?, rg),
             birth_date = COALESCE(?, birth_date),
             gender = COALESCE(?, gender),
             address = COALESCE(?, address),
+            address_number = COALESCE(?, address_number),
+            neighborhood = COALESCE(?, neighborhood),
             city = COALESCE(?, city),
             state = COALESCE(?, state),
-            zip_code = COALESCE(?, zip_code)
+            zip_code = COALESCE(?, zip_code),
+            father_name = COALESCE(?, father_name),
+            mother_name = COALESCE(?, mother_name)
            WHERE id = ?`,
-          [phone || null, cpf || null, birth_date || null, gender || null,
-           address || null, city || null, state || null, zip_code || null, userId]
+          [phone || null, cpf || null, rg || null, birth_date || null, gender || null,
+           address || null, address_number || null, neighborhood || null,
+           city || null, state || null, zip_code || null,
+           father_name || null, mother_name || null, userId]
         );
       }
     } else {
       tempPassword = crypto.randomBytes(8).toString('hex');
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
       const [userResult] = await conn.query(
-        `INSERT INTO users (name, email, password, phone, cpf, birth_date, gender, address, city, state, zip_code, role, lgpd_consent, lgpd_consent_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'student', 1, NOW())`,
-        [name, email, hashedPassword, phone || null, cpf || null,
-         birth_date || null, gender || null, address || null,
-         city || null, state || null, zip_code || null]
+        `INSERT INTO users (name, email, password, phone, cpf, rg, birth_date, gender,
+                           address, address_number, neighborhood, city, state, zip_code,
+                           father_name, mother_name, role, lgpd_consent, lgpd_consent_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'student', 1, NOW())`,
+        [name, email, hashedPassword, phone || null, cpf || null, rg || null,
+         birth_date || null, gender || null, address || null, address_number || null,
+         neighborhood || null, city || null, state || null, zip_code || null,
+         father_name || null, mother_name || null]
       );
       userId = userResult.insertId;
     }

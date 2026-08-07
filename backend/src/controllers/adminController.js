@@ -451,7 +451,12 @@ const getFinancialReport = async (req, res) => {
 
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, phone, role, address, city, state, zip_code } = req.body;
+    const {
+      name, email, password, phone, role,
+      cpf, rg, birth_date, gender,
+      address, address_number, neighborhood, city, state, zip_code,
+      father_name, mother_name,
+    } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
@@ -465,9 +470,15 @@ const createUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
-      `INSERT INTO users (name, email, password, phone, role, address, city, state, zip_code, is_active, email_verified_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
-      [name, email, hashedPassword, phone || null, role || 'student', address || null, city || null, state || null, zip_code || null]
+      `INSERT INTO users (name, email, password, phone, role, cpf, rg, birth_date, gender,
+                         address, address_number, neighborhood, city, state, zip_code,
+                         father_name, mother_name, is_active, email_verified_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
+      [name, email, hashedPassword, phone || null, role || 'student',
+       cpf || null, rg || null, birth_date || null, gender || null,
+       address || null, address_number || null, neighborhood || null,
+       city || null, state || null, zip_code || null,
+       father_name || null, mother_name || null]
     );
 
     res.status(201).json({
@@ -494,8 +505,9 @@ const getUserById = async (req, res) => {
     const { id } = req.params;
 
     const [users] = await db.query(
-      `SELECT id, name, email, role, avatar, phone, cpf, birth_date, gender,
-              address, city, state, zip_code, bio, is_active, email_verified_at,
+      `SELECT id, name, email, role, avatar, phone, cpf, rg, birth_date, gender,
+              address, address_number, neighborhood, city, state, zip_code,
+              father_name, mother_name, bio, is_active, email_verified_at,
               last_login, created_at, updated_at
        FROM users WHERE id = ?`,
       [id]
@@ -524,7 +536,12 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, role, is_active, password } = req.body;
+    const {
+      name, email, phone, role, is_active, password,
+      cpf, rg, birth_date, gender,
+      address, address_number, neighborhood, city, state, zip_code,
+      father_name, mother_name,
+    } = req.body;
 
     const [existing] = await db.query('SELECT id FROM users WHERE id = ?', [id]);
     if (existing.length === 0) {
@@ -546,6 +563,18 @@ const updateUser = async (req, res) => {
     if (phone !== undefined) { fields.push('phone = ?'); values.push(phone); }
     if (role !== undefined) { fields.push('role = ?'); values.push(role); }
     if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+    if (cpf !== undefined) { fields.push('cpf = ?'); values.push(cpf); }
+    if (rg !== undefined) { fields.push('rg = ?'); values.push(rg); }
+    if (birth_date !== undefined) { fields.push('birth_date = ?'); values.push(birth_date); }
+    if (gender !== undefined) { fields.push('gender = ?'); values.push(gender); }
+    if (address !== undefined) { fields.push('address = ?'); values.push(address); }
+    if (address_number !== undefined) { fields.push('address_number = ?'); values.push(address_number); }
+    if (neighborhood !== undefined) { fields.push('neighborhood = ?'); values.push(neighborhood); }
+    if (city !== undefined) { fields.push('city = ?'); values.push(city); }
+    if (state !== undefined) { fields.push('state = ?'); values.push(state); }
+    if (zip_code !== undefined) { fields.push('zip_code = ?'); values.push(zip_code); }
+    if (father_name !== undefined) { fields.push('father_name = ?'); values.push(father_name); }
+    if (mother_name !== undefined) { fields.push('mother_name = ?'); values.push(mother_name); }
     if (password) {
       const hashed = await bcrypt.hash(password, 10);
       fields.push('password = ?');

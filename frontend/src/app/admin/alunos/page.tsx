@@ -31,6 +31,18 @@ interface Student {
   status: 'active' | 'inactive';
   enrollments_count: number;
   created_at: string;
+  cpf?: string;
+  rg?: string;
+  birth_date?: string;
+  gender?: string;
+  address?: string;
+  address_number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  father_name?: string;
+  mother_name?: string;
   enrollments?: { id: number; course_title: string; status: string; enrolled_at: string }[];
 }
 
@@ -44,12 +56,40 @@ interface CourseOption {
   category_name?: string;
 }
 
-interface NewStudentForm {
+interface StudentData {
   name: string;
   email: string;
-  password: string;
   phone: string;
+  cpf: string;
+  rg: string;
+  birth_date: string;
+  gender: string;
+  address: string;
+  address_number: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  father_name: string;
+  mother_name: string;
 }
+
+interface NewStudentForm extends StudentData {
+  password: string;
+}
+
+const emptyStudentData: StudentData = {
+  name: '', email: '', phone: '', cpf: '', rg: '', birth_date: '', gender: '',
+  address: '', address_number: '', neighborhood: '', city: '', state: '', zip_code: '',
+  father_name: '', mother_name: '',
+};
+
+const ufStates = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+const formatCPF = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+const formatRG = (v: string) => v.replace(/\D/g, '').substring(0, 12).replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3-$4');
+const formatCEP = (v: string) => v.replace(/\D/g, '').substring(0, 8).replace(/(\d{5})(\d{3})/, '$1-$2');
+const formatPhone = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
 
 export default function AdminAlunosPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -65,10 +105,8 @@ export default function AdminAlunosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newStudent, setNewStudent] = useState<NewStudentForm>({
-    name: '',
-    email: '',
+    ...emptyStudentData,
     password: '',
-    phone: '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -86,7 +124,7 @@ export default function AdminAlunosPage() {
 
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
+  const [editForm, setEditForm] = useState<StudentData>({ ...emptyStudentData });
   const [editing, setEditing] = useState(false);
 
   const fetchStudents = useCallback(async () => {
@@ -200,10 +238,22 @@ export default function AdminAlunosPage() {
         password: newStudent.password,
         phone: newStudent.phone.trim() || undefined,
         role: 'student',
+        cpf: newStudent.cpf.trim() || undefined,
+        rg: newStudent.rg.trim() || undefined,
+        birth_date: newStudent.birth_date || undefined,
+        gender: newStudent.gender || undefined,
+        address: newStudent.address.trim() || undefined,
+        address_number: newStudent.address_number.trim() || undefined,
+        neighborhood: newStudent.neighborhood.trim() || undefined,
+        city: newStudent.city.trim() || undefined,
+        state: newStudent.state || undefined,
+        zip_code: newStudent.zip_code.trim() || undefined,
+        father_name: newStudent.father_name.trim() || undefined,
+        mother_name: newStudent.mother_name.trim() || undefined,
       });
       toast.success('Aluno criado com sucesso!');
       setShowCreateModal(false);
-      setNewStudent({ name: '', email: '', password: '', phone: '' });
+      setNewStudent({ ...emptyStudentData, password: '' });
       fetchStudents();
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Erro ao criar aluno.';
@@ -236,7 +286,23 @@ export default function AdminAlunosPage() {
 
   const openEdit = (student: Student) => {
     setEditStudent(student);
-    setEditForm({ name: student.name, email: student.email, phone: student.phone || '' });
+    setEditForm({
+      name: student.name,
+      email: student.email,
+      phone: student.phone || '',
+      cpf: student.cpf || '',
+      rg: student.rg || '',
+      birth_date: student.birth_date || '',
+      gender: student.gender || '',
+      address: student.address || '',
+      address_number: student.address_number || '',
+      neighborhood: student.neighborhood || '',
+      city: student.city || '',
+      state: student.state || '',
+      zip_code: student.zip_code || '',
+      father_name: student.father_name || '',
+      mother_name: student.mother_name || '',
+    });
     setShowEditModal(true);
   };
 
@@ -253,6 +319,18 @@ export default function AdminAlunosPage() {
         name: editForm.name.trim(),
         email: editForm.email.trim(),
         phone: editForm.phone.trim() || null,
+        cpf: editForm.cpf.trim() || null,
+        rg: editForm.rg.trim() || null,
+        birth_date: editForm.birth_date || null,
+        gender: editForm.gender || null,
+        address: editForm.address.trim() || null,
+        address_number: editForm.address_number.trim() || null,
+        neighborhood: editForm.neighborhood.trim() || null,
+        city: editForm.city.trim() || null,
+        state: editForm.state || null,
+        zip_code: editForm.zip_code.trim() || null,
+        father_name: editForm.father_name.trim() || null,
+        mother_name: editForm.mother_name.trim() || null,
       });
       toast.success('Aluno atualizado com sucesso!');
       setShowEditModal(false);
@@ -432,7 +510,7 @@ export default function AdminAlunosPage() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => !creating && setShowCreateModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900">Novo Aluno</h2>
               <button onClick={() => setShowCreateModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100" disabled={creating}>
@@ -440,69 +518,213 @@ export default function AdminAlunosPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateStudent} className="p-5 space-y-4">
+            <form onSubmit={handleCreateStudent} className="p-5 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
-                <input
-                  type="text"
-                  value={newStudent.name}
-                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                  placeholder="Nome do aluno"
-                  required
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                />
-              </div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Acesso</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
+                    <input
+                      type="text"
+                      value={newStudent.name}
+                      onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                      placeholder="Nome do aluno"
+                      required
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
-                <div className="relative">
-                  <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="email"
-                    value={newStudent.email}
-                    onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                    placeholder="aluno@email.com"
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                    <div className="relative">
+                      <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="email"
+                        value={newStudent.email}
+                        onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                        placeholder="aluno@email.com"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
+                    <div className="relative">
+                      <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={newStudent.password}
+                        onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
+                        placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? '🙈' : '👁'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
-                <div className="relative">
-                  <FiBook className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={newStudent.password}
-                    onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
-                    placeholder="Mínimo 8 caracteres"
-                    required
-                    minLength={8}
-                    className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? '🙈' : '👁'}
-                  </button>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Dados Pessoais</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <div className="relative">
+                      <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={newStudent.phone}
+                        onChange={(e) => setNewStudent({ ...newStudent, phone: formatPhone(e.target.value) })}
+                        placeholder="(11) 99999-9999"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                    <input
+                      type="text"
+                      value={newStudent.cpf}
+                      onChange={(e) => setNewStudent({ ...newStudent, cpf: formatCPF(e.target.value) })}
+                      placeholder="000.000.000-00"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">RG</label>
+                    <input
+                      type="text"
+                      value={newStudent.rg}
+                      onChange={(e) => setNewStudent({ ...newStudent, rg: formatRG(e.target.value) })}
+                      placeholder="00.000.000-0"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={newStudent.birth_date}
+                      onChange={(e) => setNewStudent({ ...newStudent, birth_date: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+                    <select
+                      value={newStudent.gender}
+                      onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="M">Masculino</option>
+                      <option value="F">Feminino</option>
+                      <option value="O">Outro</option>
+                    </select>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">O aluno usará este e-mail e senha para acessar a plataforma.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                <div className="relative">
-                  <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    value={newStudent.phone}
-                    onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Endereço</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rua</label>
+                    <input
+                      type="text"
+                      value={newStudent.address}
+                      onChange={(e) => setNewStudent({ ...newStudent, address: e.target.value })}
+                      placeholder="Rua, Avenida..."
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                    <input
+                      type="text"
+                      value={newStudent.address_number}
+                      onChange={(e) => setNewStudent({ ...newStudent, address_number: e.target.value })}
+                      placeholder="S/N"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                    <input
+                      type="text"
+                      value={newStudent.neighborhood}
+                      onChange={(e) => setNewStudent({ ...newStudent, neighborhood: e.target.value })}
+                      placeholder="Centro"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                    <input
+                      type="text"
+                      value={newStudent.city}
+                      onChange={(e) => setNewStudent({ ...newStudent, city: e.target.value })}
+                      placeholder="Cidade"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select
+                      value={newStudent.state}
+                      onChange={(e) => setNewStudent({ ...newStudent, state: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    >
+                      <option value="">Selecione</option>
+                      {ufStates.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                    <input
+                      type="text"
+                      value={newStudent.zip_code}
+                      onChange={(e) => setNewStudent({ ...newStudent, zip_code: formatCEP(e.target.value) })}
+                      placeholder="00000-000"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Filiação</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Pai</label>
+                    <input
+                      type="text"
+                      value={newStudent.father_name}
+                      onChange={(e) => setNewStudent({ ...newStudent, father_name: e.target.value })}
+                      placeholder="Nome completo do pai"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Mãe</label>
+                    <input
+                      type="text"
+                      value={newStudent.mother_name}
+                      onChange={(e) => setNewStudent({ ...newStudent, mother_name: e.target.value })}
+                      placeholder="Nome completo da mãe"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -686,7 +908,7 @@ export default function AdminAlunosPage() {
       {showEditModal && editStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => !editing && setShowEditModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Editar Aluno</h2>
@@ -697,45 +919,191 @@ export default function AdminAlunosPage() {
               </button>
             </div>
 
-            <form onSubmit={handleEditStudent} className="p-5 space-y-4">
+            <form onSubmit={handleEditStudent} className="p-5 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  placeholder="Nome do aluno"
-                  required
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                />
-              </div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Acesso</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="Nome do aluno"
+                      required
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
-                <div className="relative">
-                  <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    placeholder="aluno@email.com"
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                    <div className="relative">
+                      <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="email"
+                        value={editForm.email}
+                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                        placeholder="aluno@email.com"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <div className="relative">
+                      <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: formatPhone(e.target.value) })}
+                        placeholder="(11) 99999-9999"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                <div className="relative">
-                  <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Dados Pessoais</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                    <input
+                      type="text"
+                      value={editForm.cpf}
+                      onChange={(e) => setEditForm({ ...editForm, cpf: formatCPF(e.target.value) })}
+                      placeholder="000.000.000-00"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">RG</label>
+                    <input
+                      type="text"
+                      value={editForm.rg}
+                      onChange={(e) => setEditForm({ ...editForm, rg: formatRG(e.target.value) })}
+                      placeholder="00.000.000-0"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={editForm.birth_date}
+                      onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+                    <select
+                      value={editForm.gender}
+                      onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="M">Masculino</option>
+                      <option value="F">Feminino</option>
+                      <option value="O">Outro</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Endereço</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rua</label>
+                    <input
+                      type="text"
+                      value={editForm.address}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      placeholder="Rua, Avenida..."
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                    <input
+                      type="text"
+                      value={editForm.address_number}
+                      onChange={(e) => setEditForm({ ...editForm, address_number: e.target.value })}
+                      placeholder="S/N"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                    <input
+                      type="text"
+                      value={editForm.neighborhood}
+                      onChange={(e) => setEditForm({ ...editForm, neighborhood: e.target.value })}
+                      placeholder="Centro"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                    <input
+                      type="text"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      placeholder="Cidade"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select
+                      value={editForm.state}
+                      onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    >
+                      <option value="">Selecione</option>
+                      {ufStates.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                    <input
+                      type="text"
+                      value={editForm.zip_code}
+                      onChange={(e) => setEditForm({ ...editForm, zip_code: formatCEP(e.target.value) })}
+                      placeholder="00000-000"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Filiação</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Pai</label>
+                    <input
+                      type="text"
+                      value={editForm.father_name}
+                      onChange={(e) => setEditForm({ ...editForm, father_name: e.target.value })}
+                      placeholder="Nome completo do pai"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Mãe</label>
+                    <input
+                      type="text"
+                      value={editForm.mother_name}
+                      onChange={(e) => setEditForm({ ...editForm, mother_name: e.target.value })}
+                      placeholder="Nome completo da mãe"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -808,6 +1176,70 @@ export default function AdminAlunosPage() {
                     <FiCalendar className="text-gray-400" /> {formatDate(selectedStudent.created_at)}
                   </div>
                 </div>
+
+                {(selectedStudent.cpf || selectedStudent.rg || selectedStudent.birth_date || selectedStudent.gender) && (
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Dados Pessoais</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {selectedStudent.cpf && (
+                        <div>
+                          <p className="text-xs text-gray-400">CPF</p>
+                          <p className="text-gray-700">{selectedStudent.cpf}</p>
+                        </div>
+                      )}
+                      {selectedStudent.rg && (
+                        <div>
+                          <p className="text-xs text-gray-400">RG</p>
+                          <p className="text-gray-700">{selectedStudent.rg}</p>
+                        </div>
+                      )}
+                      {selectedStudent.birth_date && (
+                        <div>
+                          <p className="text-xs text-gray-400">Nascimento</p>
+                          <p className="text-gray-700">{formatDate(selectedStudent.birth_date)}</p>
+                        </div>
+                      )}
+                      {selectedStudent.gender && (
+                        <div>
+                          <p className="text-xs text-gray-400">Sexo</p>
+                          <p className="text-gray-700">
+                            {selectedStudent.gender === 'M' ? 'Masculino' : selectedStudent.gender === 'F' ? 'Feminino' : selectedStudent.gender === 'O' ? 'Outro' : selectedStudent.gender}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(selectedStudent.address || selectedStudent.neighborhood || selectedStudent.city || selectedStudent.zip_code) && (
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Endereço</h4>
+                    <p className="text-sm text-gray-700">
+                      {[selectedStudent.address, selectedStudent.address_number ? `nº ${selectedStudent.address_number}` : null]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {[selectedStudent.neighborhood, selectedStudent.city, selectedStudent.state, selectedStudent.zip_code]
+                        .filter(Boolean)
+                        .join(' - ') || 'Não informado'}
+                    </p>
+                  </div>
+                )}
+
+                {(selectedStudent.father_name || selectedStudent.mother_name) && (
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Filiação</h4>
+                    <div className="space-y-1 text-sm">
+                      {selectedStudent.father_name && (
+                        <p className="text-gray-700"><span className="text-gray-400">Pai:</span> {selectedStudent.father_name}</p>
+                      )}
+                      {selectedStudent.mother_name && (
+                        <p className="text-gray-700"><span className="text-gray-400">Mãe:</span> {selectedStudent.mother_name}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <button
                   onClick={() => { setShowModal(false); openEnrollModal(selectedStudent); }}

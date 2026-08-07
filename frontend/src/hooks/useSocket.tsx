@@ -67,6 +67,11 @@ export function useSocket() {
     return () => { socketRef.current?.off('new_message', callback); };
   }, []);
 
+  const onNewConversation = useCallback((callback: (data: any) => void) => {
+    socketRef.current?.on('new_conversation', callback);
+    return () => { socketRef.current?.off('new_conversation', callback); };
+  }, []);
+
   const onMessagesRead = useCallback((callback: (data: any) => void) => {
     socketRef.current?.on('messages_read', callback);
     return () => { socketRef.current?.off('messages_read', callback); };
@@ -91,6 +96,7 @@ export function useSocket() {
     startTyping,
     stopTyping,
     onNewMessage,
+    onNewConversation,
     onMessagesRead,
     onTyping,
     onNotification,

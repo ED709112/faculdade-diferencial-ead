@@ -26,6 +26,7 @@ import {
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
 import toast from 'react-hot-toast';
+import BoletosTab from './boletos-tab';
 
 interface FinancialSummary {
   totalRevenue: number;
@@ -65,6 +66,7 @@ export default function AdminFinanceiroPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'dashboard' | 'boletos'>('dashboard');
 
   useEffect(() => {
     fetchData();
@@ -178,6 +180,29 @@ export default function AdminFinanceiroPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex gap-2 border-b border-gray-100 pb-4">
+        <button
+          onClick={() => setTab('dashboard')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === 'dashboard' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => setTab('boletos')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === 'boletos' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Boletos
+        </button>
+      </div>
+
+      {tab === 'boletos' ? (
+        <BoletosTab />
+      ) : (
+        <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Financeiro</h1>
@@ -310,6 +335,8 @@ export default function AdminFinanceiroPage() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

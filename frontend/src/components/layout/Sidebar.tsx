@@ -52,6 +52,7 @@ const adminMenu: MenuItem[] = [
   { label: 'CRM', href: '/admin/crm', icon: FiTarget },
   { label: 'CRM Config', href: '/admin/crm/config', icon: FiSettings },
   { label: 'Chatbot', href: '/admin/chatbot', icon: FiMessageSquare },
+  { label: 'Mensagens', href: '/admin/mensagens', icon: FiSend },
   { label: 'QR Matrícula', href: '/admin/matricula-qrcode', icon: FiDownload },
   { label: 'Cursos', href: '/admin/cursos', icon: FiBookOpen },
   { label: 'Categorias', href: '/admin/categorias', icon: FiTag },
@@ -120,6 +121,7 @@ const teacherMenu: MenuItem[] = [
   { label: 'Correções', href: '/professor/correcoes', icon: FiFileText },
   { label: 'Diário de Notas', href: '/professor/diario', icon: FiBarChart2 },
   { label: 'Comentários', href: '/professor/comentarios', icon: FiMessageSquare },
+  { label: 'Mensagens', href: '/professor/mensagens', icon: FiSend },
   { label: 'Alunos', href: '/professor/alunos', icon: FiUsers },
   { label: 'Certificados', href: '/professor/certificados', icon: FiAward },
 ];

@@ -193,8 +193,9 @@ const studentGetDisciplines = async (req, res) => {
               u.name as teacher_name,
               (SELECT COUNT(*) FROM discipline_materials dm WHERE dm.discipline_id = d.id) as materials_count
        FROM disciplines d
-       JOIN users u ON d.teacher_id = u.id
        JOIN course_disciplines cd ON cd.discipline_id = d.id
+       LEFT JOIN modules m ON cd.module_id = m.id
+       LEFT JOIN users u ON u.id = COALESCE(m.teacher_id, d.teacher_id)
        JOIN enrollments e ON e.course_id = cd.course_id AND e.user_id = ?
        WHERE d.status = 'active'
        GROUP BY d.id
@@ -214,8 +215,9 @@ const studentGetDisciplineById = async (req, res) => {
     const [disciplines] = await db.query(
       `SELECT d.*, u.name as teacher_name
        FROM disciplines d
-       JOIN users u ON d.teacher_id = u.id
        JOIN course_disciplines cd ON cd.discipline_id = d.id
+       LEFT JOIN modules m ON cd.module_id = m.id
+       LEFT JOIN users u ON u.id = COALESCE(m.teacher_id, d.teacher_id)
        JOIN enrollments e ON e.course_id = cd.course_id AND e.user_id = ?
        WHERE d.id = ? AND d.status = 'active'`,
       [req.user.id, id]
@@ -262,9 +264,9 @@ const studentGetCourseDisciplines = async (req, res) => {
               m.title as module_name,
               (SELECT COUNT(*) FROM discipline_materials dm WHERE dm.discipline_id = d.id) as materials_count
        FROM disciplines d
-       JOIN users u ON d.teacher_id = u.id
        JOIN course_disciplines cd ON cd.discipline_id = d.id
        LEFT JOIN modules m ON cd.module_id = m.id
+       LEFT JOIN users u ON u.id = COALESCE(m.teacher_id, d.teacher_id)
        JOIN enrollments e ON e.course_id = cd.course_id AND e.user_id = ?
        WHERE cd.course_id = ? AND d.status = 'active'
        ORDER BY cd.sort_order ASC, d.name ASC`,
@@ -300,9 +302,9 @@ const studentGetModuleDiscipline = async (req, res) => {
               cd.module_id,
               m.title as module_name
        FROM disciplines d
-       JOIN users u ON d.teacher_id = u.id
        JOIN course_disciplines cd ON cd.discipline_id = d.id
        LEFT JOIN modules m ON cd.module_id = m.id
+       LEFT JOIN users u ON u.id = COALESCE(m.teacher_id, d.teacher_id)
        JOIN enrollments e ON e.course_id = cd.course_id AND e.user_id = ?
        WHERE cd.course_id = ? AND cd.module_id = ? AND d.status = 'active'
        ORDER BY cd.sort_order ASC, d.name ASC`,

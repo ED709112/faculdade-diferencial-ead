@@ -2,6 +2,12 @@ const db = require('../config/database');
 const { paginate, paginateResult } = require('../utils/pagination');
 const { sendEmail, emailTemplates } = require('../services/emailService');
 
+const messageLink = (userId, role, conversationId) => {
+  if (role === 'teacher') return `/professor/mensagens/${conversationId}`;
+  if (role === 'admin') return `/admin/mensagens/${conversationId}`;
+  return `/aluno/mensagens/${conversationId}`;
+};
+
 const getConversations = async (req, res) => {
   try {
     const [conversations] = await db.query(
@@ -142,13 +148,15 @@ const sendMessage = async (req, res) => {
     );
 
     for (const p of participants) {
+      const [user] = await db.query('SELECT email, name, role FROM users WHERE id = ?', [p.user_id]);
+      const link = messageLink(p.user_id, user.length > 0 ? user[0].role : null, conversation_id);
+
       await db.query(
         `INSERT INTO notifications (user_id, title, message, type, link)
          VALUES (?, 'Nova mensagem', ?, 'info', ?)`,
-        [p.user_id, `Nova mensagem de ${req.user.name}`, `/mensagens/${conversation_id}`]
+        [p.user_id, `Nova mensagem de ${req.user.name}`, link]
       );
 
-      const [user] = await db.query('SELECT email, name FROM users WHERE id = ?', [p.user_id]);
       if (user.length > 0 && user[0].email) {
         const messagePreview = message.length > 100 ? message.substring(0, 100) + '...' : message;
         await sendEmail({
@@ -158,11 +166,10 @@ const sendMessage = async (req, res) => {
       }
 
       if (io) {
-        const [userSocket] = await db.query('SELECT id FROM users WHERE id = ?', [p.user_id]);
         io.to(`user_${p.user_id}`).emit('new_notification', {
           title: 'Nova mensagem',
           message: `Nova mensagem de ${req.user.name}`,
-          link: `/mensagens/${conversation_id}`
+          link
         });
       }
     }
@@ -289,10 +296,181 @@ const markAsRead = async (req, res) => {
   }
 };
 
+const getRecipients = async (req, res) => {
+  try {
+    const [teachers] = await db.query(
+      `SELECT id, name, email, avatar FROM users
+       WHERE role = 'teacher' AND is_active = 1 ORDER BY name`
+    );
+    const [students] = await db.query(
+      `SELECT id, name, email, avatar FROM users
+       WHERE role = 'student' AND is_active = 1 ORDER BY name`
+    );
+    res.json({ teachers, students });
+  } catch (error) {
+    console.error('Erro ao listar destinatários:', error);
+    res.status(500).json({ error: 'Erro ao listar destinatários.' });
+  }
+};
+
+const broadcastMessage = async (req, res) => {
+  try {
+    const { audience, turma_id, student_ids, teacher_id, message, subject } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'A mensagem é obrigatória.' });
+    }
+
+    let userIds = [];
+    let courseId = null;
+
+    if (audience === 'turma') {
+      if (!turma_id) {
+        return res.status(400).json({ error: 'Selecione uma turma.' });
+      }
+      const [turmas] = await db.query('SELECT id, course_id FROM turmas WHERE id = ?', [turma_id]);
+      if (turmas.length === 0) {
+        return res.status(404).json({ error: 'Turma não encontrada.' });
+      }
+      courseId = turmas[0].course_id;
+      const [rows] = await db.query(
+        `SELECT DISTINCT e.user_id
+         FROM enrollments e
+         JOIN users u ON u.id = e.user_id
+         WHERE e.turma_id = ? AND e.status IN ('active','pending')
+           AND u.role = 'student' AND u.is_active = 1`,
+        [turma_id]
+      );
+      userIds = rows.map(r => r.user_id);
+    } else if (audience === 'students') {
+      const ids = Array.isArray(student_ids) ? student_ids : [student_ids];
+      userIds = ids.map(Number).filter(Boolean);
+    } else if (audience === 'teacher') {
+      if (!teacher_id) {
+        return res.status(400).json({ error: 'Selecione um professor.' });
+      }
+      userIds = [Number(teacher_id)];
+    } else if (audience === 'teachers') {
+      const [rows] = await db.query(
+        `SELECT id FROM users WHERE role = 'teacher' AND is_active = 1`
+      );
+      userIds = rows.map(r => r.id);
+    } else {
+      return res.status(400).json({ error: 'Tipo de público inválido.' });
+    }
+
+    userIds = [...new Set(userIds.map(Number))].filter(id => id && id !== req.user.id);
+
+    if (userIds.length === 0) {
+      return res.status(400).json({ error: 'Nenhum destinatário encontrado para o público selecionado.' });
+    }
+
+    const allIds = [...new Set([req.user.id, ...userIds])];
+
+    const [convResult] = await db.query(
+      'INSERT INTO conversations (course_id) VALUES (?)',
+      [courseId]
+    );
+    const conversationId = convResult.insertId;
+
+    for (const userId of allIds) {
+      await db.query(
+        'INSERT INTO conversation_participants (conversation_id, user_id) VALUES (?, ?)',
+        [conversationId, userId]
+      );
+    }
+
+    const messageText = message.trim();
+    const [msgResult] = await db.query(
+      'INSERT INTO messages (conversation_id, sender_id, message) VALUES (?, ?, ?)',
+      [conversationId, req.user.id, messageText]
+    );
+
+    const [conversation] = await db.query(
+      `SELECT c.*, co.title as course_title
+       FROM conversations c
+       LEFT JOIN courses co ON c.course_id = co.id
+       WHERE c.id = ?`,
+      [conversationId]
+    );
+
+    const [newMessage] = await db.query(
+      `SELECT m.*, u.name as sender_name, u.avatar as sender_avatar, u.role as sender_role
+       FROM messages m
+       JOIN users u ON m.sender_id = u.id
+       WHERE m.id = ?`,
+      [msgResult.insertId]
+    );
+
+    const [participants] = await db.query(
+      `SELECT u.id, u.name, u.avatar, u.role
+       FROM conversation_participants cp
+       JOIN users u ON cp.user_id = u.id
+       WHERE cp.conversation_id = ?`,
+      [conversationId]
+    );
+    conversation[0].participants = participants;
+
+    const io = req.app.get('io');
+    const messagePreview = messageText.length > 100 ? messageText.substring(0, 100) + '...' : messageText;
+    const title = (subject && subject.trim()) || 'Nova mensagem do Administrador';
+
+    for (const uid of userIds) {
+      const [user] = await db.query('SELECT id, email, name, role FROM users WHERE id = ?', [uid]);
+      if (user.length === 0) continue;
+      const u = user[0];
+      const link = messageLink(u.id, u.role, conversationId);
+
+      await db.query(
+        `INSERT INTO notifications (user_id, title, message, type, link)
+         VALUES (?, ?, ?, 'info', ?)`,
+        [u.id, title, `Mensagem do administrador: ${messagePreview}`, link]
+      );
+
+      if (u.email) {
+        await sendEmail({
+          to: u.email,
+          ...emailTemplates.newMessage(req.user.name, conversation[0].course_title || null, messagePreview)
+        });
+      }
+
+      if (io) {
+        io.to(`user_${u.id}`).emit('new_notification', {
+          title,
+          message: `Mensagem do administrador: ${messagePreview}`,
+          link
+        });
+        io.to(`user_${u.id}`).emit('new_conversation', {
+          conversation_id: conversationId,
+          conversation: conversation[0]
+        });
+      }
+    }
+
+    if (io) {
+      io.to(`conversation_${conversationId}`).emit('new_message', {
+        conversation_id: conversationId,
+        message: newMessage[0]
+      });
+    }
+
+    res.status(201).json({
+      conversation: conversation[0],
+      message: newMessage[0],
+      recipients_count: userIds.length
+    });
+  } catch (error) {
+    console.error('Erro ao enviar mensagem em massa:', error);
+    res.status(500).json({ error: 'Erro ao enviar mensagem em massa.' });
+  }
+};
+
 module.exports = {
   getConversations,
   getMessages,
   sendMessage,
   createConversation,
-  markAsRead
+  markAsRead,
+  getRecipients,
+  broadcastMessage
 };

@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const messageController = require('../controllers/messageController');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { paginationValidator } = require('../middleware/validators');
 
 router.get('/conversations', authenticate, messageController.getConversations);
+
+router.get('/recipients', authenticate, authorize('admin'), messageController.getRecipients);
+
+router.post('/broadcast', authenticate, authorize('admin'), messageController.broadcastMessage);
 
 router.get('/:conversationId', authenticate, paginationValidator, messageController.getMessages);
 

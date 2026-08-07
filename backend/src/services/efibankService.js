@@ -164,8 +164,14 @@ async function billingsApiRequest(method, endpoint, body = null) {
 
   if (body) config.data = body;
 
-  const { data } = await axios(config);
-  return data;
+  try {
+    const { data } = await axios(config);
+    return data;
+  } catch (error) {
+    const details = error.response?.data || error.message;
+    console.error(`[Efíbank] Erro em ${method} ${endpoint}:`, JSON.stringify(details).slice(0, 600));
+    throw error;
+  }
 }
 
 async function createPixCharge({ txid, amount, description, pixKey, expirationSeconds = 3600 }) {
@@ -232,6 +238,8 @@ async function createBoleto({
   address,
   dueDate,
   customId,
+  discount,
+  message,
 }) {
   const totalCents = Math.round(parseFloat(amount) * 100);
 
@@ -251,6 +259,28 @@ async function createBoleto({
     },
   };
 
+  const configurations = {
+    days_to_write_off: 40,
+    fine: 200,
+    interest: 33,
+  };
+
+  const bankingBillet = {
+    customer,
+    expire_at: dueDate || getDefaultDueDate(),
+    configurations,
+    message: message || 'Boleto com PIX - Faculdade Diferencial EAD',
+  };
+
+  const discountValue = discount !== undefined && discount !== null ? Math.round(parseFloat(discount) * 100) : 0;
+  if (discountValue > 0) {
+    bankingBillet.conditional_discount = {
+      type: 'currency',
+      value: discountValue,
+      until_date: dueDate || getDefaultDueDate(),
+    };
+  }
+
   const body = {
     items: [
       {
@@ -260,16 +290,7 @@ async function createBoleto({
       },
     ],
     payment: {
-      banking_billet: {
-        customer,
-        expire_at: dueDate || getDefaultDueDate(),
-        configurations: {
-          days_to_write_off: 40,
-          fine: 200,
-          interest: 33,
-        },
-        message: 'Boleto com PIX - Faculdade Diferencial EAD',
-      },
+      banking_billet: bankingBillet,
     },
     metadata: {
       custom_id: customId || '',

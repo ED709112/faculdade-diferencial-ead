@@ -29,6 +29,7 @@ router.get('/', authenticate, async (req, res) => {
 
     let totalLessonsCompleted = 0;
     let totalLessons = 0;
+    const enrollmentLessonCounts = {};
     for (const enr of enrollments) {
       const [lc] = await db.query(
         "SELECT COUNT(*) as t FROM lesson_progress WHERE enrollment_id = ? AND status = 'completed'",
@@ -40,6 +41,10 @@ router.get('/', authenticate, async (req, res) => {
         [enr.course_id]
       );
       totalLessons += parseInt(lt[0].t);
+      enrollmentLessonCounts[enr.id] = {
+        completed: parseInt(lc[0].t),
+        total: parseInt(lt[0].t),
+      };
     }
 
     const [quizStats] = await db.query(
@@ -81,6 +86,85 @@ router.get('/', authenticate, async (req, res) => {
       `SELECT COALESCE(SUM(points), 0) as total FROM user_points WHERE user_id = ?`,
       [userId]
     );
+
+    const [notifications] = await db.query(
+      `SELECT id, title, message, type, link, is_read, created_at
+       FROM notifications
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 5`,
+      [userId]
+    );
+
+    const [unreadResult] = await db.query(
+      'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
+      [userId]
+    );
+
+    const [earnedBadges] = await db.query(
+      `SELECT b.id, b.name, b.description, b.icon, b.points, ub.earned_at
+       FROM user_badges ub
+       JOIN badges b ON ub.badge_id = b.id
+       WHERE ub.user_id = ?
+       ORDER BY ub.earned_at DESC
+       LIMIT 6`,
+      [userId]
+    );
+
+    const [badgeCountResult] = await db.query(
+      'SELECT COUNT(*) as total FROM user_badges WHERE user_id = ?',
+      [userId]
+    );
+
+    const [continueRows] = await db.query(
+      `SELECT lp.lesson_id, COALESCE(lp.completed_at, lp.started_at) as last_touched,
+              l.title AS lesson_title, l.content_type,
+              m.id AS module_id, m.title AS module_title,
+              c.id AS course_id, c.title AS course_title
+       FROM lesson_progress lp
+       JOIN lessons l ON lp.lesson_id = l.id
+       JOIN modules m ON l.module_id = m.id
+       JOIN courses c ON m.course_id = c.id
+       JOIN enrollments e ON lp.enrollment_id = e.id
+       WHERE e.user_id = ? AND e.status IN ('active', 'completed')
+       ORDER BY last_touched DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    const nextSteps = [];
+    if (enrollments.length === 0) {
+      nextSteps.push({
+        title: 'Matricule-se em um curso',
+        description: 'Explore os cursos disponíveis e comece sua jornada.',
+        href: '/cursos',
+        icon: 'book',
+      });
+    }
+    const activeEnrollments = enrollments
+      .filter(e => e.status === 'active')
+      .sort((a, b) => new Date(b.last_accessed_at || 0) - new Date(a.last_accessed_at || 0));
+    for (const enr of activeEnrollments.slice(0, 3)) {
+      const counts = enrollmentLessonCounts[enr.id];
+      const done = counts ? counts.completed : 0;
+      const total = counts ? counts.total : 0;
+      const pct = Math.round(parseFloat(enr.progress_percentage || 0));
+      nextSteps.push({
+        title: `Continuar ${enr.course_title}`,
+        description: total > 0 ? `${done} de ${total} aulas concluídas · ${pct}%` : `Progresso ${pct}%`,
+        href: `/aluno/curso/${enr.course_id}`,
+        icon: 'play',
+      });
+    }
+    const completedWithoutCert = enrollments.filter(e => e.status === 'completed' && !e.certificate_issued);
+    for (const enr of completedWithoutCert.slice(0, 2)) {
+      nextSteps.push({
+        title: 'Emitir certificado',
+        description: enr.course_title,
+        href: '/aluno/certificados',
+        icon: 'award',
+      });
+    }
 
     const weeklyProgress = [];
     for (let i = 6; i >= 0; i--) {
@@ -134,6 +218,12 @@ router.get('/', authenticate, async (req, res) => {
       quizScoreHistory,
       courseProgressData,
       recentActivity: recentAttempts.slice(-5).reverse(),
+      notifications,
+      unreadNotifications: parseInt(unreadResult[0].count) || 0,
+      badges: earnedBadges,
+      badgesCount: parseInt(badgeCountResult[0].total) || 0,
+      continueLesson: continueRows.length > 0 ? continueRows[0] : null,
+      nextSteps,
       enrollments: enrollments.map(e => ({
         id: e.id,
         course_id: e.course_id,

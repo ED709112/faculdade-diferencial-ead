@@ -25,10 +25,11 @@ interface Course {
 }
 
 interface MatriculaForm {
-  name: string; email: string; phone: string; cpf: string;
+  name: string; email: string; phone: string; cpf: string; rg: string;
   birth_date: string; gender: string; course_id: string;
-  payment_method: string; address: string; city: string;
-  state: string; zip_code: string;
+  payment_method: string; address: string; address_number: string;
+  neighborhood: string; city: string; state: string; zip_code: string;
+  father_name: string; mother_name: string;
 }
 
 const steps = ['Dados Pessoais', 'Pagamento', 'Confirmação'];
@@ -44,9 +45,11 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
 
   const [form, setForm] = useState<MatriculaForm>({
-    name: '', email: '', phone: '', cpf: '', birth_date: '',
+    name: '', email: '', phone: '', cpf: '', rg: '', birth_date: '',
     gender: '', course_id: preselectedCourseId, payment_method: 'boleto',
-    address: '', city: '', state: '', zip_code: '',
+    address: '', address_number: '', neighborhood: '',
+    city: '', state: '', zip_code: '',
+    father_name: '', mother_name: '',
   });
 
   useEffect(() => {
@@ -64,6 +67,7 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
   const formatCPF = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  const formatRG = (v: string) => v.replace(/\D/g, '').substring(0, 12).replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3-$4');
   const formatPhone = (v: string) => v.replace(/\D/g, '').substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   const formatCEP = (v: string) => v.replace(/\D/g, '').substring(0, 8).replace(/(\d{5})(\d{3})/, '$1-$2');
 
@@ -79,7 +83,7 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
     setLoading(true);
     try {
       const payload = { ...form, course_id: Number(form.course_id) };
-      const { data } = await api.post('/enrollments', payload);
+      const { data } = await api.post('/enrollments/enroll-public', payload);
       setPaymentInfo(data);
       setCurrentStep(2);
     } catch (err: any) {
@@ -163,9 +167,39 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">RG</label>
+              <input type="text" name="rg" value={form.rg} onChange={e => setForm({...form, rg: formatRG(e.target.value)})}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
               <input type="date" name="birth_date" value={form.birth_date} onChange={handleChange}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+              <select name="gender" value={form.gender} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400">
+                <option value="">Selecione</option>
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+                <option value="O">Outro</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Filiação</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Pai</label>
+                  <input type="text" name="father_name" value={form.father_name} onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Mãe</label>
+                  <input type="text" name="mother_name" value={form.mother_name} onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-secondary-400" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -186,6 +220,16 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+              <input type="text" name="address_number" value={form.address_number} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+              <input type="text" name="neighborhood" value={form.neighborhood} onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
               <input type="text" name="city" value={form.city} onChange={handleChange}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
@@ -202,16 +246,6 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
               <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
               <input type="text" name="zip_code" value={form.zip_code} onChange={e => setForm({...form, zip_code: formatCEP(e.target.value)})}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
-              <select name="gender" value={form.gender} onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none">
-                <option value="">Selecione</option>
-                <option value="M">Masculino</option>
-                <option value="F">Feminino</option>
-                <option value="O">Outro</option>
-              </select>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-3">Forma de Pagamento</label>
@@ -252,13 +286,25 @@ function MatriculaEnrollment({ preselectedCourseId, onBack }: { preselectedCours
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Matrícula Realizada!</h2>
           <p className="text-gray-500 mb-6">Enviamos as instruções para seu e-mail.</p>
           <div className="bg-gray-50 rounded-xl p-6 text-left space-y-2 mb-6">
-            {paymentInfo.orderNumber && (
-              <div className="flex justify-between"><span className="text-gray-500">Pedido:</span><span className="font-semibold">#{paymentInfo.orderNumber}</span></div>
+            {(paymentInfo.order_number || paymentInfo.orderNumber) && (
+              <div className="flex justify-between"><span className="text-gray-500">Pedido:</span><span className="font-semibold">#{(paymentInfo.order_number || paymentInfo.orderNumber)}</span></div>
             )}
-            <div className="flex justify-between"><span className="text-gray-500">Curso:</span><span className="font-semibold">{selectedCourse?.title}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Valor:</span><span className="font-semibold text-secondary-600">R$ {Number(selectedCourse?.price).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Pagamento:</span><span className="font-semibold">{form.payment_method === 'pix' ? 'PIX' : form.payment_method === 'boleto' ? 'Boleto' : 'Cartão'}</span></div>
+            {paymentInfo.enrollment_code && (
+              <div className="flex justify-between"><span className="text-gray-500">Matrícula:</span><span className="font-semibold">{paymentInfo.enrollment_code}</span></div>
+            )}
+            <div className="flex justify-between"><span className="text-gray-500">Curso:</span><span className="font-semibold">{paymentInfo.course?.title || selectedCourse?.title}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Valor:</span><span className="font-semibold text-secondary-600">R$ {Number(paymentInfo.course?.price ?? selectedCourse?.price ?? 0).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Pagamento:</span><span className="font-semibold">{paymentInfo.payment_method === 'pix' ? 'PIX' : paymentInfo.payment_method === 'boleto' ? 'Boleto' : paymentInfo.payment_method === 'credit_card' ? 'Cartão' : form.payment_method === 'pix' ? 'PIX' : form.payment_method === 'boleto' ? 'Boleto' : 'Cartão'}</span></div>
           </div>
+
+          {paymentInfo.user?.is_new_user && paymentInfo.user?.temp_password && (
+            <div className="bg-secondary-50 border border-secondary-200 rounded-xl p-4 text-left mb-6">
+              <p className="text-sm font-semibold text-secondary-800 mb-1">Seus dados de acesso</p>
+              <p className="text-xs text-gray-600 mb-2">Use o e-mail {paymentInfo.user.email} e esta senha provisória para entrar na plataforma:</p>
+              <p className="font-mono text-sm font-bold text-secondary-700 bg-white rounded-lg px-3 py-2 border border-secondary-200">{paymentInfo.user.temp_password}</p>
+              <p className="text-[11px] text-gray-500 mt-2">Recomendamos trocar a senha após o primeiro acesso.</p>
+            </div>
+          )}
           <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-secondary-500 to-primary-500 text-white rounded-xl font-semibold hover:from-secondary-600 hover:to-primary-600">
             <FiArrowLeft /> Voltar ao início
           </Link>

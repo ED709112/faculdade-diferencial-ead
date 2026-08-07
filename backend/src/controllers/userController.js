@@ -6,8 +6,9 @@ const { uploadAvatar, uploadDocument } = require('../utils/upload');
 const getProfile = async (req, res) => {
   try {
     const [users] = await db.query(
-      `SELECT id, name, email, role, avatar, phone, cpf, birth_date, gender,
-              address, city, state, zip_code, bio, email_verified_at, is_active,
+      `SELECT id, name, email, role, avatar, phone, cpf, rg, birth_date, gender,
+              address, address_number, neighborhood, city, state, zip_code,
+              father_name, mother_name, bio, email_verified_at, is_active,
               lgpd_consent, last_login, created_at, updated_at
        FROM users WHERE id = ?`,
       [req.user.id]
@@ -26,7 +27,11 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, phone, cpf, birth_date, gender, address, city, state, zip_code, bio } = req.body;
+    const {
+      name, phone, cpf, rg, birth_date, gender,
+      address, address_number, neighborhood, city, state, zip_code,
+      father_name, mother_name, bio,
+    } = req.body;
 
     const fields = [];
     const values = [];
@@ -34,12 +39,17 @@ const updateProfile = async (req, res) => {
     if (name !== undefined) { fields.push('name = ?'); values.push(name); }
     if (phone !== undefined) { fields.push('phone = ?'); values.push(phone); }
     if (cpf !== undefined) { fields.push('cpf = ?'); values.push(cpf); }
+    if (rg !== undefined) { fields.push('rg = ?'); values.push(rg); }
     if (birth_date !== undefined) { fields.push('birth_date = ?'); values.push(birth_date); }
     if (gender !== undefined) { fields.push('gender = ?'); values.push(gender); }
     if (address !== undefined) { fields.push('address = ?'); values.push(address); }
+    if (address_number !== undefined) { fields.push('address_number = ?'); values.push(address_number); }
+    if (neighborhood !== undefined) { fields.push('neighborhood = ?'); values.push(neighborhood); }
     if (city !== undefined) { fields.push('city = ?'); values.push(city); }
     if (state !== undefined) { fields.push('state = ?'); values.push(state); }
     if (zip_code !== undefined) { fields.push('zip_code = ?'); values.push(zip_code); }
+    if (father_name !== undefined) { fields.push('father_name = ?'); values.push(father_name); }
+    if (mother_name !== undefined) { fields.push('mother_name = ?'); values.push(mother_name); }
     if (bio !== undefined) { fields.push('bio = ?'); values.push(bio); }
 
     if (fields.length === 0) {
@@ -54,7 +64,7 @@ const updateProfile = async (req, res) => {
     );
 
     const [updated] = await db.query(
-      'SELECT id, name, email, role, avatar, phone, cpf, birth_date, gender, address, city, state, zip_code, bio, updated_at FROM users WHERE id = ?',
+      'SELECT id, name, email, role, avatar, phone, cpf, rg, birth_date, gender, address, address_number, neighborhood, city, state, zip_code, father_name, mother_name, bio, updated_at FROM users WHERE id = ?',
       [req.user.id]
     );
 

@@ -64,6 +64,7 @@ const billingRoutes = require('./routes/billing');
 const promoRoutes = require('./routes/promo');
 const turmaRoutes = require('./routes/turmas');
 const historicoRoutes = require('./routes/historico');
+const boletoRoutes = require('./routes/boletos');
 
 const app = express();
 const server = http.createServer(app);
@@ -189,6 +190,7 @@ app.use('/api/admin/billing', billingRoutes);
 app.use('/api/admin/promo', promoRoutes);
 app.use('/api/turmas', turmaRoutes);
 app.use('/api/historico', historicoRoutes);
+app.use('/api/boletos', boletoRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

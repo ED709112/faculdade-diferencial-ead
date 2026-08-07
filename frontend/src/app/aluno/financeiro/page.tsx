@@ -105,6 +105,11 @@ export default function AlunoFinanceiroPage() {
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showPixId, setShowPixId] = useState<number | null>(null);
+  const [tab, setTab] = useState<'pedidos' | 'boletos'>('pedidos');
+
+  const [boletos, setBoletos] = useState<any[]>([]);
+  const [boletoSummary, setBoletoSummary] = useState<any>(null);
+  const [boletosLoading, setBoletosLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -118,7 +123,24 @@ export default function AlunoFinanceiroPage() {
     }
   }, []);
 
+  const fetchBoletos = useCallback(async () => {
+    try {
+      setBoletosLoading(true);
+      const { data } = await api.get('/boletos/student');
+      setBoletos(Array.isArray(data.boletos) ? data.boletos : []);
+      setBoletoSummary(data.summary || null);
+    } catch {
+      setBoletos([]);
+      setBoletoSummary(null);
+    } finally {
+      setBoletosLoading(false);
+    }
+  }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    if (tab === 'boletos') fetchBoletos();
+  }, [tab, fetchBoletos]);
 
   const copyPix = async (paymentId: number, code: string) => {
     try {
@@ -155,6 +177,135 @@ export default function AlunoFinanceiroPage() {
         </p>
       </div>
 
+      <div className="flex gap-2 border-b border-gray-100 dark:border-gray-700 pb-4">
+        <button
+          onClick={() => setTab('pedidos')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === 'pedidos' ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+        >
+          Pedidos
+        </button>
+        <button
+          onClick={() => setTab('boletos')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === 'boletos' ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+        >
+          Meus Boletos
+        </button>
+      </div>
+
+      {tab === 'boletos' ? (
+        <>
+          {boletosLoading ? (
+            <Loading text="Carregando seus boletos..." />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                  <div className="flex items-center gap-2 text-yellow-600 mb-2">
+                    <FiClock className="text-lg" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Em aberto</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(boletoSummary?.total_open)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{boletoSummary?.open || 0} boleto(s)</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                  <div className="flex items-center gap-2 text-green-600 mb-2">
+                    <FiCheckCircle className="text-lg" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Total pago</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(boletoSummary?.total_paid)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{boletoSummary?.paid || 0} boleto(s) pagos</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                  <div className="flex items-center gap-2 text-red-600 mb-2">
+                    <FiAlertTriangle className="text-lg" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Vencidos</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{boletoSummary?.overdue || 0}</p>
+                  <p className="text-xs text-gray-400 mt-1">Boletos vencidos</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                    <FiFileText className="text-lg" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Total</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{boletoSummary?.total || 0}</p>
+                  <p className="text-xs text-gray-400 mt-1">Boletos na conta</p>
+                </div>
+              </div>
+
+              {boletos.length === 0 ? (
+                <EmptyState
+                  icon={<FiFileText />}
+                  title="Nenhum boleto cadastrado"
+                  description="Quando a secretaria cadastrar seus boletos, eles aparecerão aqui."
+                />
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+                  {boletos.map(b => {
+                    const expired = b.status === 'overdue' || (b.status === 'pending' && new Date(`${b.due_date}T00:00:00`).getTime() < new Date().setHours(0, 0, 0, 0));
+                    const effective = expired || b.status !== 'pending' ? Number(b.original_value) : Number(b.original_value) - Number(b.discount_value || 0);
+                    return (
+                      <div key={b.id} className="p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center shrink-0">
+                            <FiFileText className="text-primary-500" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">
+                              {b.installment_number}/{b.installment_total} · {b.description || 'Boleto'}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Vencimento {formatDate(b.due_date)}{b.turma_name ? ` · ${b.turma_name}` : ''}
+                            </p>
+                            {Number(b.discount_value) > 0 && !expired && b.status === 'pending' && (
+                              <p className="text-xs text-green-600 mt-1">
+                                {formatCurrency(Number(b.discount_value))} de desconto até o vencimento
+                              </p>
+                            )}
+                            {b.status === 'paid' && (
+                              <p className="text-xs text-green-600 mt-1">Pago: {formatCurrency(b.paid_value)}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 lg:flex-col lg:items-end">
+                          <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                            {formatCurrency(effective)}
+                          </p>
+                          {statusBadge({
+                            paid: { label: 'Pago', classes: 'bg-green-50 text-green-700' },
+                            pending: { label: 'Aguardando', classes: 'bg-yellow-50 text-yellow-700' },
+                            overdue: { label: 'Vencido', classes: 'bg-red-50 text-red-700' },
+                            cancelled: { label: 'Cancelado', classes: 'bg-gray-100 text-gray-600' },
+                            error: { label: 'Erro', classes: 'bg-red-50 text-red-700' },
+                          }, b.status)}
+                          {b.status === 'pending' && b.boleto_url && (
+                            <a
+                              href={b.boleto_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary-600 border border-primary-200 dark:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors"
+                            >
+                              <FiFileText /> Baixar boleto
+                            </a>
+                          )}
+                          {b.status === 'pending' && b.barcode && (
+                            <span className="text-xs text-gray-400 select-all">Código: {b.barcode}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+      <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
           <div className="flex items-center gap-2 text-green-600 mb-2">
@@ -323,6 +474,8 @@ export default function AlunoFinanceiroPage() {
             </div>
           ))}
         </div>
+      )}
+      </>
       )}
     </div>
   );

@@ -176,6 +176,16 @@ const update = async (req, res) => {
       await db.query(`UPDATE modules SET ${fields.join(', ')} WHERE id = ?`, values);
     }
 
+    if (teacher_id !== undefined) {
+      await db.query(
+        `UPDATE disciplines d
+         JOIN course_disciplines cd ON cd.discipline_id = d.id
+         SET d.teacher_id = ?
+         WHERE cd.module_id = ?`,
+        [teacher_id || null, id]
+      );
+    }
+
     await recalcCourseWorkload(modules[0].course_id);
 
     const [updated] = await db.query('SELECT * FROM modules WHERE id = ?', [id]);
