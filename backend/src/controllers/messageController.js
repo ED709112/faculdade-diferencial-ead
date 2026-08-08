@@ -1,6 +1,5 @@
 const db = require('../config/database');
 const { paginate, paginateResult } = require('../utils/pagination');
-const { sendEmail, emailTemplates } = require('../services/emailService');
 
 const messageLink = (userId, role, conversationId) => {
   if (role === 'teacher') return `/professor/mensagens/${conversationId}`;
@@ -140,15 +139,8 @@ const sendMessage = async (req, res) => {
       });
     }
 
-    const [conv] = await db.query(
-      `SELECT co.title, c.course_id FROM conversations c
-       LEFT JOIN courses co ON c.course_id = co.id
-       WHERE c.id = ?`,
-      [conversation_id]
-    );
-
     for (const p of participants) {
-      const [user] = await db.query('SELECT email, name, role FROM users WHERE id = ?', [p.user_id]);
+      const [user] = await db.query('SELECT name, role FROM users WHERE id = ?', [p.user_id]);
       const link = messageLink(p.user_id, user.length > 0 ? user[0].role : null, conversation_id);
 
       await db.query(
@@ -156,14 +148,6 @@ const sendMessage = async (req, res) => {
          VALUES (?, 'Nova mensagem', ?, 'info', ?)`,
         [p.user_id, `Nova mensagem de ${req.user.name}`, link]
       );
-
-      if (user.length > 0 && user[0].email) {
-        const messagePreview = message.length > 100 ? message.substring(0, 100) + '...' : message;
-        await sendEmail({
-          to: user[0].email,
-          ...emailTemplates.newMessage(req.user.name, conv.length > 0 ? conv[0].title : null, messagePreview)
-        });
-      }
 
       if (io) {
         io.to(`user_${p.user_id}`).emit('new_notification', {
@@ -296,8 +280,55 @@ const markAsRead = async (req, res) => {
   }
 };
 
+const getStudentRecipients = async (userId) => {
+  const [teachers] = await db.query(
+    `SELECT DISTINCT u.id, u.name, u.email, u.avatar,
+            GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') AS disciplines
+     FROM enrollments e
+     JOIN courses c ON c.id = e.course_id
+     LEFT JOIN course_disciplines cd ON cd.course_id = c.id
+     LEFT JOIN disciplines d ON d.id = cd.discipline_id
+     LEFT JOIN modules m ON cd.module_id = m.id
+     LEFT JOIN users u ON u.id = COALESCE(m.teacher_id, d.teacher_id)
+     WHERE e.user_id = ? AND e.status IN ('active','pending')
+       AND u.id IS NOT NULL AND u.role = 'teacher' AND u.is_active = 1
+     GROUP BY u.id, u.name, u.email, u.avatar
+     ORDER BY u.name`,
+    [userId]
+  );
+
+  const [courseTeachers] = await db.query(
+    `SELECT DISTINCT u.id, u.name, u.email, u.avatar
+     FROM enrollments e
+     JOIN courses c ON c.id = e.course_id
+     JOIN users u ON u.id = c.teacher_id
+     WHERE e.user_id = ? AND e.status IN ('active','pending')
+       AND u.role = 'teacher' AND u.is_active = 1`,
+    [userId]
+  );
+
+  const [admins] = await db.query(
+    `SELECT id, name, email, avatar FROM users
+     WHERE role = 'admin' AND is_active = 1 ORDER BY name`
+  );
+
+  const teacherMap = new Map(teachers.map(t => [t.id, t]));
+  for (const ct of courseTeachers) {
+    if (!teacherMap.has(ct.id)) {
+      teacherMap.set(ct.id, { ...ct, disciplines: null });
+    }
+  }
+
+  return { teachers: [...teacherMap.values()], admins };
+};
+
 const getRecipients = async (req, res) => {
   try {
+    if (req.user.role === 'student') {
+      const data = await getStudentRecipients(req.user.id);
+      return res.json(data);
+    }
+
     const [teachers] = await db.query(
       `SELECT id, name, email, avatar FROM users
        WHERE role = 'teacher' AND is_active = 1 ORDER BY name`
@@ -426,13 +457,6 @@ const broadcastMessage = async (req, res) => {
          VALUES (?, ?, ?, 'info', ?)`,
         [u.id, title, `Mensagem do administrador: ${messagePreview}`, link]
       );
-
-      if (u.email) {
-        await sendEmail({
-          to: u.email,
-          ...emailTemplates.newMessage(req.user.name, conversation[0].course_title || null, messagePreview)
-        });
-      }
 
       if (io) {
         io.to(`user_${u.id}`).emit('new_notification', {

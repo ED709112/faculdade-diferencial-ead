@@ -6,7 +6,7 @@ const { paginationValidator } = require('../middleware/validators');
 
 router.get('/conversations', authenticate, messageController.getConversations);
 
-router.get('/recipients', authenticate, authorize('admin'), messageController.getRecipients);
+router.get('/recipients', authenticate, messageController.getRecipients);
 
 router.post('/broadcast', authenticate, authorize('admin'), messageController.broadcastMessage);
 

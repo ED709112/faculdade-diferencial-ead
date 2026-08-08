@@ -36,7 +36,8 @@ interface Conversation {
   course_id?: number;
   course_title?: string;
   other_participants: Participant[];
-  last_message?: Message;
+  last_message?: Message | string;
+  last_message_at?: string;
   unread_count: number;
 }
 
@@ -128,7 +129,12 @@ export default function MessagesPanel({ role, initialConversationId, composePane
   }, [messages]);
 
   useEffect(() => {
-    const cleanup = onNewMessage((msg: any) => {
+    const cleanup = onNewMessage((event: any) => {
+      const msg =
+        event && typeof event === 'object' && event.message && typeof event.message === 'object'
+          ? event.message
+          : event;
+      if (!msg || !msg.conversation_id) return;
       if (activeConversation && msg.conversation_id === activeConversation.id) {
         setMessages((prev) => {
           if (prev.some(m => m.id === msg.id)) return prev;
@@ -198,7 +204,10 @@ export default function MessagesPanel({ role, initialConversationId, composePane
         conversation_id: activeConversation.id,
         message: newMessage.trim(),
       });
-      const sentMsg = data.message || data;
+      const sentMsg =
+        data && typeof data === 'object' && data.message && typeof data.message === 'object'
+          ? data.message
+          : data;
       setMessages((prev) => {
         if (prev.some(m => m.id === sentMsg.id)) return prev;
         return [...prev, sentMsg];
@@ -229,6 +238,17 @@ export default function MessagesPanel({ role, initialConversationId, composePane
     if (diff < 86400000 && d.getDate() === now.getDate()) return 'Hoje';
     if (diff < 172800000) return 'Ontem';
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  };
+
+  const lastMessageText = (conv: Conversation) => {
+    const lm = conv.last_message;
+    if (!lm) return '';
+    return typeof lm === 'string' ? lm : lm.message || '';
+  };
+
+  const lastMessageDate = (conv: Conversation) => {
+    const d = conv.last_message_at || (conv.last_message && typeof conv.last_message === 'object' ? conv.last_message.created_at : null);
+    return d ? formatDate(d) : '';
   };
 
   const filteredConversations = conversations.filter((conv) => {
@@ -274,10 +294,10 @@ export default function MessagesPanel({ role, initialConversationId, composePane
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{conversationName(conv)}</p>
-                        {conv.last_message && <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">{formatDate(conv.last_message.created_at)}</span>}
+                        {conv.last_message && <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">{lastMessageDate(conv)}</span>}
                       </div>
                       <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{conversationSubtitle(conv)}</p>
-                      {conv.last_message && <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{conv.last_message.message}</p>}
+                      {lastMessageText(conv) && <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{lastMessageText(conv)}</p>}
                     </div>
                     {conv.unread_count > 0 && <span className="w-5 h-5 bg-primary-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{conv.unread_count > 9 ? '9+' : conv.unread_count}</span>}
                   </button>
