@@ -23,6 +23,10 @@ router.patch('/leads/:id/move', authenticate, authorize('admin'), crm.moveLead);
 // Interactions
 router.post('/leads/:id/interactions', authenticate, authorize('admin'), crm.addInteraction);
 
+// WhatsApp Chat embutido
+router.get('/leads/:id/whatsapp', authenticate, authorize('admin'), crm.getLeadWhatsappChat);
+router.post('/leads/:id/whatsapp/messages', authenticate, authorize('admin'), crm.sendLeadWhatsappMessage);
+
 // Tags
 router.get('/tags', authenticate, authorize('admin'), crm.listTags);
 router.post('/tags', authenticate, authorize('admin'), crm.createTag);

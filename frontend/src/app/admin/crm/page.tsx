@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   FiPlus, FiSearch, FiFilter, FiUser, FiPhone, FiMail, FiMessageSquare,
   FiArrowRight, FiArrowLeft, FiX, FiSave, FiEye, FiTrash2, FiClock,
-  FiTag, FiExternalLink, FiChevronDown, FiChevronRight, FiUsers,
+  FiTag, FiChevronDown, FiChevronRight, FiUsers,
   FiTrendingUp, FiCalendar, FiHash, FiDownload, FiZap, FiBell, FiUpload,
+  FiSend, FiWifi, FiWifiOff,
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import Loading from '@/components/ui/Loading';
@@ -120,12 +121,31 @@ export default function AdminCRMPage() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [chatLead, setChatLead] = useState<Lead | null>(null);
+  const [chatConversation, setChatConversation] = useState<any | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatText, setChatText] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatSending, setChatSending] = useState(false);
+  const [waConnected, setWaConnected] = useState<boolean | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchData(), 300);
     return () => clearTimeout(timer);
   }, [search, filterStatus, filterSource]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (!chatLead) return;
+    const interval = setInterval(() => loadChat(), 5000);
+    return () => clearInterval(interval);
+  }, [chatLead]);
 
   const fetchData = async () => {
     try {
@@ -249,6 +269,50 @@ export default function AdminCRMPage() {
     } catch { toast.error('Erro ao exportar'); }
   };
 
+  const loadChat = async () => {
+    if (!chatLead) return;
+    try {
+      const { data } = await api.get(`/crm/leads/${chatLead.id}/whatsapp`);
+      setChatConversation(data.conversation || null);
+      setChatMessages(data.messages || []);
+      setWaConnected(!!data.connected);
+    } catch {}
+    finally { setChatLoading(false); }
+  };
+
+  const openWhatsAppChat = async (lead: Lead) => {
+    setChatLead(lead);
+    setChatMessages([]);
+    setChatConversation(null);
+    setChatText('');
+    setChatLoading(true);
+    await loadChat();
+  };
+
+  const closeWhatsAppChat = () => {
+    setChatLead(null);
+    setChatMessages([]);
+    setChatConversation(null);
+    setChatText('');
+    setWaConnected(null);
+  };
+
+  const handleSendChat = async () => {
+    if (!chatLead || !chatText.trim() || chatSending) return;
+    setChatSending(true);
+    const text = chatText;
+    try {
+      const { data } = await api.post(`/crm/leads/${chatLead.id}/whatsapp/messages`, { content: text });
+      setChatText('');
+      if (data.sendError) {
+        toast.error('Mensagem salva, mas o WhatsApp está desconectado. Reconecte a instância para enviar.');
+      }
+      await loadChat();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao enviar mensagem');
+    } finally { setChatSending(false); }
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -316,12 +380,6 @@ export default function AdminCRMPage() {
       setShowDetail(true);
       loadReminders();
     } catch { toast.error('Erro ao carregar detalhes'); }
-  };
-
-  const getWhatsappLink = (phone: string) => {
-    const clean = phone.replace(/\D/g, '');
-    const number = clean.startsWith('55') ? clean : `55${clean}`;
-    return `https://wa.me/${number}`;
   };
 
   if (loading) return <Loading text="Carregando CRM..." />;
@@ -507,10 +565,10 @@ export default function AdminCRMPage() {
                     <div className="flex items-center gap-3 text-xs text-gray-400">
                       {lead.phone && <span className="flex items-center gap-1"><FiPhone />{lead.phone.slice(0, 10)}</span>}
                       {lead.whatsapp && (
-                        <a href={getWhatsappLink(lead.whatsapp)} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-green-500 hover:text-green-600" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); openWhatsAppChat(lead); }}
+                          className="flex items-center gap-1 text-green-500 hover:text-green-600 font-medium" title="Abrir WhatsApp na plataforma">
                           <FiMessageSquare /> WhatsApp
-                        </a>
+                        </button>
                       )}
                     </div>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 dark:border-gray-700/50">
@@ -592,9 +650,10 @@ export default function AdminCRMPage() {
               {selectedLead.whatsapp && (
                 <div className="flex items-center gap-3 text-sm">
                   <FiMessageSquare className="text-green-500 shrink-0" />
-                  <a href={getWhatsappLink(selectedLead.whatsapp)} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline flex items-center gap-1">
-                    {selectedLead.whatsapp} <FiExternalLink className="text-xs" />
-                  </a>
+                  <button onClick={() => openWhatsAppChat(selectedLead)}
+                    className="text-green-500 hover:underline flex items-center gap-1 font-medium" title="Abrir WhatsApp na plataforma">
+                    {selectedLead.whatsapp} <FiMessageSquare className="text-xs" />
+                  </button>
                 </div>
               )}
               {selectedLead.cpf && (
@@ -798,6 +857,82 @@ export default function AdminCRMPage() {
                 {(!selectedLead.interactions || selectedLead.interactions.length === 0) && (
                   <p className="text-center text-gray-400 text-sm py-4">Nenhuma interação registrada</p>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp Chat Drawer */}
+      {chatLead && (
+        <div className="fixed inset-0 z-[60] flex justify-end bg-black/50" onClick={closeWhatsAppChat}>
+          <div className="w-full max-w-xl bg-white dark:bg-gray-800 h-full flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-emerald-600 text-white px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <button onClick={closeWhatsAppChat} className="p-1 rounded-lg hover:bg-emerald-500 shrink-0" title="Voltar">
+                  <FiArrowLeft className="text-lg" />
+                </button>
+                <div className="min-w-0">
+                  <h2 className="font-bold truncate">{chatLead.name}</h2>
+                  <p className="text-xs text-emerald-100 truncate">{chatLead.whatsapp || chatLead.phone}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {waConnected !== null && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold ${
+                    waConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {waConnected ? <FiWifi /> : <FiWifiOff />}
+                    {waConnected ? 'Conectado' : 'Desconectado'}
+                  </span>
+                )}
+                <button onClick={closeWhatsAppChat} className="p-1 rounded-lg hover:bg-emerald-500" title="Fechar">
+                  <FiX className="text-lg" />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900/50">
+              {chatLoading && chatMessages.length === 0 && (
+                <p className="text-center text-gray-400 text-sm py-8">Carregando conversa...</p>
+              )}
+              {!chatLoading && chatMessages.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                  <FiMessageSquare className="text-4xl mx-auto mb-3 opacity-50 text-green-500" />
+                  <p className="text-sm">Nenhuma conversa ainda.</p>
+                  <p className="text-xs mt-1">Envie a primeira mensagem para iniciar o atendimento pelo WhatsApp.</p>
+                </div>
+              )}
+              {chatMessages.map(msg => (
+                <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                    msg.direction === 'outbound'
+                      ? 'bg-emerald-500 text-white rounded-br-sm'
+                      : 'bg-white dark:bg-gray-700 dark:text-gray-100 rounded-bl-sm shadow-sm'
+                  }`}>
+                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                    <p className={`text-[9px] mt-1 ${msg.direction === 'outbound' ? 'text-emerald-100' : 'text-gray-400'}`}>
+                      {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="border-t border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 shrink-0">
+              <div className="flex items-end gap-2">
+                <textarea value={chatText} onChange={e => setChatText(e.target.value)} rows={2}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat(); } }}
+                  placeholder="Digite a mensagem..."
+                  className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm outline-none resize-none" />
+                <button onClick={handleSendChat} disabled={!chatText.trim() || chatSending}
+                  className="p-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors shrink-0">
+                  <FiSend className="text-lg" />
+                </button>
               </div>
             </div>
           </div>

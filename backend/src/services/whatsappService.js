@@ -66,9 +66,9 @@ class WhatsAppService {
     }
   }
 
-  async getInstanceStatus() {
+  async getInstanceStatus(instance) {
     try {
-      const client = await this.getClient();
+      const client = await this.getClient(instance);
       const response = await client.get(`/instance/connectionState/${this.instance}`);
       return response.data;
     } catch (error) {
@@ -77,9 +77,9 @@ class WhatsAppService {
     }
   }
 
-  async getQRCode() {
+  async getQRCode(instance) {
     try {
-      const client = await this.getClient();
+      const client = await this.getClient(instance);
       const response = await client.get(`/instance/connect/${this.instance}`);
       return response.data;
     } catch (error) {

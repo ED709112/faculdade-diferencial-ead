@@ -4,6 +4,7 @@ const path = require('path');
 const QRCode = require('qrcode');
 const ExcelJS = require('exceljs');
 const axios = require('axios');
+const whatsappService = require('../services/whatsappService');
 
 async function fireWebhooks(event, payload) {
   try {
@@ -960,5 +961,122 @@ exports.importLeads = async (req, res) => {
   } catch (error) {
     console.error('[Leads] Erro ao importar:', error.message);
     res.status(500).json({ error: 'Erro ao importar: ' + error.message });
+  }
+};
+
+// =====================================================
+// WHATSAPP CHAT EMBUTIDO (CRM)
+// =====================================================
+
+function whatsappDigits(phone) {
+  if (!phone) return '';
+  return String(phone).replace(/\D/g, '');
+}
+
+const CRM_WHATSAPP_INSTANCE = 'faculdade';
+
+async function findLeadConversation(lead) {
+  const digits = whatsappDigits(lead.whatsapp || lead.phone);
+  if (!digits) return null;
+  const [convs] = await db.query(
+    `SELECT * FROM chatbot_conversations
+     WHERE phone = ? OR phone = ?
+     ORDER BY (lead_id = ?) DESC, last_message_at DESC LIMIT 1`,
+    [digits, `55${digits}`, lead.id]
+  );
+  return convs[0] || null;
+}
+
+exports.getLeadWhatsappChat = async (req, res) => {
+  try {
+    const [leads] = await db.query('SELECT * FROM leads WHERE id = ?', [req.params.id]);
+    if (leads.length === 0) return res.status(404).json({ error: 'Lead não encontrado' });
+
+    const lead = leads[0];
+    const digits = whatsappDigits(lead.whatsapp || lead.phone);
+
+    const conversation = await findLeadConversation(lead);
+    let messages = [];
+    if (conversation) {
+      const [rows] = await db.query(
+        'SELECT id, conversation_id, direction, message_type, content, is_bot, created_at FROM chatbot_messages WHERE conversation_id = ? ORDER BY created_at ASC',
+        [conversation.id]
+      );
+      messages = rows;
+    }
+
+    let connected = false;
+    try {
+      const st = await whatsappService.getInstanceStatus(CRM_WHATSAPP_INSTANCE);
+      connected = (st?.instance?.state || st?.state) === 'open';
+    } catch (statusError) {
+      console.error('WhatsApp status check error:', statusError.message);
+    }
+
+    res.json({ conversation, messages, whatsapp: digits, connected });
+  } catch (error) {
+    console.error('getLeadWhatsappChat error:', error);
+    res.status(500).json({ error: 'Erro ao buscar chat do WhatsApp' });
+  }
+};
+
+exports.sendLeadWhatsappMessage = async (req, res) => {
+  try {
+    const content = String(req.body?.content || '').trim();
+    if (!content) return res.status(400).json({ error: 'Mensagem é obrigatória' });
+
+    const [leads] = await db.query('SELECT * FROM leads WHERE id = ?', [req.params.id]);
+    if (leads.length === 0) return res.status(404).json({ error: 'Lead não encontrado' });
+
+    const lead = leads[0];
+    const digits = whatsappDigits(lead.whatsapp || lead.phone);
+    if (!digits) return res.status(400).json({ error: 'Lead sem número de WhatsApp' });
+
+    let conversation = await findLeadConversation(lead);
+    if (!conversation) {
+      const [result] = await db.query(
+        'INSERT INTO chatbot_conversations (phone, contact_name, status, lead_id) VALUES (?, ?, ?, ?)',
+        [digits, lead.name, 'human', lead.id]
+      );
+      conversation = { id: result.insertId };
+    } else if (conversation.lead_id !== lead.id) {
+      await db.query('UPDATE chatbot_conversations SET lead_id = ? WHERE id = ?', [lead.id, conversation.id]);
+    }
+
+    // Atendimento humano: evita resposta automática do bot no meio do atendimento
+    await db.query("UPDATE chatbot_conversations SET status = 'human' WHERE id = ?", [conversation.id]);
+
+    const [msgResult] = await db.query(
+      "INSERT INTO chatbot_messages (conversation_id, direction, message_type, content, is_bot) VALUES (?, 'outbound', 'text', ?, 0)",
+      [conversation.id, content]
+    );
+    await db.query('UPDATE chatbot_conversations SET last_message_at = NOW() WHERE id = ?', [conversation.id]);
+
+    let sendError = null;
+    try {
+      await whatsappService.sendMessage(digits, content, CRM_WHATSAPP_INSTANCE);
+    } catch (waError) {
+      sendError = waError.message;
+      console.error('WhatsApp CRM send failed:', waError.message);
+    }
+
+    try {
+      await db.query(
+        "INSERT INTO lead_interactions (lead_id, type, direction, subject, message) VALUES (?, 'whatsapp', 'outbound', NULL, ?)",
+        [lead.id, content]
+      );
+    } catch (intError) {
+      console.error('Erro ao registrar interação do chat:', intError.message);
+    }
+
+    const [newMsg] = await db.query(
+      'SELECT id, conversation_id, direction, message_type, content, is_bot, created_at FROM chatbot_messages WHERE id = ?',
+      [msgResult.insertId]
+    );
+
+    res.status(201).json({ message: newMsg[0], conversation_id: conversation.id, sendError });
+  } catch (error) {
+    console.error('sendLeadWhatsappMessage error:', error);
+    res.status(500).json({ error: 'Erro ao enviar mensagem' });
   }
 };

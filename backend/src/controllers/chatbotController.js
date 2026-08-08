@@ -330,7 +330,7 @@ exports.webhook = async (req, res) => {
 
 exports.whatsappStatus = async (req, res) => {
   try {
-    const status = await whatsappService.getInstanceStatus();
+    const status = await whatsappService.getInstanceStatus(req.query.instance);
     res.json(status);
   } catch (error) {
     res.json({ state: 'disconnected', error: error.message });
@@ -339,7 +339,7 @@ exports.whatsappStatus = async (req, res) => {
 
 exports.whatsappQR = async (req, res) => {
   try {
-    const qr = await whatsappService.getQRCode();
+    const qr = await whatsappService.getQRCode(req.query.instance);
     res.json(qr);
   } catch (error) {
     res.status(500).json({ error: error.message });

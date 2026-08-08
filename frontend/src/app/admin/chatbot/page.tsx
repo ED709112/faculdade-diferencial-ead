@@ -72,6 +72,11 @@ export default function AdminChatbotPage() {
   const [testResponse, setTestResponse] = useState('');
   const [testingAI, setTestingAI] = useState(false);
   const [whatsappStatus, setWhatsappStatus] = useState<any>(null);
+  const [showQR, setShowQR] = useState(false);
+  const [qrInstance, setQrInstance] = useState('faculdade');
+  const [qrData, setQrData] = useState<any>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrStatus, setQrStatus] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { fetchData(); }, []);
@@ -82,6 +87,12 @@ export default function AdminChatbotPage() {
     }, 5000);
     return () => clearInterval(timer);
   }, [selectedConv]);
+
+  useEffect(() => {
+    if (!showQR) return;
+    const timer = setInterval(() => checkQrStatus(), 3000);
+    return () => clearInterval(timer);
+  }, [showQR, qrInstance]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,6 +156,32 @@ export default function AdminChatbotPage() {
     } catch { toast.error('Erro ao atualizar'); }
   };
 
+  const handleReconnect = async (instance: string) => {
+    setQrInstance(instance);
+    setShowQR(true);
+    setQrData(null);
+    setQrLoading(true);
+    try {
+      const { data } = await api.get('/chatbot/whatsapp/qr', { params: { instance } });
+      setQrData(data);
+    } catch {
+      toast.error('Erro ao gerar QR code');
+    } finally { setQrLoading(false); }
+  };
+
+  const checkQrStatus = async () => {
+    try {
+      const { data } = await api.get('/chatbot/whatsapp/status', { params: { instance: qrInstance } });
+      setQrStatus(data);
+      if ((data?.instance?.state || data?.state) === 'open') {
+        toast.success('WhatsApp conectado!');
+        setShowQR(false);
+        setQrData(null);
+        fetchData();
+      }
+    } catch {}
+  };
+
   const handleSaveConfig = async () => {
     setSavingConfig(true);
     try {
@@ -189,6 +226,10 @@ export default function AdminChatbotPage() {
               {whatsappStatus.state === 'open' ? 'WhatsApp Conectado' : 'WhatsApp Desconectado'}
             </span>
           )}
+          <button onClick={() => handleReconnect('faculdade')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors">
+            <FiRefreshCw /> Reconectar WhatsApp
+          </button>
         </div>
       </div>
 
@@ -537,6 +578,73 @@ export default function AdminChatbotPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp QR Modal */}
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setShowQR(false); setQrData(null); }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <FiWifi className="text-emerald-500" /> Conectar WhatsApp
+              </h3>
+              <button onClick={() => { setShowQR(false); setQrData(null); }} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <FiX className="text-lg text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <select value={qrInstance} onChange={e => handleReconnect(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm outline-none">
+                <option value="faculdade">Número principal (86) 99493-4404</option>
+                <option value="divulgacao">Divulgação (86) 99439-5019</option>
+              </select>
+              <button onClick={() => handleReconnect(qrInstance)} disabled={qrLoading}
+                className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-2">
+                <FiRefreshCw className={qrLoading ? 'animate-spin' : ''} /> Gerar
+              </button>
+            </div>
+
+            {qrLoading && !qrData && (
+              <div className="text-center py-10 text-gray-400">
+                <FiRefreshCw className="animate-spin text-3xl mx-auto mb-3" />
+                <p className="text-sm">Gerando QR code...</p>
+              </div>
+            )}
+
+            {!qrLoading && !qrData && (
+              <div className="text-center py-10 text-gray-400">
+                <FiWifiOff className="text-3xl mx-auto mb-3" />
+                <p className="text-sm">Clique em "Gerar" para obter o QR code</p>
+              </div>
+            )}
+
+            {qrData && (
+              <div className="space-y-4">
+                {qrData.base64 ? (
+                  <div className="flex justify-center bg-white p-4 rounded-xl border border-gray-200">
+                    <img src={qrData.base64.startsWith('data:image') ? qrData.base64 : `data:image/png;base64,${qrData.base64}`}
+                      alt="QR Code WhatsApp" className="w-56 h-56" />
+                  </div>
+                ) : (
+                  <p className="text-center text-sm text-gray-500">{qrData.error || 'QR code indisponível'}</p>
+                )}
+                {qrData.pairingCode && (
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 text-center">
+                    <p className="text-xs text-gray-500 mb-1">Ou use o código de pareamento no WhatsApp:</p>
+                    <p className="text-xl font-bold tracking-wider text-gray-900 dark:text-gray-100">{qrData.pairingCode}</p>
+                  </div>
+                )}
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 text-xs text-emerald-700 dark:text-emerald-300">
+                  No WhatsApp do celular: <b>Ajustes → Dispositivos conectados → Conectar um dispositivo</b> e escaneie o QR.
+                </div>
+                {qrStatus && (qrStatus?.instance?.state || qrStatus?.state) === 'close' && (
+                  <p className="text-center text-xs text-gray-400">Aguardando escaneamento... (verifica a cada 3s)</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
